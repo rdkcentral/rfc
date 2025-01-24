@@ -1,0 +1,23 @@
+name: Build RFC Component in Native Environment
+
+on:
+ pull_request:
+   branches: [ develop ]
+   paths: ['**/*.c', '**/*.cpp', '**/*.cc', '**/*.cxx', '**/*.h', '**/*.hpp']
+
+jobs:
+  build-rfc-on-pr:
+    name: Build RFC Component in GitHub rdkcentral
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: native build
+        runs: |
+          chmod +x cov_build.sh
+          sh -e cov_build.sh
+

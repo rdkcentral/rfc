@@ -1,0 +1,46 @@
+This folder contains utilities for the RFC. Following utilities are present
+_______________________________________________________________
+rfctool
+---------------------------------------------------------------
+
+This tool is used to parse json message and extract all list files into specified folders.
+The following variables are used in this case
+RFC_LIST_FILE_NAME_PREFIX - This will be used to to provide the prefix to file name
+RFC_LIST_FILE_NAME_SUFFIX - The suffix part
+RFC_PATH - The RFC directory
+
+The tool will extract all list items present in the root folder of each object and store it 
+as 
+RFC_PATH/RFC_LIST_FILE_NAME_PREFIX<<listType>>RFC_LIST_FILE_NAME_SUFFIX
+where listype is taken from the name of the list present in json
+a sample form of json will be
+
+		{
+			"name": "SNMP2WL",
+			"effectiveImmediate": false,
+			"enable": true,
+			"configData": {
+				
+			},
+			"listType": "SNMPIPv4",
+			"listSize": 2,
+			"SNMP IP4 WL": ["128.82.34.17",
+			"10.0.0.32/6"]
+		}
+
+_______________________________________________________________
+tr181Set
+---------------------------------------------------------------
+This utility is used to set a parameter for host interface using iarm tool
+The usage will be 
+
+Usage : tr181Set [-g] [-d] [-s] [-v value] ParamName
+-g get operation
+-s set operation
+-d enable debug
+-v value of parameter
+If -s option is set -v is mandatory, otherwise -g option is default
+
+if you need just the parameter value for get operation use following format
+tr181Set param 1>/dev/null
+
