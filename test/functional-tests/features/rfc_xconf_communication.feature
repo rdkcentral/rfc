@@ -1,9 +1,8 @@
-#!/bin/sh
 ####################################################################################
-# If not stated otherwise in this file or this component's LICENSE file the
+# If not stated otherwise in this file or this component's Licenses file the
 # following copyright and licenses apply:
 #
-# Copyright 2023 RDK Management
+# Copyright 2024 RDK Management
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,34 +17,17 @@
 # limitations under the License.
 ####################################################################################
 
-WORKDIR=`pwd`
+Feature: RFC Manager XCONF Communication and Error Handling
 
-## Build and install critical dependency
-export RFC_ROOT=/usr
-export RFC_INSTALL_DIR=${RFC_ROOT}/local
-mkdir -p $RFC_INSTALL_DIR
+  Scenario: Unresolved XCONF URL
+    Given the RFC properties file is modified to use an unresolved XCONF URL
+    When the RFC manager binary is run
+    Then an error message "Couldn't resolve host name" should be logged
+    And an error message "cURL Return : 6 HTTP Code : 0" should be logged
 
-autoreconf -i
-export cjson_CFLAGS="-I/usr/include/cjson"
-export CXXFLAGS="-Wno-format -Wno-unused-variable"
-./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
+  Scenario: 404 XCONF URL
+    Given the RFC properties file is modified to use a 404 XCONF URL
+    When the RFC manager binary is run
+    Then an error message "cURL Return : 0 HTTP Code : 404" should be logged
 
-# rfcapi/
-cd rfcapi
-cp /usr/include/cjson/cJSON.h  ./
-cp /usr/local/include/wdmp-c/wdmp-c.h ./
-make && make install
-
-# tr181api/
-cd ../tr181api
-make && make install
-
-# utils/
-cd ../utils
-make && make install
-
-# rfcMgr/
-cd ../rfcMgr
-export curl_LIBS=" -lcurl"
-make && make install
 
