@@ -22,7 +22,7 @@ WORKDIR=`pwd`
 
 ## Build and install critical dependency
 export RFC_ROOT=/usr
-export RFC_INSTALL_DIR=${RFC_ROOT}/local
+export RFC_INSTALL_DIR=${RFC_ROOT}
 mkdir -p $RFC_INSTALL_DIR
 
 autoreconf -i
