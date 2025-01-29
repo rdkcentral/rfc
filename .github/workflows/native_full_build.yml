@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: native build
-        runs: |
+        run: |
           chmod +x cov_build.sh
           sh -e cov_build.sh
 
