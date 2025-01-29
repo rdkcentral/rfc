@@ -55,17 +55,12 @@ def write_on_file(file: str, content: str) -> None:
     :param content: The content to write or append.
     :return: None
     """
-    if not os.path.exists(file):
-        with open(file, 'w') as f:
-            f.write(content)
-    else:
-        if os.path.getsize(file) == 0:
-            with open(file, 'w') as f:
-                f.write(content)
+    mode = 'a' if os.path.exists(file) and os.path.getsize(file) > 0 else 'w'
+    with open(file, mode) as f:
+        if mode == 'a':
+            f.write('\n' + content)
         else:
-            with open(file, 'a') as f:
-                f.write('\n' + content)
-
+            f.write(content)
 
 def get_FWversion() -> str | None:
     """
@@ -81,8 +76,9 @@ def get_FWversion() -> str | None:
         try:
             with open(VERSION_FILE, "r") as version_file:
                 for line in version_file:
-                    if line.startswith("imagename:"):
-                        image_name = line.split(":", 1)[1].strip()
+                    if line.startswith("imagename:") or line.startswith("imagename="):
+                        delimiter = ":" if "imagename:" in line else "="
+                        image_name = line.split(delimiter, 1)[1].strip()
                         if image_name:
                             return image_name
                         else:
