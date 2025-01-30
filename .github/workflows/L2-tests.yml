@@ -41,6 +41,11 @@ jobs:
         run: |
           docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
 
+      - name: Verify health of mock-xconf service availability in L2 Container
+        run: |
+          docker exec -i native-platform /bin/bash -c "curl https://mockxconf:50053/featureControl/getSettings"
+          docker exec -i native-platform /bin/bash -c 'curl -w "%{http_code}\n"  https://mockxconf:50053/featureControl404/getSettings'
+
       - name: Build RFC and Run L2 inside Native Platform Container
         run: |
           docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
