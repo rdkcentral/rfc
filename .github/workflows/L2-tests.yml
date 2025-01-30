@@ -1,0 +1,67 @@
+name: L2 Integration Tests for RFC
+
+on:
+  pull_request:
+    branches: [ develop, topic/RDK-48828 ]
+
+env:
+  AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
+  AUTOMATICS_PASSCODE: ${{ secrets.AUTOMATICS_PASSCODE }}
+
+jobs:
+  execute-l2-tests-on-pr:
+    name: Execute L2 Test in L2 Container Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout RFC Code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Pull Mock XConf, Native Platform, and Docker RDK CI Images
+        run: |
+          docker pull ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
+          docker pull ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+          docker pull ghcr.io/rdkcentral/docker-rdk-ci:latest
+
+      - name: Start mock-xconf service
+        run: |
+          docker run -d --name mockxconf -p 50050:50050 -p 50051:50051 -p 50052:50052 -p 50053:50053 -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
+
+      - name: Start l2-container service
+        run: |
+          docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+
+      - name: Build RFC and Run L2 inside Native Platform Container
+        run: |
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
+
+      - name: Copy L2 Test report to Host Runner
+        run: |
+          docker cp native-platform:/tmp/l2_test_report /tmp/L2_TEST_RESULTS
+          ls -lh /tmp/L2_TEST_RESULTS
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          install: true
+
+      - name: Run RDK CI Container
+        run: |
+          docker run -d --name ci-container -e AUTOMATICS_UNAME=${{ secrets.AUTOMATICS_UNAME }} -e AUTOMATICS_PASSCODE=${{ secrets.AUTOMATICS_PASSCODE }} -v /tmp/L2_TEST_RESULTS:/tmp/L2_TEST_RESULTS ghcr.io/rdkcentral/docker-rdk-ci:latest tail -f /dev/null
+
+      - name: Upload Results to Automatics
+        if: github.repository_owner == 'rdkcentral'
+        run: |
+          docker cp /tmp/L2_TEST_RESULTS ci-container:/tmp/L2_TEST_RESULTS
+          docker exec -i ci-container bash -c "echo 'Contents in workspace directory' && ls -l && echo '===============================' && echo 'Contents in /tmp/L2_TEST_RESULTS' && ls -l /tmp/L2_TEST_RESULTS && echo '===============================' && git config --global --add safe.directory /mnt/L2_CONTAINER_SHARED_VOLUME && gtest-json-result-push.py /tmp/L2_TEST_RESULTS https://rdkeorchestrationservice.apps.cloud.comcast.net/rdke_orchestration_api/push_unit_test_results /mnt/L2_CONTAINER_SHARED_VOLUME"
+
