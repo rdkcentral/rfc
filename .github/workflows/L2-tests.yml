@@ -47,7 +47,7 @@ jobs:
 
       - name: Copy L2 Test report to Host Runner
         run: |
-          docker cp native-platform:/tmp/l2_test_report /tmp/L2_TEST_RESULTS
+          docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS
           ls -lh /tmp/L2_TEST_RESULTS
 
       - name: Setup Docker Buildx
