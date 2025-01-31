@@ -2,7 +2,7 @@ name: L2 Integration Tests for RFC
 
 on:
   pull_request:
-    branches: [ develop, topic/RDK-48828 ]
+    branches: [ develop, main ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
@@ -47,7 +47,7 @@ jobs:
 
       - name: Copy L2 Test report to Host Runner
         run: |
-          docker cp native-platform:/tmp/l2_test_report /tmp/L2_TEST_RESULTS
+          docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS
           ls -lh /tmp/L2_TEST_RESULTS
 
       - name: Setup Docker Buildx
