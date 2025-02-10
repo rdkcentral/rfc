@@ -2,7 +2,7 @@ name: Unit tests rfc
 
 on:
   pull_request:
-    branches: [ develop, main ]
+    branches: [ develop ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
