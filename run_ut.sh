@@ -64,3 +64,5 @@ if [ "$ENABLE_COV" = true ]; then
     lcov --remove coverage.info '/usr/*' --output-file coverage.info
     lcov --list coverage.info
 fi
+
+cd $TOP_DIR
