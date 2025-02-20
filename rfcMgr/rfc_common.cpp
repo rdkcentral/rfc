@@ -36,7 +36,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
     int data_len;
     int ret = READ_RFC_FAILURE;
 
-    memset(&param, 0, sizeof(RFC_ParamData_t));
+    memset(&param, 0, 10*sizeof(RFC_ParamData_t));
 
     if(key == nullptr || out_value == nullptr || datasize == 0 || type == nullptr) 
     {
