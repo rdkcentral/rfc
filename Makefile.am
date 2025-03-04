@@ -18,6 +18,7 @@
 ##########################################################################
 if ENABLE_RDKC
 SUBDIRS = rfcapi
+else
 if ENABLE_RDKB
 SUBDIRS = rfcapi rfcMgr
 else
