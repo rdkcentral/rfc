@@ -38,6 +38,9 @@
 #include <map>
 #include <filesystem>
 #include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <secure_wrapper.h>
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

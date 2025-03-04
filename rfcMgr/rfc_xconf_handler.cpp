@@ -336,10 +336,11 @@ int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
 
 int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl) 
 {
-    int i = 0;
     char tempbuf[1024] = {0};
+#if !defined(RDKB_SUPPORT)
     int szBufSize = sizeof(tempbuf);
     std::string str = "XconfUrl";
+    int i = 0;
 
     i = read_RFCProperty(str.c_str(), BOOTSTRAP_XCONF_URL_KEY_STR, tempbuf, szBufSize);
     if (i == READ_RFC_FAILURE) 
@@ -352,8 +353,8 @@ int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl)
         i = strnlen(tempbuf, szBufSize);
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s\n", tempbuf);
     }
+#endif
     XconfUrl = tempbuf;
-
     return 0;
 }
 
@@ -470,11 +471,10 @@ bool RuntimeFeatureControlProcessor::isXconfSelectorSlotProd()
     return result;
 }
 
-
 void RuntimeFeatureControlProcessor::clearDB(void)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
-
+#if !defined(RDKB_SUPPORT)		    
     std::string name = "rfc";
     std::string value = "true";
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
@@ -484,12 +484,14 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, ClearDBEndKey, value);
     set_RFCProperty(name, BootstrapClearDBEndKey, value);
     set_RFCProperty(name, reloadCacheKey, value);
+#endif
 }
 
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
 
+#if !defined(RDKB_SUPPORT)		    
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
 
@@ -500,16 +502,19 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
         isRebootRequired = false;
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Reboot is not required\n", __FUNCTION__, __LINE__);
     }
+#endif    
 }
 
 void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 {
+#if !defined(RDKB_SUPPORT)		    
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Timestamp as string: = %s\n", __FUNCTION__, __LINE__, timestampString.c_str());
 
     set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
+#endif    
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Timestamp as string: = %s\n", __FUNCTION__, __LINE__, timestampString.c_str());
 }
 
 void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
@@ -670,9 +675,10 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                         updateTimeInDB("0");
                     }
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
+#if !defined(RDKB_SUPPORT)		    
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
-                    
+#endif                    
                     break;
                 }
             }
@@ -860,10 +866,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
+#if !defined(RDKB_SUPPORT)
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
-
+#endif
             if(curl)
             {
                 doStopDownload(curl);
@@ -1287,12 +1294,14 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 		    continue;
 		}
 	    }
-		
+
+#if !defined(RDKB_SUPPORT)
             WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
             if (status != WDMP_SUCCESS)
             {
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%s\n", __FUNCTION__, __LINE__, newKey.c_str(), getRFCErrorString(status));
             }
+#endif		    
             else
             {
                 if (newValue != currentValue)
@@ -1402,6 +1411,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
     return true;
 }
 
+#if !defined(RDKB_SUPPORT)
 WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std ::string name, std ::string key, std ::string value)
 {
     RFC_ParamData_t param;
@@ -1429,6 +1439,7 @@ WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std ::string name, s
     }
     return status;
 }
+#endif
 
 void RuntimeFeatureControlProcessor::updateTR181File(const std::string& filename, std::list<std::string>& paramList) 
 {

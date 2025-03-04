@@ -30,13 +30,14 @@
 extern "C"
 {
 #endif
-#ifndef RDKC
+
+#if defined(USE_IARMBUS)
 #include <wdmp-c/wdmp-c.h>
 #endif
 
 #define MAX_PARAM_LEN     (2*1024)
 
-#ifdef RDKC
+#if !defined(USE_IARMBUS)
 typedef enum
 {
   SUCCESS=0,
@@ -46,27 +47,27 @@ typedef enum
 }DATATYPE;
 #endif
 
-#ifdef RDKC
-typedef struct _RFC_Param_t {
-   char name[MAX_PARAM_LEN];
-   char value[MAX_PARAM_LEN];
-   DATATYPE type;
-} RFC_ParamData_t;
-#else
+#if defined(USE_IARMBUS)
 typedef struct _RFC_Param_t {
    char name[MAX_PARAM_LEN];
    char value[MAX_PARAM_LEN];
    DATA_TYPE type;
 } RFC_ParamData_t;
-#endif
-#ifdef RDKC
-int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #else
+typedef struct _RFC_Param_t {
+   char name[MAX_PARAM_LEN];
+   char value[MAX_PARAM_LEN];
+   DATATYPE type;
+} RFC_ParamData_t;
+#endif
+#if defined(USE_IARMBUS)
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParamData);
 WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName, const char* pcParameterValue, DATA_TYPE eDataType);
 const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
+#else
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #endif
 #ifdef __cplusplus
 }

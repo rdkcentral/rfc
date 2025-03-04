@@ -33,10 +33,9 @@
 int read_RFCProperty(const char* type, const char* key, char *out_value, int datasize) 
 {
     RFC_ParamData_t param;
-    int data_len;
+    memset(&param, 0, sizeof(RFC_ParamData_t));
     int ret = READ_RFC_FAILURE;
 
-    memset(&param, 0, sizeof(RFC_ParamData_t));
 
     if(key == nullptr || out_value == nullptr || datasize == 0 || type == nullptr) 
     {
@@ -44,6 +43,8 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
         return ret;
     }
     //SWLOG_INFO("key=%s\n", key);
+#if !defined(RDKB_SUPPORT)    
+    int data_len;
     WDMP_STATUS status = getRFCParameter(type, key, &param);
     if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE) 
     {
@@ -66,6 +67,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "error:read_RFCProperty(): status= %d\n", status);
         *out_value = 0;
     }
+#endif    
     return ret;
 }
 

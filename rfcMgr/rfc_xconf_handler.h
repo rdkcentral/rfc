@@ -158,7 +158,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void processXconfResponseConfigDataPart(JSON *features);
         void CreateConfigDataValueMap(JSON *features);
         bool isConfigValueChange(std ::string name, std ::string key, std ::string &value, std ::string &paramValue);
+#if !defined(RDKB_SUPPORT)	
         WDMP_STATUS set_RFCProperty(std ::string name, std ::string key, std ::string value);
+#endif	
         void updateTR181File(const std::string& filename, std::list<std::string>& paramList); 
 	void NotifyTelemetry2RemoteFeatures(const char *rfcFeatureList, std ::string rfcstatus);
         void WriteFile(const std::string& filename, const std::string& data); 

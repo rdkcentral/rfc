@@ -25,6 +25,10 @@ AM_LDFLAGS = -L$(PKG_CONFIG_SYSROOT_DIR)/$(libdir)
 AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
 AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper
 
+if ENABLE_RDKB
+rfcMgr_CPPFLAGS += $(RDKB_FLAG)
+endif
+
 if IS_IARMBUS_ENABLED
 rfcMgr_CPPFLAGS += $(IARMBUS_EVENT_FLAG) -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus
 AM_LDFLAGS += -lIARMBus
