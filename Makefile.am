@@ -19,6 +19,9 @@
 if ENABLE_RDKC
 SUBDIRS = rfcapi
 else
+if ENABLE_RDKB
+SUBDIRS = rfcapi rfcMgr
+else
 SUBDIRS = rfcapi tr181api utils rfcMgr
 if WITH_GTEST_SUPPORT
 SUBDIRS += test
