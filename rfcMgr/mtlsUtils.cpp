@@ -20,6 +20,7 @@
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +73,19 @@ int getMtlscert(MtlsAuth_t *sec)
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"getMtlscert(): the sec buffer is empty or null.");
         return MTLS_FAILURE;
     }
+
+#if defined(RDKB_SUPPORT)
+    // Broadband-specific MTLS certificate handling
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Using Broadband MTLS certificates");
+    
+    struct stat st;
+    if (stat("/nvram/certs/devicecert_1.pk12", &st) == 0) {
+        sec->certFile = strdup("/nvram/certs/devicecert_1.pk12");
+        sec->keyFile = NULL; // PK12 contains key
+        sec->c_cert = 1;     // PK12 format
+        return MTLS_SUCCESS;
+    }
+#endif
     return MTLS_FAILURE;
 }
 #ifdef __cplusplus

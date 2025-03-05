@@ -152,3 +152,51 @@ void RemoveSubstring(std::string& str, const std::string& toRemove)
         pos = str.find(toRemove);
     }
 }
+
+rfc::DeviceType rfc::GetDeviceType() 
+{
+    std::string deviceType;
+    std::ifstream deviceProps("/etc/device.properties");
+
+    if (deviceProps.is_open()) {
+        std::string line;
+        while (std::getline(deviceProps, line)) 
+	{
+            if (line.find("DEVICE_TYPE=") == 0) 
+	    {
+                deviceType = line.substr(12);
+                break;
+            }
+            else if (line.find("\"$DEVICE_TYPE\"") != std::string::npos) 
+	    {
+                size_t pos = line.find("=");
+                if (pos != std::string::npos) {
+                    size_t start = line.find("\"", pos);
+                    if (start != std::string::npos) {
+                        size_t end = line.find("\"", start + 1);
+                        if (end != std::string::npos) {
+                            deviceType = line.substr(start + 1, end - start - 1);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        deviceProps.close();
+    }
+
+    deviceType.erase(deviceType.begin(), std::find_if(deviceType.begin(), deviceType.end(),  { return !std::isspace(ch); }));
+    deviceType.erase(std::find_if(deviceType.rbegin(), deviceType.rend(),  { return !std::isspace(ch); }).base(), deviceType.end());
+
+    if (deviceType == "broadband") 
+    {
+        return DEVICE_TYPE_BROADBAND;
+    }
+    else if (deviceType == "XHC1") {
+        return DEVICE_TYPE_CAMERA;
+    }
+    else 
+    {
+        return DEVICE_TYPE_VIDEO;
+    }
+}

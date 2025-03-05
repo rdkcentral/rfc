@@ -38,7 +38,7 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 	curl = doCurlInit();
     
 	if(curl)
-    {
+        {
 	    curl_ret_code = doHttpFileDownload(curl, file_dwnl, security, 0, NULL, httpCode);
 		doStopDownload(curl);
 	}

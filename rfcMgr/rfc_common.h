@@ -63,6 +63,17 @@
 
 #define DEFAULT_DL_ALLOC    1024
 
+namespace rfc {
+    enum DeviceType {
+        DEVICE_TYPE_VIDEO,      // Video devices (hybrid, mediaclient, rmfstreamer)
+        DEVICE_TYPE_BROADBAND,  // Broadband devices
+        DEVICE_TYPE_CAMERA      // Camera devices (XHC1)
+    };
+
+    // Function to detect device type from device.properties
+    DeviceType GetDeviceType();
+}
+
 typedef enum {
     eRdkSsaCli,
     eWpeFrameworkSecurityUtility

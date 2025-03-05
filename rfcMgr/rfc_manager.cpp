@@ -42,6 +42,10 @@ namespace rfc {
         /* Initialize RDK Logger */
         rdk_logger_init(0 == access("/opt/debug.ini", R_OK) ? "/opt/debug.ini" : "/etc/debug.ini");
 
+	/* Check device type */
+        m_deviceType = GetDeviceType();
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Detected device type: %d\n", __FUNCTION__, __LINE__, m_deviceType);
+
         /* Initialize IARM Bus */
         InitializeIARM();
     }
@@ -258,31 +262,333 @@ namespace rfc {
         return dns_status;
     }
 
-    DeviceStatus RFCManager ::CheckDeviceIsOnline() 
+    DeviceStatus RFCManager::CheckDeviceIsOnline() 
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
-        rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
-        if (true == CheckIProuteConnectivity(GATEWAYIP_FILE)) 
-        {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking DNS Nameserver configuration\n", __FUNCTION__,__LINE__);
-            if (true == (isDnsResolve(DNS_RESOLV_FILE))) 
-            {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] DNS Nameservers are available\n",__FUNCTION__,__LINE__);
-                result = RFCMGR_DEVICE_ONLINE;
-            } 
-            else 
-            {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] DNS Nameservers missing..!!\n",__FUNCTION__,__LINE__);
-            }
-        } 
-        else 
-        {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] IP and Route configuration not found...!!\n", __FUNCTION__,__LINE__);
+        DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
+    
+        switch(m_deviceType) {
+            case DEVICE_TYPE_BROADBAND:
+                // Existing broadband check
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Checking IP and Route configuration for Broadband device\n");
+                if (true == CheckIProuteConnectivity(GATEWAYIP_FILE)) {
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Checking DNS Nameserver configuration\n");
+                    if (true == (isDnsResolve(DNS_RESOLV_FILE))) {
+                        result = RFCMGR_DEVICE_ONLINE;
+                    }
+                }
+                break;
+            
+            case DEVICE_TYPE_CAMERA:
+                // Camera-specific check
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Checking network for Camera device\n");
+            
+                // Check if camera is provisioned
+                if (access("/tmp/.CameraProvisioningStatus", F_OK) != 0) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Camera not provisioned yet\n");
+                    break;
+                }
+            
+                // Wait for network for cameras
+                int retries = 10;
+                while (retries--) {
+                    if (access("/tmp/route_available", F_OK) == 0) {
+                        result = RFCMGR_DEVICE_ONLINE;
+                        break;
+                    }
+                    sleep(5);
+                }
+                break;
+            
+            case DEVICE_TYPE_VIDEO:
+                // Video device check
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Checking network for Video device\n");
+                int retry = 0;
+                const int max_retries = 12;
+            
+                while (retry < max_retries) {
+                    if (access("/tmp/route_available", F_OK) == 0) {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Network route available\n");
+                        // Wait a bit for DNS to be ready
+                        sleep(5);
+                        result = RFCMGR_DEVICE_ONLINE;
+                        break;
+                    }
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Waiting for network route, retry %d\n", retry);
+                    sleep(10);
+                    retry++;
+                }
+                break;
+            
+            default:
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Unknown device type\n");
+                break;
+        }
+    
+        if (result != RFCMGR_DEVICE_ONLINE) {
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
+    
         return result;
-    }
+    }    
+
+    bool RFCManager::IsRebootRequired() 
+    {
+        // For broadband devices, check specific conditions that require reboot
+        if (m_deviceType != DEVICE_TYPE_BROADBAND) {
+            return false;
+        }
+    
+        // Check if any reboot flag is set
+        std::string rfcRebootNeeded;
+        FILE* rfcFile = fopen("/tmp/.RfcRebootNeeded", "r");
+        if (rfcFile) {
+            char buffer[16] = {0};
+            if (fgets(buffer, sizeof(buffer), rfcFile) != NULL) {
+                rfcRebootNeeded = buffer;
+            }
+            fclose(rfcFile);
+        }
+    
+        if (!rfcRebootNeeded.empty() && rfcRebootNeeded.find("1") != std::string::npos) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC reboot needed flag is set");
+            return true;
+        }
+    
+        // Check if any critical parameters changed
+        bool criticalParamChanged = false;
+    
+        // Check critical param change file (this file would be created by the TR-181 parameter handlers)
+        FILE* paramFile = fopen("/tmp/.RFC_CriticalParamChanged", "r");
+        if (paramFile) {
+            criticalParamChanged = true;
+            fclose(paramFile);
+        }
+    
+        // Check maintenance mode
+        bool maintenanceMode = false;
+        std::ifstream devicepropFile("/etc/device.properties");
+        if (devicepropFile.is_open()) {
+            std::string line;
+            while (std::getline(devicepropFile, line)) {
+                if (line == "ENABLE_MAINTENANCE=true") {
+                    maintenanceMode = true;
+                    break;
+                }
+            }
+            devicepropFile.close();
+        }
+    
+        // These parameters always trigger a reboot in maintenance mode
+        if (maintenanceMode && criticalParamChanged) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Reboot required due to critical parameter change in maintenance mode");
+            return true;
+        }
+    
+        // WAN Configuration changes that require reboot
+        std::string wanMode;
+        std::string oldWanMode;
+    
+        // Get current WAN mode
+        FILE* modeFile = fopen("/tmp/.RFC_CurrentWanMode", "r");
+        if (modeFile) {
+            char buffer[32] = {0};
+            if (fgets(buffer, sizeof(buffer), modeFile) != NULL) {
+                wanMode = buffer;
+            }
+            fclose(modeFile);
+        }
+    
+        // Get previous WAN mode
+        FILE* oldModeFile = fopen("/tmp/.RFC_PreviousWanMode", "r");
+        if (oldModeFile) {
+            char buffer[32] = {0};
+            if (fgets(buffer, sizeof(buffer), oldModeFile) != NULL) {
+                oldWanMode = buffer;
+            }
+            fclose(oldModeFile);
+        }
+    
+        // If WAN mode changed, a reboot is needed
+        if (!wanMode.empty() && !oldWanMode.empty() && wanMode != oldWanMode) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Reboot required due to WAN mode change from %s to %s", oldWanMode.c_str(), wanMode.c_str());
+            return true;
+        }
+    
+        // Check Partner ID changes
+        std::string partnerId;
+        std::string oldPartnerId;
+    
+        // Get current Partner ID
+        FILE* pidFile = fopen("/tmp/.RFC_CurrentPartnerId", "r");
+        if (pidFile) {
+            char buffer[64] = {0};
+            if (fgets(buffer, sizeof(buffer), pidFile) != NULL) {
+                partnerId = buffer;
+            }
+            fclose(pidFile);
+        }
+    
+        // Get previous Partner ID
+        FILE* oldPidFile = fopen("/tmp/.RFC_PreviousPartnerId", "r");
+        if (oldPidFile) {
+            char buffer[64] = {0};
+            if (fgets(buffer, sizeof(buffer), oldPidFile) != NULL) {
+                oldPartnerId = buffer;
+            }
+            fclose(oldPidFile);
+        }
+    
+        // If Partner ID changed from unknown to a valid value, reboot is needed
+        if (!partnerId.empty() && !oldPartnerId.empty() && 
+            (oldPartnerId.find("unknown") != std::string::npos || oldPartnerId.find("Unknown") != std::string::npos) &&
+            (partnerId.find("unknown") == std::string::npos && partnerId.find("Unknown") == std::string::npos)) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Reboot required due to Partner ID change from unknown to %s", partnerId.c_str());
+            return true;
+        }
+    
+        // Check for Bootstrap Xconf URL changes that require reboot
+        bool xconfUrlChanged = false;
+        FILE* xconfFile = fopen("/tmp/.RFC_XconfUrlChanged", "r");
+        if (xconfFile) {
+            xconfUrlChanged = true;
+            fclose(xconfFile);
+        }
+    
+        if (xconfUrlChanged && maintenanceMode) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Reboot required due to Xconf URL change in maintenance mode");
+            return true;
+        }
+    
+        return false;
+    }    
+
+    bool RFCManager::ScheduleReboot() 
+    {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Scheduling reboot for RFC changes");
+    
+        if (m_deviceType != DEVICE_TYPE_BROADBAND) {
+            // For non-broadband devices, just call the script directly
+            if (m_deviceType == DEVICE_TYPE_CAMERA) {
+                v_secure_system("sh /lib/rdk/RfcRebootCronschedule.sh &");
+            }
+            return true;
+        }
+    
+        // For broadband, implement equivalent functionality
+        std::string crontabDir = "/var/spool/cron/";
+        std::string persistentPath = "/nvram";  // Default for broadband
+        std::string cron;
+    
+        // Get cron schedule from DCMSettings.conf
+        std::ifstream dcmFile("/tmp/DCMSettings.conf");
+        if (dcmFile.is_open()) {
+            std::string line;
+            while (std::getline(dcmFile, line)) {
+                if (line.find("urn:settings:CheckSchedule:cron") != std::string::npos) {
+                    size_t pos = line.find("=");
+                    if (pos != std::string::npos) {
+                        cron = line.substr(pos + 1);
+                        break;
+                    }
+                }
+            }
+            dcmFile.close();
+        }
+    
+        // If not found in DCMSettings.conf, try persistent storage
+        if (cron.empty()) {
+            std::ifstream persistFile(persistentPath + "/tmp/DCMSettings.conf");
+            if (persistFile.is_open()) {
+                std::string line;
+                while (std::getline(persistFile, line)) {
+                    if (line.find("urn:settings:CheckSchedule:cron") != std::string::npos) {
+                        size_t pos = line.find("=");
+                        if (pos != std::string::npos) {
+                            cron = line.substr(pos + 1);
+                            break;
+                        }
+                    }
+                }
+                persistFile.close();
+            }
+        }
+    
+        if (!cron.empty()) {
+            // Parse cron fields
+            std::vector<std::string> cronParts;
+            std::istringstream iss(cron);
+            std::string part;
+            while (iss >> part) {
+                cronParts.push_back(part);
+            }
+        
+            if (cronParts.size() >= 5) {
+                // Schedule reboot 15 minutes after firmware check
+                int minutes = std::stoi(cronParts[0]);
+                int hours = std::stoi(cronParts[1]);
+            
+                // Add 15 minutes
+                if (minutes > 44) {
+                    minutes = minutes - 45;  // wrap around to next hour
+                    hours++;
+                    if (hours == 24) {
+                        hours = 0;  // wrap to next day
+                    }
+                } else {
+                    minutes += 15;
+                }
+            
+                // Build new cron string
+                std::string rebootCron = std::to_string(minutes) + " " + 
+                                  std::to_string(hours) + " " +
+                                  cronParts[2] + " " + 
+                                  cronParts[3] + " " + 
+                                  cronParts[4];
+            
+                // Check if cron job already exists
+                std::string cronJobsOutput;
+                FILE* cronPipe = popen("crontab -l -c /var/spool/cron/", "r");
+                if (cronPipe) {
+                    char buffer[128];
+                    while (fgets(buffer, sizeof(buffer), cronPipe) != NULL) {
+                        cronJobsOutput += buffer;
+                    }
+                    pclose(cronPipe);
+                }
+            
+                bool cronExists = (cronJobsOutput.find("RFC_Reboot.sh") != std::string::npos);
+            
+                if (!cronExists) {
+                    // Create temporary file for crontab
+                    std::string tempFile = "/tmp/cron_tab" + std::to_string(getpid()) + ".txt";
+                    std::ofstream cronTmpFile(tempFile);
+                    if (cronTmpFile.is_open()) {
+                        // Write existing crontab entries
+                        cronTmpFile << cronJobsOutput;
+                    
+                        // Add new entry
+                        cronTmpFile << rebootCron << " /bin/sh /lib/rdk/RFC_Reboot.sh\n";
+                        cronTmpFile.close();
+                    
+                        // Install new crontab
+                        v_secure_system("crontab %s -c %s", tempFile.c_str(), crontabDir.c_str());
+                    
+                        // Clean up
+                        remove(tempFile.c_str());
+                    
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC Reboot cron job scheduled: %s", rebootCron.c_str());
+                        return true;
+                    }
+                } else {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC Reboot cron job already scheduled");
+                    return true;
+                }
+            }
+        }
+    
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to schedule RFC reboot");
+        return false;
+    }    
 
     /** Description: Send event to iarm event manager
      *
@@ -374,9 +680,140 @@ namespace rfc {
     {
         int ret_status = FAILURE;
 
+        if (m_deviceType == DEVICE_TYPE_BROADBAND) {
+            WaitForWebconfigRfc();
+        }	
         ret_status = RFCManagerProcess();
 
         return ret_status;
     }
+
+    bool RFCManager::IsInstanceAlreadyRunning() 
+    {
+        // Check if lock file exists
+        std::ifstream lockFile(RFC_MGR_SERVICE_LOCK_FILE);
+        if (!lockFile.is_open()) {
+            // Lock file doesn't exist
+            return false;
+        }
+
+        // Read PID from lock file
+        std::string pidStr;
+        std::getline(lockFile, pidStr);
+        lockFile.close();
+
+        if (pidStr.empty()) {
+            return false;
+        }
+
+        pid_t pid = std::stoi(pidStr);
+
+        // Check if process with this PID is running
+        if (kill(pid, 0) != 0) {
+           return false;
+        }
+
+        // Check process name
+        std::string procPath = "/proc/" + pidStr + "/cmdline";
+        std::ifstream procFile(procPath);
+        if (!procFile.is_open()) {
+            return false;
+        }
+
+        std::string procName;
+        std::getline(procFile, procName);
+        procFile.close();
+
+        // Get our own process name
+        std::string selfName = program_invocation_short_name;
+
+        if (procName.find(selfName) != std::string::npos) {
+            // It's an RFC manager process
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"RFC: Service in progress. New instance not allowed. Lock file %s is locked!", RFC_MGR_SERVICE_LOCK_FILE);
+            return true;
+        }
+        return false;
+    }
+
+    bool RFCManager::CreateLockFile() 
+    {
+        std::ofstream lockFile(RFC_MGR_SERVICE_LOCK_FILE);
+        if (!lockFile.is_open()) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to create lock file: %s", RFC_MGR_SERVICE_LOCK_FILE);
+            return false;
+        }
+
+        lockFile << getpid();
+        lockFile.close();
+
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Starting service, creating lock");
+        return true;
+    }   
+
+bool RFCManager::WaitForWebconfigRfc() 
+{
+        if (m_deviceType != DEVICE_TYPE_BROADBAND) {
+            return true;
+        }
+
+        // Check if RFC blob processing is in progress
+        std::string rfcStatus;
+        FILE* rfcStatusPipe = popen("sysevent get rfc_blob_processing", "r");
+        if (rfcStatusPipe) {
+            char buffer[128];
+            if (fgets(buffer, sizeof(buffer), rfcStatusPipe) != NULL) {
+                rfcStatus = buffer;
+                // Trim newline
+                if (!rfcStatus.empty() && rfcStatus[rfcStatus.length()-1] == '\n') {
+                    rfcStatus.erase(rfcStatus.length()-1);
+                }
+            }
+            pclose(rfcStatusPipe);
+        }
+
+        // Check if rfc-agent is initialized
+        bool rfcAgentInitialized = (access("/tmp/rfc_agent_initialized", F_OK) == 0);
+
+        // If Webconfig RFC is processing and rfc-agent is initialized, wait for it to complete
+        if (!rfcStatus.empty() && rfcStatus != "Completed" && rfcAgentInitialized) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Waiting for rfc_blob_processing");
+
+            int retry = 1;
+            bool loop = true;
+
+            while (loop) {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Waiting rfc_blob_processing");
+
+                // Get current status
+                rfcStatusPipe = popen("sysevent get rfc_blob_processing", "r");
+                if (rfcStatusPipe) {
+                    char buffer[128];
+                    if (fgets(buffer, sizeof(buffer), rfcStatusPipe) != NULL) {
+                        rfcStatus = buffer;
+                        if (!rfcStatus.empty() && rfcStatus[rfcStatus.length()-1] == '\n') {
+                            rfcStatus.erase(rfcStatus.length()-1);
+                        }
+                    }
+                    pclose(rfcStatusPipe);
+                }
+
+                if (rfcStatus == "Completed") {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Webconfig rfc processing completed, breaking the loop");
+                    break;
+                } else if (retry > 6) {
+                    RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "Webconfig rfc processing not completed after 10 min, breaking the loop");
+                    break;
+                } else {
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Webconfig rfc processing not completed.. Retry:%d", retry);
+                    retry++;
+                    sleep(100); // Wait for 100 seconds
+                }
+            }
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "rfc-agent process not running or rfc_blob_processing is empty. Not waiting rfc_blob_processing");
+        }
+
+        return true;
+    }    
 } // namespace RFC
 

@@ -76,14 +76,20 @@ class RFCManager {
         int RFCManagerProcessXconfRequest();
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
+	bool IsInstanceAlreadyRunning();
+        bool CreateLockFile();
+        bool IsRebootRequired();
+        bool ScheduleReboot();	
 
     private:
+	DeviceType m_deviceType;
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
+	bool WaitForWebconfigRfc();
     }; // end of RFCManager Class
 } // end of namespace RFC
 

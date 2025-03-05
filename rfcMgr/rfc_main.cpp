@@ -25,6 +25,15 @@ extern "C" {
 #endif
 #include "common_device_api.h"
 #include <unistd.h>
+#include <signal.h>
+
+static char* g_lockFile = RFC_MGR_SERVICE_LOCK_FILE;
+
+static void cleanup_handler(int signum) {
+    // Remove lock file on termination
+    unlink(g_lockFile);
+    exit(0);
+}
 
 int main()
 {
@@ -40,18 +49,29 @@ int main()
     {
         exit(EXIT_SUCCESS);
     }
-    
-    rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
-     /* Abort if another instance of rfcMgr is already running */
-    if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
-    {
-#if !defined(RDKB_SUPPORT)
-	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
-#endif
+    signal(SIGTERM, cleanup_handler);
+    signal(SIGINT, cleanup_handler);
+    signal(SIGABRT, cleanup_handler);
+
+    rfc::RFCManager* rfcMgr = new rfc::RFCManager();
+    if (!rfcMgr->CreateLockFile()) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to create lock file, exiting");
         delete rfcMgr;
         return 1;
     }
+
+    /* Abort if another instance of rfcMgr is already running */
+    if (rfcMgr->IsInstanceAlreadyRunning())
+    {
+#if !defined(RDKB_SUPPORT)
+        rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
+#endif
+        delete rfcMgr;
+        unlink(g_lockFile);
+        return 1;
+    }
+
     rfc::DeviceStatus isDeviceOnline = rfcMgr->CheckDeviceIsOnline();
     
     if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE) 
@@ -62,6 +82,10 @@ int main()
         if(status == SUCCESS)
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
+	    // Schedule reboot if needed
+            if (rfcMgr->IsRebootRequired()) {
+                rfcMgr->ScheduleReboot();
+            }
         }
     }
     else
