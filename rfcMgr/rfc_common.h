@@ -71,6 +71,9 @@ typedef enum {
 #define WPEFRAMEWORKSECURITYUTILITY     "/usr/bin/WPEFrameworkSecurityUtility"
 #define RDKSSACLI_CMD                   "/usr/bin/rdkssacli %s"
 #define KEY_GEN_BIN                     "/usr/bin/rdkssacli"
+    void waitForRfcCompletion();
+    std::string getSyseventValue(const std::string& key);
+    std::string getErouterIPAddress();
 
 int executeCommandAndGetOutput(SYSCMD, const char *, std::string&);
 int read_RFCProperty(const char* , const char* , char *, int );

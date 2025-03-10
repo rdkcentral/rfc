@@ -128,6 +128,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void GetOsClass( void );
         int GetExperience( void );
         int GetServURL(const char *rfcPropertiesFile);
+        int GetServURLB();
         int GetBootstrapXconfUrl(std ::string &XconfUrl); 
         bool checkBootstrap(const std::string& filename, const std::string& target);
         

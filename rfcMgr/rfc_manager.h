@@ -60,7 +60,11 @@ enum DeviceStatus {
 #define MAINT_CRITICAL_UPDATE   11
 #define MAINT_REBOOT_REQUIRED   12
 
+#if !defined(RDKB_SUPPORT)
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
+#else
+#define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/RFCpostprocess.sh"
+#endif
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
@@ -76,11 +80,13 @@ class RFCManager {
         int RFCManagerProcessXconfRequest();
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
+	void manageCronJob(const std::string& cron);
 
     private:
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
+        bool CheckIPConnectivity(void);
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();

@@ -54,13 +54,20 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         rfc_file = RFC_PROPERTIES_FILE;
     }
     
+#if !defined(RDKB_SUPPORT)
 	/* Get the RFC Parameters */
     if(SUCCESS != GetServURL(rfc_file.c_str()))
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Xconf Server URL\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-
+#else
+    if(SUCCESS != GetServURLB())
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Xconf Server URL\n", __FUNCTION__, __LINE__);
+        return FAILURE;
+    }
+#endif    
     rfc_state = (_ebuild_type != ePROD) ? Local : Init;
 
     /* get experience */ 
@@ -80,8 +87,9 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     GetRFCPartnerID();
     GetOsClass();
 
+#if !defined(RDKB_SUPPORT)
     _is_first_request = IsNewFirmwareFirstRequest();
-
+#endif
     return SUCCESS;
 }
 
@@ -304,13 +312,84 @@ int RuntimeFeatureControlProcessor::GetExperience( void )
     return i;
 }
 
-int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
+int RuntimeFeatureControlProcessor::GetServURLB()
 {
-    const std::string m_file = rfcPropertiesFile;
-    std ::ifstream inputFile;
+    // For RDKB systems, directly apply the broadband logic
+    std::string rfcState = std::getenv("rfcState") ? std::getenv("rfcState") : "";
+    std::string partnerId = std::getenv("partnerId") ? std::getenv("partnerId") : "";
 
+    // Define default URLs based on environment variables
+    std::string RFC_CONFIG_SERVER_URL = std::getenv("RFC_CONFIG_SERVER_URL") ? std::getenv("RFC_CONFIG_SERVER_URL") : "";
+    std::string RFC_CONFIG_SERVER_URL_EU = std::getenv("RFC_CONFIG_SERVER_URL_EU") ? std::getenv("RFC_CONFIG_SERVER_URL_EU") : "";
+
+    if (rfcState != "LOCAL")
+    {
+        // Get TR181 Xconf URL from dmcli
+        FILE* pipe = popen("dmcli eRT getv Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.XconfURL | grep string | cut -d\":\" -f3- | cut -d\" \" -f2- | tr -d ' '", "r");
+        if (pipe)
+        {
+            char buffer[256] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+            {
+                std::string tmp_URL(buffer);
+                // Trim trailing newline
+                if (!tmp_URL.empty() && tmp_URL.back() == '\n')
+                {
+                    tmp_URL.pop_back();
+                }
+
+                if (!tmp_URL.empty())
+                {
+                    _xconf_server_url = tmp_URL + "/featureControl/getSettings";
+                }
+                else
+                {
+                    if (partnerId != "sky-uk")
+                    {
+                        _xconf_server_url = RFC_CONFIG_SERVER_URL;
+                    }
+                    else
+                    {
+                        _xconf_server_url = RFC_CONFIG_SERVER_URL_EU;
+                    }
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC: TR181 URL is empty\n", __FUNCTION__, __LINE__);
+                }
+            }
+            pclose(pipe);
+        }
+
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initial URL: %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    }
+    else
+    {
+        // Using local configuration
+        if (partnerId != "sky-uk")
+        {
+            _xconf_server_url = RFC_CONFIG_SERVER_URL;
+        }
+        else
+        {
+            _xconf_server_url = RFC_CONFIG_SERVER_URL_EU;
+        }
+    }
+
+    // Common code for all cases
+    if (_xconf_server_url.empty())
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] URL not found in the file.\n", __FUNCTION__, __LINE__);
+        return FAILURE;
+    }
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    return SUCCESS;
+
+}
+ 
+int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
+{	    
+    const std::string m_file = rfcPropertiesFile;
+    std::ifstream inputFile;
     inputFile.open(m_file.c_str());
-    if (!inputFile.is_open()) 
+    if (!inputFile.is_open())
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
         return FAILURE;
@@ -325,19 +404,20 @@ int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
         }
     }
     inputFile.close();
-    if (_xconf_server_url.empty()) 
+
+    // Common code for all cases
+    if (_xconf_server_url.empty())
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] URL not found in the file.\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n",  __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
     return SUCCESS;
 }
 
 int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl) 
 {
     char tempbuf[1024] = {0};
-#if !defined(RDKB_SUPPORT)
     int szBufSize = sizeof(tempbuf);
     std::string str = "XconfUrl";
     int i = 0;
@@ -353,7 +433,6 @@ int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl)
         i = strnlen(tempbuf, szBufSize);
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s\n", tempbuf);
     }
-#endif
     XconfUrl = tempbuf;
     return 0;
 }
@@ -866,11 +945,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
-#if !defined(RDKB_SUPPORT)
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
-#endif
             if(curl)
             {
                 doStopDownload(curl);

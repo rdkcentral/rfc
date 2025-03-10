@@ -43,6 +43,9 @@ int main()
     
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
+#if defined(RDKB_SUPPORT)
+    waitForRfcCompletion();
+#endif
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
@@ -52,17 +55,31 @@ int main()
         delete rfcMgr;
         return 1;
     }
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Waiting for IP Acquistion\n", __FUNCTION__, __LINE__);
     rfc::DeviceStatus isDeviceOnline = rfcMgr->CheckDeviceIsOnline();
     
     if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE) 
     {
         int status = FAILURE;
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Starting execution of RFCManager\n", __FUNCTION__, __LINE__);
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Device is Online\n", __FUNCTION__, __LINE__);
         status = rfcMgr->RFCManagerProcessXconfRequest();
         if(status == SUCCESS)
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
         }
+
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);  
+
+        std::string cronConfig = getCronFromDCMSettings();
+
+        // If no cron was found in DCM settings, use a default value
+        if (cronConfig.empty()) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No cron found in DCM settings, skipping..\n", __FUNCTION__, __LINE__);
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using cron from DCM settings: %s\n",  __FUNCTION__, __LINE__, cronConfig.c_str());
+        }
+        rfcMgr->manageCronJob(cronConfig);
     }
     else
     {
