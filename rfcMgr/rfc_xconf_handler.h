@@ -60,6 +60,7 @@ extern "C" {
 #define VARIABLEFILE                       "/opt/secure/RFC/rfcVariable.ini"
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
+#define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
@@ -115,7 +116,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool isRebootRequired;
 	std::string bkup_hash;
         bool _is_first_request;
-        bool _url_validation_in_progress = false;
+        bool _url_validation_in_progress;
         std::string  rfcSelectOpt;
         std:: string rfcSelectorSlot;
 		 
@@ -168,6 +169,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
         void NotifyTelemetry2Count(std ::string markerName);
+	bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
