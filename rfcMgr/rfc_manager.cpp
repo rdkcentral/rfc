@@ -129,6 +129,201 @@ namespace rfc {
         return 0;
     }
 
+#if 0    
+    std::string getErouterIPAddress() {
+        std::string address;
+
+        // Execute the shell script function
+        FILE* pipe = popen(". /lib/rdk/utils.sh && getErouterIPAddress", "r");
+        if (!pipe) {
+            std::cerr << "Error: Failed to execute shell command" << std::endl;
+            return "";
+        }
+
+        // Read the output
+        char buffer[128];
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            address = buffer;
+            // Trim trailing newline
+            if (!address.empty() && address.back() == '\n') {
+                address.pop_back();
+            }
+        }
+
+        // Close the pipe
+        pclose(pipe);
+
+        return address;
+    }
+
+    std::string getErouterIPAddress() {
+        std::string address;
+        std::string BOX_TYPE = std::getenv("BOX_TYPE") ? std::getenv("BOX_TYPE") : "";
+        std::string UseLANIFIPV6 = std::getenv("UseLANIFIPV6") ? std::getenv("UseLANIFIPV6") : "";
+        std::string WANINTERFACE = std::getenv("WANINTERFACE") ? std::getenv("WANINTERFACE") : "";
+        std::string HUB4_IPV6_INTERFACE = std::getenv("HUB4_IPV6_INTERFACE") ? std::getenv("HUB4_IPV6_INTERFACE") : "";
+    
+        FILE* fp = nullptr;
+        char buffer[256];
+    
+        if (BOX_TYPE == "XB6" || BOX_TYPE == "TCCBR") {
+            // Try to get IPv6 address first
+            fp = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IPv6", "r");
+            if (fp) {
+                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                    address = buffer;
+                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                }
+                pclose(fp);
+            }
+        
+            // If IPv6 not available, get IPv4
+            if (address.empty()) {
+                fp = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IP", "r");
+                if (fp) {
+                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                        address = buffer;
+                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                    }
+                    pclose(fp);
+                }
+            }
+        } else if (BOX_TYPE == "HUB4" || BOX_TYPE == "SR300" || 
+                   BOX_TYPE == "SR213" || BOX_TYPE == "SE501" || 
+                   BOX_TYPE == "WNXL11BWL" || UseLANIFIPV6 == "true") {
+            // Check IPv6 connection state
+            std::string ipv6_state;
+            fp = popen("sysevent get ipv6_connection_state", "r");
+            if (fp) {
+                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                    ipv6_state = buffer;
+                    ipv6_state.erase(ipv6_state.find_last_not_of("\n\r") + 1); // Trim newlines
+                }
+                pclose(fp);
+            }
+        
+            if (ipv6_state == "up") {
+                // Get IPv6 address
+                std::string cmd = "ifconfig " + HUB4_IPV6_INTERFACE + 
+                                  " | grep inet6 | grep Global | awk '/inet6/{print $3}' | " +
+                                  "grep -v 'fdd7' | cut -d '/' -f1 | head -n1";
+                fp = popen(cmd.c_str(), "r");
+                if (fp) {
+                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                        address = buffer;
+                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                    }
+                    pclose(fp);
+                }
+            } else {
+                // Get IPv4 address
+                std::string cmd = "ifconfig " + WANINTERFACE + 
+                                  " | grep \"inet addr\" | grep -v inet6 | cut -f2 -d: | cut -f1 -d\" \"";
+                fp = popen(cmd.c_str(), "r");
+                if (fp) {
+                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                        address = buffer;
+                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                    }
+                    pclose(fp);
+                }
+            }
+        } else if (BOX_TYPE == "XF3") {
+            // For PON/DSL, use eRouter IP address
+            std::string cmd = "ifconfig " + WANINTERFACE + 
+                              " | grep \"inet addr\" | grep -v inet6 | cut -f2 -d: | cut -f1 -d\" \"";
+            fp = popen(cmd.c_str(), "r");
+            if (fp) {
+                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                    address = buffer;
+                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                }
+                pclose(fp);
+            }
+        } else {
+            // Try IPv6 first
+            std::string cmd = "ifconfig -a " + WANINTERFACE + 
+                              " | grep inet6 | tr -s \" \" | grep -v Link | cut -d \" \" -f4 | cut -d \"/\" -f1";
+            fp = popen(cmd.c_str(), "r");
+            if (fp) {
+                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                    address = buffer;
+                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                }
+                pclose(fp);
+            }
+        
+            // If IPv6 not available, get IPv4
+            if (address.empty()) {
+                std::string cmd = "ifconfig -a " + WANINTERFACE + 
+                                  " | grep inet | grep -v inet6 | tr -s \" \" | cut -d \":\" -f2 | cut -d \" \" -f1";
+                fp = popen(cmd.c_str(), "r");
+                if (fp) {
+                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
+                        address = buffer;
+                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
+                    }
+                    pclose(fp);
+                }
+            }
+        }
+    
+        return address;
+    }
+#endif
+
+    bool RFCManager::CheckIPConnectivity(void)
+    {
+        bool ip_status = false;
+        std::string ip_address = "";
+        std::string utils_path = "/lib/rdk/utils.sh";
+    
+        if (access(utils_path.c_str(), R_OK) == 0) {
+            // Using . instead of source for better compatibility
+            std::string cmd = ". " + utils_path + " && getErouterIPAddress";
+        
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing command: %s\n", __FUNCTION__, __LINE__, cmd.c_str());
+        
+            FILE* pipe = popen(cmd.c_str(), "r");
+            if (!pipe) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute getErouterIPAddress command\n", __FUNCTION__, __LINE__);
+                return false;
+            }
+        
+            // Read the output
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                ip_address = buffer;
+                // Trim trailing newline
+                if (!ip_address.empty() && ip_address.back() == '\n') {
+                    ip_address.pop_back();
+                }
+            
+                // If we got an IP address (non-empty string), consider it connected
+                if (!ip_address.empty()) {
+                    ip_status = true;
+                }
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] No output received from getErouterIPAddress\n", __FUNCTION__, __LINE__);
+            }
+        
+            // Get the popen return status
+            int status = pclose(pipe);
+            if (status != 0) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Command returned error status: %d\n", __FUNCTION__, __LINE__, status);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Utils script not found at %s\n", __FUNCTION__, __LINE__, utils_path.c_str());
+        }
+    
+        // Log the IP address and connection status
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] eRouter IP Address: '%s'\n", __FUNCTION__, __LINE__, ip_address.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] IP Connectivity Status: %s\n", __FUNCTION__, __LINE__, ip_status ? "Connected" : "Disconnected");
+    
+        ip_status = true;  
+        return ip_status;
+    }    
+
     /* Description: Checking IP route address and device is online or not.
      *              Use IARM event provided by net service manager to check either
      *              device is online or not.
@@ -262,6 +457,7 @@ namespace rfc {
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
         rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
+#if !defined(RDKB_SUPPORT)	
         if (true == CheckIProuteConnectivity(GATEWAYIP_FILE)) 
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
@@ -281,6 +477,15 @@ namespace rfc {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] IP and Route configuration not found...!!\n", __FUNCTION__,__LINE__);
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
+#else
+        if (true == CheckIPConnectivity()){
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] IP configuration found...\n", __FUNCTION__,__LINE__);
+            result = RFCMGR_DEVICE_ONLINE;
+        }
+        else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] IP configuration not found!!\n", __FUNCTION__,__LINE__);
+	}
+#endif	
         return result;
     }
 
@@ -311,13 +516,20 @@ namespace rfc {
 
     int RFCManager::RFCManagerPostProcess()
     {
-        if(-1 == v_secure_system("sh %s",RFC_MGR_IPTBLE_INIT_SCRIPT))
-	{
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__,__LINE__,RFC_MGR_IPTBLE_INIT_SCRIPT);
-	    return FAILURE;
-	}
+        // Check if the script exists before executing it
+        if (access(RFC_MGR_IPTBLE_INIT_SCRIPT, F_OK) == 0) {
+            if(-1 == v_secure_system("sh %s", RFC_MGR_IPTBLE_INIT_SCRIPT))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+                return FAILURE;
+            }
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] Executed Successfully\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+        }
+    
         return SUCCESS;
-    }
+    }    
 
     int RFCManager::RFCManagerProcess() 
     {
@@ -337,6 +549,7 @@ namespace rfc {
 
         result = rfcObj->ProcessRuntimeFeatureControlReq();
 
+#if !defined(RDKB_SUPPORT)	
         if(result == SUCCESS)
         {
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_COMPLETE); 
@@ -355,7 +568,7 @@ namespace rfc {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
-        
+#endif        
 	int post_process_result = RFCManagerPostProcess();
 	if(post_process_result == SUCCESS)
 	{
@@ -377,6 +590,154 @@ namespace rfc {
         ret_status = RFCManagerProcess();
 
         return ret_status;
+    }
+
+    void rfc::RFCManager::manageCronJob(const std::string& cron) {	    
+        if (!cron.empty()) {
+            int cron_update = 1;
+
+            // Parse cron components
+            std::istringstream iss(cron);
+            std::vector<std::string> cronParts;
+            std::string part;
+            while (iss >> part) {
+                cronParts.push_back(part);
+            }
+
+            if (cronParts.size() >= 5) {
+                // Get cron parts as integers for calculations
+                int vc1 = std::stoi(cronParts[0]);
+                int vc2 = std::stoi(cronParts[1]);
+                int vc3 = std::stoi(cronParts[2]);
+                int vc4 = std::stoi(cronParts[3]);
+                int vc5 = std::stoi(cronParts[4]);
+
+                // Adjust time
+                if (vc1 > 2) {
+                    vc1 -= 3;
+                } else {
+                    vc1 += 57;
+                    if (vc2 == 0) {
+                        vc2 = 23;
+                    } else {
+                        vc2 -= 1;
+                    }
+                }
+
+                // Reconstruct cron string
+                std::ostringstream cronStream;
+                cronStream << vc1 << " " << vc2 << " " << vc3 << " " << vc4 << " " << vc5;
+                std::string adjustedCron = cronStream.str();
+
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC_TM_Track : Configuring cron job for rfcMgr, cron = %s\n",
+                       __FUNCTION__, __LINE__, adjustedCron.c_str());
+
+                // Get environment variables
+                std::string RFC_LOG_FILE = std::getenv("RFC_LOG_FILE") ? std::getenv("RFC_LOG_FILE") : "";
+
+                // Define the current cron file path
+                std::string current_cron_file = "/tmp/cron_tab_tmp_file";
+
+                // Check if cronjobs_update.sh exists
+                bool cronjobsUpdateExists = (access("/lib/rdk/cronjobs_update.sh", F_OK) == 0);
+
+    #if defined(RDKB_SUPPORT)
+                std::string crontabPath = "/var/spool/cron/crontabs/";
+    #else
+                std::string crontabPath = "/var/spool/cron/";
+    #endif
+
+                if (!cronjobsUpdateExists) {
+                    // Export existing crontab
+                    std::string cmd = "crontab -l -c " + crontabPath + " > " + current_cron_file;
+                    int result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to export existing crontab\n", __FUNCTION__, __LINE__);
+                    }
+
+                    // Remove existing rfcMgr entries (both rfcMgr and RFCbase.sh for backward compatibility)
+                    cmd = "sed -i '/[A-Za-z0-9]*rfcMgr[A-Za-z0-9]*/d' " + current_cron_file;
+                    result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to remove existing rfcMgr entries\n", __FUNCTION__, __LINE__);
+                    }
+
+                    cmd = "sed -i '/[A-Za-z0-9]*RFCbase.sh[A-Za-z0-9]*/d' " + current_cron_file;
+                    result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to remove existing RFCbase.sh entries\n", __FUNCTION__, __LINE__);
+                    }
+                }
+
+                // Add new cron entry
+                if (!cronjobsUpdateExists) {
+                    std::ofstream outFile(current_cron_file, std::ios::app);
+                    if (outFile) {
+                        // Get timestamp
+                        std::string timestamp_cmd = "/bin/timestamp";
+                        FILE* pipe = popen(timestamp_cmd.c_str(), "r");
+                        std::string timestamp;
+                        if (pipe) {
+                            char buffer[128];
+                            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                                timestamp = buffer;
+                                if (!timestamp.empty() && timestamp.back() == '\n') {
+                                    timestamp.pop_back();
+                                }
+                            }
+                            pclose(pipe);
+                        }
+
+                        outFile << timestamp << " " << adjustedCron << " /usr/bin/rfcMgr >> "
+                               << RFC_LOG_FILE << " 2>&1" << std::endl;
+                        outFile.close();
+
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Added new cron entry for rfcMgr to temporary file\n", __FUNCTION__, __LINE__);
+                    } else {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temporary cron file for writing\n", __FUNCTION__, __LINE__);
+                    }
+                } else {
+                    std::string cmd = "sh /lib/rdk/cronjobs_update.sh \"update\" \"rfcMgr\" \""
+                                    + adjustedCron + " /usr/bin/rfcMgr >> "
+                                    + RFC_LOG_FILE + " 2>&1\"";
+                    int result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to update cron job using cronjobs_update.sh\n", __FUNCTION__, __LINE__);
+                    } else {
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully updated cron job using cronjobs_update.sh\n", __FUNCTION__, __LINE__);
+                    }
+                }
+
+                // Apply the new crontab if needed
+                if (!cronjobsUpdateExists && cron_update == 1) {
+                    std::string cmd = "crontab " + current_cron_file + " -c " + crontabPath;
+                    int result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply updated crontab\n", __FUNCTION__, __LINE__);
+                    } else {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully applied updated crontab\n", __FUNCTION__, __LINE__);
+                    }
+                }
+
+                // Log cron configuration
+                std::string logCmd = "/bin/timestamp > " + RFC_LOG_FILE + " && echo ' " + crontabPath + "root:' >> " + RFC_LOG_FILE;
+                v_secure_system("%s", logCmd.c_str());
+
+                if (!cronjobsUpdateExists) {
+                    std::string cmd = "/bin/timestamp > " + RFC_LOG_FILE + " && cat " + current_cron_file + " >> " + RFC_LOG_FILE;
+                    int result = v_secure_system("%s", cmd.c_str());
+                    if (result != 0) {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to log crontab contents\n", __FUNCTION__, __LINE__);
+                    }
+                }
+
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Completed cron job configuration for rfcMgr\n", __FUNCTION__, __LINE__);
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron format: not enough components\n", __FUNCTION__, __LINE__);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Empty cron string provided, no action taken\n", __FUNCTION__, __LINE__);
+        }
     }
 } // namespace RFC
 

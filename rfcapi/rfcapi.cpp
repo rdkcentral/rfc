@@ -215,9 +215,8 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 
  if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL) 
  {
-  return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+    return getValue(RFCVAR_FILE, pcParameterName, pstParam);
  }
-
  else
  {
     ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
