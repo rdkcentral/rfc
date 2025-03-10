@@ -129,200 +129,64 @@ namespace rfc {
         return 0;
     }
 
-#if 0    
-    std::string getErouterIPAddress() {
+    std::string RFCManager::getErouterIPAddress() {
         std::string address;
 
-        // Execute the shell script function
-        FILE* pipe = popen(". /lib/rdk/utils.sh && getErouterIPAddress", "r");
-        if (!pipe) {
-            std::cerr << "Error: Failed to execute shell command" << std::endl;
-            return "";
+        // Try to get IPv6 address first
+        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IPv6", "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                address = buffer;
+                // Trim trailing newline
+                if (!address.empty() && address.back() == '\n') {
+                    address.pop_back();
+                }
+            }
+            pclose(pipe);
         }
 
-        // Read the output
-        char buffer[128];
-        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            address = buffer;
-            // Trim trailing newline
-            if (!address.empty() && address.back() == '\n') {
-                address.pop_back();
+        // If IPv6 not available, get IPv4
+        if (address.empty()) {
+            FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IP", "r");
+            if (pipe) {
+                char buffer[128] = {0};
+                if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                    address = buffer;
+                    // Trim trailing newline
+                    if (!address.empty() && address.back() == '\n') {
+                        address.pop_back();
+                    }
+                }
+                pclose(pipe);
             }
         }
-
-        // Close the pipe
-        pclose(pipe);
 
         return address;
     }
-
-    std::string getErouterIPAddress() {
-        std::string address;
-        std::string BOX_TYPE = std::getenv("BOX_TYPE") ? std::getenv("BOX_TYPE") : "";
-        std::string UseLANIFIPV6 = std::getenv("UseLANIFIPV6") ? std::getenv("UseLANIFIPV6") : "";
-        std::string WANINTERFACE = std::getenv("WANINTERFACE") ? std::getenv("WANINTERFACE") : "";
-        std::string HUB4_IPV6_INTERFACE = std::getenv("HUB4_IPV6_INTERFACE") ? std::getenv("HUB4_IPV6_INTERFACE") : "";
-    
-        FILE* fp = nullptr;
-        char buffer[256];
-    
-        if (BOX_TYPE == "XB6" || BOX_TYPE == "TCCBR") {
-            // Try to get IPv6 address first
-            fp = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IPv6", "r");
-            if (fp) {
-                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                    address = buffer;
-                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                }
-                pclose(fp);
-            }
-        
-            // If IPv6 not available, get IPv4
-            if (address.empty()) {
-                fp = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IP", "r");
-                if (fp) {
-                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                        address = buffer;
-                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                    }
-                    pclose(fp);
-                }
-            }
-        } else if (BOX_TYPE == "HUB4" || BOX_TYPE == "SR300" || 
-                   BOX_TYPE == "SR213" || BOX_TYPE == "SE501" || 
-                   BOX_TYPE == "WNXL11BWL" || UseLANIFIPV6 == "true") {
-            // Check IPv6 connection state
-            std::string ipv6_state;
-            fp = popen("sysevent get ipv6_connection_state", "r");
-            if (fp) {
-                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                    ipv6_state = buffer;
-                    ipv6_state.erase(ipv6_state.find_last_not_of("\n\r") + 1); // Trim newlines
-                }
-                pclose(fp);
-            }
-        
-            if (ipv6_state == "up") {
-                // Get IPv6 address
-                std::string cmd = "ifconfig " + HUB4_IPV6_INTERFACE + 
-                                  " | grep inet6 | grep Global | awk '/inet6/{print $3}' | " +
-                                  "grep -v 'fdd7' | cut -d '/' -f1 | head -n1";
-                fp = popen(cmd.c_str(), "r");
-                if (fp) {
-                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                        address = buffer;
-                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                    }
-                    pclose(fp);
-                }
-            } else {
-                // Get IPv4 address
-                std::string cmd = "ifconfig " + WANINTERFACE + 
-                                  " | grep \"inet addr\" | grep -v inet6 | cut -f2 -d: | cut -f1 -d\" \"";
-                fp = popen(cmd.c_str(), "r");
-                if (fp) {
-                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                        address = buffer;
-                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                    }
-                    pclose(fp);
-                }
-            }
-        } else if (BOX_TYPE == "XF3") {
-            // For PON/DSL, use eRouter IP address
-            std::string cmd = "ifconfig " + WANINTERFACE + 
-                              " | grep \"inet addr\" | grep -v inet6 | cut -f2 -d: | cut -f1 -d\" \"";
-            fp = popen(cmd.c_str(), "r");
-            if (fp) {
-                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                    address = buffer;
-                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                }
-                pclose(fp);
-            }
-        } else {
-            // Try IPv6 first
-            std::string cmd = "ifconfig -a " + WANINTERFACE + 
-                              " | grep inet6 | tr -s \" \" | grep -v Link | cut -d \" \" -f4 | cut -d \"/\" -f1";
-            fp = popen(cmd.c_str(), "r");
-            if (fp) {
-                if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                    address = buffer;
-                    address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                }
-                pclose(fp);
-            }
-        
-            // If IPv6 not available, get IPv4
-            if (address.empty()) {
-                std::string cmd = "ifconfig -a " + WANINTERFACE + 
-                                  " | grep inet | grep -v inet6 | tr -s \" \" | cut -d \":\" -f2 | cut -d \" \" -f1";
-                fp = popen(cmd.c_str(), "r");
-                if (fp) {
-                    if (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-                        address = buffer;
-                        address.erase(address.find_last_not_of("\n\r") + 1); // Trim newlines
-                    }
-                    pclose(fp);
-                }
-            }
-        }
-    
-        return address;
-    }
-#endif
 
     bool RFCManager::CheckIPConnectivity(void)
     {
         bool ip_status = false;
-        std::string ip_address = "";
-        std::string utils_path = "/lib/rdk/utils.sh";
-    
-        if (access(utils_path.c_str(), R_OK) == 0) {
-            // Using . instead of source for better compatibility
-            std::string cmd = ". " + utils_path + " && getErouterIPAddress";
-        
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing command: %s\n", __FUNCTION__, __LINE__, cmd.c_str());
-        
-            FILE* pipe = popen(cmd.c_str(), "r");
-            if (!pipe) {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute getErouterIPAddress command\n", __FUNCTION__, __LINE__);
-                return false;
-            }
-        
-            // Read the output
-            char buffer[128] = {0};
-            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                ip_address = buffer;
-                // Trim trailing newline
-                if (!ip_address.empty() && ip_address.back() == '\n') {
-                    ip_address.pop_back();
-                }
-            
-                // If we got an IP address (non-empty string), consider it connected
-                if (!ip_address.empty()) {
-                    ip_status = true;
-                }
-            } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] No output received from getErouterIPAddress\n", __FUNCTION__, __LINE__);
-            }
-        
-            // Get the popen return status
-            int status = pclose(pipe);
-            if (status != 0) {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Command returned error status: %d\n", __FUNCTION__, __LINE__, status);
-            }
+
+        // Call the getErouterIPAddress function directly instead of using the shell script
+        std::string ip_address = getErouterIPAddress();
+
+        // If we got an IP address (non-empty string), consider it connected
+        if (!ip_address.empty()) {
+            ip_status = true;
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully got eRouter IP address\n", __FUNCTION__, __LINE__);
         } else {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Utils script not found at %s\n", __FUNCTION__, __LINE__, utils_path.c_str());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get eRouter IP address\n", __FUNCTION__, __LINE__);
         }
-    
+
         // Log the IP address and connection status
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] eRouter IP Address: '%s'\n", __FUNCTION__, __LINE__, ip_address.c_str());
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] IP Connectivity Status: %s\n", __FUNCTION__, __LINE__, ip_status ? "Connected" : "Disconnected");
-    
-        ip_status = true;  
+
         return ip_status;
-    }    
+    }
+
 
     /* Description: Checking IP route address and device is online or not.
      *              Use IARM event provided by net service manager to check either
