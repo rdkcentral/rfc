@@ -62,7 +62,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         return FAILURE;
     }
 
-    rfc_state = (_ebuild_type != ePROD) ? Local : Init;
+    rfc_state = (_ebuild_type != ePROD || dbgServices == true) ? Local : Init;
 
     /* get experience */ 
     if(-1 == GetExperience())
@@ -618,12 +618,13 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
+    bool dbgServices = isDebugServicesEnabled();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from local override\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
             }
