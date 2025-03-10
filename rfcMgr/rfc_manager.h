@@ -86,6 +86,7 @@ class RFCManager {
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
+        std::string getErouterIPAddress();
         bool CheckIPConnectivity(void);
         bool IsIarmBusConnected();
         int RFCManagerProcess();
