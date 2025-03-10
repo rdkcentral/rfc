@@ -300,3 +300,60 @@ void RemoveSubstring(std::string& str, const std::string& toRemove)
         pos = str.find(toRemove);
     }
 }
+std::string getCronFromDCMSettings() {
+    std::string cron = "";
+    std::string dcmSettingsPath = "/tmp/DCMSettings.conf";
+    std::string persistentPath = std::getenv("PERSISTENT_PATH") ? std::getenv("PERSISTENT_PATH") : "";
+    std::string tmpDCMSettingsPath = persistentPath + "/tmp/DCMSettings.conf";
+    std::string searchString = "urn:settings:CheckSchedule:cron";
+
+    // Check if DCMSettings.conf exists
+    std::ifstream dcmFile(dcmSettingsPath);
+    if (dcmFile.is_open()) {
+        std::string line;
+        std::ofstream tmpFile(tmpDCMSettingsPath);
+
+        // Search for the cron setting in DCMSettings.conf
+        while (std::getline(dcmFile, line)) {
+            if (line.find(searchString) != std::string::npos) {
+                // Write the line to the temporary file
+                if (tmpFile.is_open()) {
+                    tmpFile << line << std::endl;
+                }
+
+                // Extract the cron value
+                size_t pos = line.find('=');
+                if (pos != std::string::npos && pos + 1 < line.length()) {
+                    cron = line.substr(pos + 1);
+                }
+
+                break; // Found what we're looking for
+            }
+        }
+
+        dcmFile.close();
+        if (tmpFile.is_open()) {
+            tmpFile.close();
+        }
+    } else {
+        // If DCMSettings.conf doesn't exist, try reading from the temp file
+        std::ifstream tmpFile(tmpDCMSettingsPath);
+        if (tmpFile.is_open()) {
+            std::string line;
+            while (std::getline(tmpFile, line)) {
+                if (line.find(searchString) != std::string::npos) {
+                    // Extract the cron value
+                    size_t pos = line.find('=');
+                    if (pos != std::string::npos && pos + 1 < line.length()) {
+                        cron = line.substr(pos + 1);
+                    }
+                    break;
+                }
+            }
+            tmpFile.close();
+        }
+    }
+
+    return cron;
+}
+
