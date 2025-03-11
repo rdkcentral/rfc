@@ -46,12 +46,56 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 	return curl_ret_code;
 }
 
+std::string getErouterMac() {
+    std::string ifname;
+    std::string erouterMac;
+
+    FILE* pipe = popen("sysevent get current_wan_ifname", "r");
+    if (pipe) {
+        char buffer[128] = {0};
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            ifname = buffer;
+            if (!ifname.empty() && ifname.back() == '\n') {
+                ifname.pop_back();
+            }
+        }
+        pclose(pipe);
+    }
+
+    if (!ifname.empty()) {
+        std::string cmd = "ifconfig " + ifname + " | grep HWaddr | cut -d \" \" -f7";
+        FILE* macPipe = popen(cmd.c_str(), "r");
+        if (macPipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), macPipe) != nullptr) {
+                erouterMac = buffer;
+                // Trim trailing newline
+                if (!erouterMac.empty() && erouterMac.back() == '\n') {
+                    erouterMac.pop_back();
+                }
+            }
+            pclose(macPipe);
+        }
+    }
+
+    return erouterMac;
+}
+
 int XconfHandler:: initializeXconfHandler()
 {
 	char tmpbuf[200] = {0};
 	int len = 0;
-	
-	len = GetEstbMac( tmpbuf, sizeof(tmpbuf) );
+
+#if defined(RDKB_SUPPORT)
+        std::string mac = getErouterMac();
+        if (!mac.empty()) {
+            strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0'; // Ensure null termination
+            len = strlen(tmpbuf);
+        }
+#else
+        len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
+#endif
         if( len )
 	{
 	    _estb_mac_address = tmpbuf;

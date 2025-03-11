@@ -187,7 +187,6 @@ namespace rfc {
         return ip_status;
     }
 
-
     /* Description: Checking IP route address and device is online or not.
      *              Use IARM event provided by net service manager to check either
      *              device is online or not.
