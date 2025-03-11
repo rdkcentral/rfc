@@ -26,6 +26,8 @@
 #include "mtlsUtils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <rbus/rbus.h>
+#include <rbus/rbus_value.h>
 #include <ctime>
 
 #ifdef __cplusplus
@@ -555,7 +557,6 @@ bool RuntimeFeatureControlProcessor::isXconfSelectorSlotProd()
 void RuntimeFeatureControlProcessor::clearDB(void)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
-#if !defined(RDKB_SUPPORT)		    
     std::string name = "rfc";
     std::string value = "true";
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
@@ -565,7 +566,6 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, ClearDBEndKey, value);
     set_RFCProperty(name, BootstrapClearDBEndKey, value);
     set_RFCProperty(name, reloadCacheKey, value);
-#endif
 }
 
 
@@ -787,10 +787,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                         updateTimeInDB("0");
                     }
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
-#if !defined(RDKB_SUPPORT)		    
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
-#endif                    
                     break;
                 }
             }
@@ -1458,13 +1456,16 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 		}
 	    }
 
-#if !defined(RDKB_SUPPORT)
             WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
             if (status != WDMP_SUCCESS)
             {
+#if !defined(RDKB_SUPPORT)
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%s\n", __FUNCTION__, __LINE__, newKey.c_str(), getRFCErrorString(status));
+#else		
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%d\n", __FUNCTION__, __LINE__, newKey.c_str(), status);
+#endif		
+
             }
-#endif		    
             else
             {
                 if (newValue != currentValue)
@@ -1576,35 +1577,120 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
     return true;
 }
 
-#if !defined(RDKB_SUPPORT)
-WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std ::string name, std ::string key, std ::string value)
+WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, std::string key, std::string value)
 {
+#if defined(RDKB_SUPPORT)
+    // Broadband implementation using rbus_set
+    rbusHandle_t handle;
+    rbusValue_t rbusValue;
+    rbusError_t rc;
+    WDMP_STATUS status = WDMP_FAILURE;
+    (void)name;
+
+    // Initialize rbus connection
+    rc = rbus_open(&handle, "RFC_Manager");
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open rbus handle: %s\n",
+                __FUNCTION__, __LINE__, rbusError_ToString(rc));
+        return WDMP_FAILURE;
+    }
+
+    // First get the parameter to determine its type
+    rc = rbus_get(handle, key.c_str(), &rbusValue);
+    if (rc == RBUS_ERROR_SUCCESS) {
+        // Create new value with same type as existing parameter
+        rbusValue_t newValue;
+        rbusValue_Init(&newValue);
+
+        // Set the new value based on the type of the existing parameter
+        rbusValueType_t type = rbusValue_GetType(rbusValue);
+        switch (type) {
+            case RBUS_STRING:
+                rbusValue_SetString(newValue, value.c_str());
+                break;
+            case RBUS_BOOLEAN:
+                rbusValue_SetBoolean(newValue, (value == "true" || value == "1"));
+                break;
+            case RBUS_INT32:
+                rbusValue_SetInt32(newValue, std::stoi(value));
+                break;
+            case RBUS_UINT32:
+                rbusValue_SetUInt32(newValue, std::stoul(value));
+                break;
+            case RBUS_INT64:
+                rbusValue_SetInt64(newValue, std::stoll(value));
+                break;
+            case RBUS_UINT64:
+                rbusValue_SetUInt64(newValue, std::stoull(value));
+                break;
+            case RBUS_SINGLE:
+                rbusValue_SetSingle(newValue, std::stof(value));
+                break;
+            case RBUS_DOUBLE:
+                rbusValue_SetDouble(newValue, std::stod(value));
+                break;
+            default:
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Unsupported parameter type: %d\n",
+                        __FUNCTION__, __LINE__, type);
+                rbusValue_Release(newValue);
+                rbusValue_Release(rbusValue);
+                rbus_close(handle);
+                return WDMP_FAILURE;
+        }
+
+        // Set the parameter with the new value
+        rc = rbus_set(handle, key.c_str(), newValue, NULL);
+        if (rc == RBUS_ERROR_SUCCESS) {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully set parameter %s\n",
+                    __FUNCTION__, __LINE__, key.c_str());
+            status = WDMP_SUCCESS;
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to set parameter %s: %s\n",
+                    __FUNCTION__, __LINE__, key.c_str(), rbusError_ToString(rc));
+            status = WDMP_FAILURE;
+        }
+
+        // Release the values
+        rbusValue_Release(newValue);
+        rbusValue_Release(rbusValue);
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get parameter %s: %s\n",
+                __FUNCTION__, __LINE__, key.c_str(), rbusError_ToString(rc));
+        status = WDMP_FAILURE;
+    }
+
+    // Close the rbus connection
+    rbus_close(handle);
+
+    return status;
+#else
+    // Non-broadband implementation (original code)
     RFC_ParamData_t param;
     param.type = WDMP_NONE;
-
     memset(&param, 0, sizeof(RFC_ParamData_t));
     WDMP_STATUS status = getRFCParameter(NULL, key.c_str(), &param);
     if(param.type != WDMP_NONE)
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Parameter Type=%d\n", __FUNCTION__, __LINE__, param.type);
-
         WDMP_STATUS status = setRFCParameter(name.c_str(), key.c_str(), value.c_str(), param.type);
-        if (status != WDMP_SUCCESS) 
+        if (status != WDMP_SUCCESS)
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] setRFCParameter failed. key=%s and status=%s\n", __FUNCTION__, __LINE__, key.c_str(), getRFCErrorString(status));
-        } 
-        else 
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] setRFCParameter failed. key=%s and status=%s\n",
+                    __FUNCTION__, __LINE__, key.c_str(), getRFCErrorString(status));
+        }
+        else
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] setRFCParameter Success\n", __FUNCTION__, __LINE__);
         }
     }
     else
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to retrieve : Reason:%s\n", __FUNCTION__, __LINE__,getRFCErrorString(status));
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to retrieve : Reason:%s\n",
+                __FUNCTION__, __LINE__, getRFCErrorString(status));
     }
     return status;
-}
 #endif
+}
 
 void RuntimeFeatureControlProcessor::updateTR181File(const std::string& filename, std::list<std::string>& paramList) 
 {

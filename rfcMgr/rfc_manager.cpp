@@ -400,6 +400,7 @@ namespace rfc {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
         int reqStatus = FAILURE;
+        int RfcRebootCronNeeded = 0;
 
         /* Initialize xconf Hanlder */
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();
@@ -436,6 +437,7 @@ namespace rfc {
 	if(post_process_result == SUCCESS)
 	{
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
+	    checkAndScheduleReboot(RfcRebootCronNeeded);
 	}
 	else
 	{
@@ -454,6 +456,29 @@ namespace rfc {
 
         return ret_status;
     }
+
+    void RFCManager::checkAndScheduleReboot(int rfcRebootCronNeeded) 
+    {
+        if (rfcRebootCronNeeded == 1) {
+            // Effective Reboot is required for the New RFC config
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: RfcRebootCronNeeded=%d. Calling script to schedule reboot in maintenance window\n", 
+                    __FUNCTION__, __LINE__, rfcRebootCronNeeded);
+        
+            // Check if the script exists
+            if (access("/etc/RfcRebootCronschedule.sh", X_OK) == 0) {
+                // Use v_secure_system to run the script in background
+                int result = v_secure_system("sh /etc/RfcRebootCronschedule.sh &");
+            
+                if (result != 0) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute reboot script, return code: %d\n", 
+                        __FUNCTION__, __LINE__, result);
+                }
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Reboot script not found or not executable: /etc/RfcRebootCronschedule.sh\n", 
+                        __FUNCTION__, __LINE__);
+            }
+        }
+    }    
 
     void rfc::RFCManager::manageCronJob(const std::string& cron) {	    
         if (!cron.empty()) {
