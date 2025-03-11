@@ -78,6 +78,7 @@ class RFCManager {
         RFCManager(const RFCManager &) = delete;
         RFCManager &operator=(const RFCManager &) = delete;
         int RFCManagerProcessXconfRequest();
+	void checkAndScheduleReboot(int rfcRebootCronNeeded);
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
 	void manageCronJob(const std::string& cron);

@@ -78,6 +78,13 @@ typedef enum
    Finish
 } RfcState;
 
+#if defined(RDKB_SUPPORT)
+typedef enum {
+    WDMP_SUCCESS = 0,
+    WDMP_FAILURE,
+} WDMP_STATUS;
+#endif
+
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
         public :
