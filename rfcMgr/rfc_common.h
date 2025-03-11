@@ -78,5 +78,4 @@ bool CheckSpecialCharacters(const std::string&);
 bool StringCaseCompare(const std::string& , const std::string& );
 void RemoveSubstring(std::string& str, const std::string& toRemove);
 std::string getCronFromDCMSettings();
-
 #endif

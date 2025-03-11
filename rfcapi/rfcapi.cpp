@@ -39,7 +39,11 @@ using namespace std;
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
 
 #define CONNECTION_TIMEOUT 5
+#if !defined(RDKB_SUPPORT)
 #define TRANSFER_TIMEOUT 10
+#else
+#define TRANSFER_TIMEOUT 30
+#endif
 
 static const char *url = "http://127.0.0.1:11999";
 static bool tr69hostif_http_server_ready = false;

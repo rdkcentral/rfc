@@ -300,6 +300,7 @@ void RemoveSubstring(std::string& str, const std::string& toRemove)
         pos = str.find(toRemove);
     }
 }
+
 std::string getCronFromDCMSettings() {
     std::string cron = "";
     std::string dcmSettingsPath = "/tmp/DCMSettings.conf";
@@ -356,4 +357,3 @@ std::string getCronFromDCMSettings() {
 
     return cron;
 }
-

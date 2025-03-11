@@ -24,6 +24,8 @@
 #include "rfcapi.h"
 #include "rfc_mgr_json.h"
 #include "mtlsUtils.h"
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <ctime>
 
 #ifdef __cplusplus
@@ -604,15 +606,30 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, reloadCacheKey, value);
 }
 
+
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
 
+#if !defined(RDKB_SUPPORT)
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
-
     set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, configSetHash);
+#else
+    const std::string RFC_RAM_PATH = "/tmp/RFC";
+    std::string filePath = RFC_RAM_PATH + "/.hashValue";
 
+    std::ofstream file(filePath);
+
+    if (file.is_open()) {
+        // Write the hash value to the file
+        file << configSetHash;
+        file.close();
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully wrote hash to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
+    }
+#endif
     if(true == StringCaseCompare(bkup_hash, configSetHash))
     {
         isRebootRequired = false;
@@ -622,12 +639,26 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 
 void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 {
+#if !defined(RDKB_SUPPORT)
+    // Non-broadband implementation
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
+    set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
+#else
+    const std::string RFC_RAM_PATH = "/tmp/RFC";
+    std::string filePath = RFC_RAM_PATH + "/.timeValue";
+
+    std::ofstream file(filePath);
+    if (file.is_open()) {
+        file << timestampString;
+        file.close();
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully wrote timestamp to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
+    }
+#endif
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Timestamp as string: = %s\n", __FUNCTION__, __LINE__, timestampString.c_str());
-
-    set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
 }
 
 void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
@@ -665,7 +696,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
 
         updateHashInDB(configSetHashValue);
     } else {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "configSetHash not found in httpHeader!");
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "configSetHash not found in httpHeader!\n");
     }
 
     
@@ -680,9 +711,10 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
 
 bool RuntimeFeatureControlProcessor::IsDirectBlocked() 
 {
-    const unsigned int direct_block_time = 86400;
     bool directret = false;
 
+#if !defined(RDKB_SUPPORT)
+    const unsigned int direct_block_time = 86400;
     struct stat fileStat;
 
     if (stat(DIRECT_BLOCK_FILENAME, &fileStat) == 0) {
@@ -709,6 +741,7 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
             }
         }
     }
+#endif
 
     return directret;
 }
@@ -870,8 +903,54 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 
 }
 
-void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std ::string &valueHash, std::string &valueTime) 
+void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash, std::string &valueTime)
 {
+#if defined(RDKB_SUPPORT)
+    // For broadband, read from files
+    const std::string RFC_RAM_PATH = "/tmp/RFC";
+
+    // Initialize default values
+    valueHash = "UPGRADE_HASH";
+    valueTime = "0";
+
+    // Read hash value
+    std::string hashFilePath = RFC_RAM_PATH + "/.hashValue";
+    if (access(hashFilePath.c_str(), R_OK) == 0) {
+        std::ifstream hashFile(hashFilePath);
+        if (hashFile.is_open()) {
+            std::getline(hashFile, valueHash);
+            hashFile.close();
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s (from file)\n",
+                   __FUNCTION__, __LINE__, valueHash.c_str());
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open hash file: %s\n",
+                   __FUNCTION__, __LINE__, hashFilePath.c_str());
+        }
+    } else {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Hash file not found, using default value\n",
+               __FUNCTION__, __LINE__);
+    }
+
+    // Read time value
+    std::string timeFilePath = RFC_RAM_PATH + "/.timeValue";
+    if (access(timeFilePath.c_str(), R_OK) == 0) {
+        std::ifstream timeFile(timeFilePath);
+        if (timeFile.is_open()) {
+            std::getline(timeFile, valueTime);
+            timeFile.close();
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s (from file)\n",
+                   __FUNCTION__, __LINE__, valueTime.c_str());
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open time file: %s\n",
+                   __FUNCTION__, __LINE__, timeFilePath.c_str());
+        }
+    } else {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Time file not found, using default value\n",
+               __FUNCTION__, __LINE__);
+    }
+
+#else
+    // For non-broadband, use the original implementation
     int i = 0;
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
@@ -880,39 +959,42 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std 
 
     /* Get Hash Value*/
     i = read_RFCProperty(ConfigSetHash.c_str(), RFC_CONFIG_SET_HASH, tempbuf, szBufSize);
-    if (i == READ_RFC_FAILURE) 
+    if (i == READ_RFC_FAILURE)
     {
         i = snprintf(tempbuf, szBufSize, "UPGRADE_HASH");
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: read_RFCProperty() failed Status %d\n", __FUNCTION__, __LINE__, i);
-    } 
-    else 
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: read_RFCProperty() failed Status %d\n",
+               __FUNCTION__, __LINE__, i);
+    }
+    else
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s\n", __FUNCTION__, __LINE__, tempbuf);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s\n",
+               __FUNCTION__, __LINE__, tempbuf);
     }
-
     valueHash = tempbuf;
-    bkup_hash = valueHash;
 
     /* Get Time Value */
     memset(tempbuf, 0, 1024);
-
-    /* Get Hash Value*/
     i = read_RFCProperty(ConfigSetTime.c_str(), RFC_CONFIG_SET_TIME, tempbuf, szBufSize);
-    if (i == READ_RFC_FAILURE) 
+    if (i == READ_RFC_FAILURE)
     {
         i = snprintf(tempbuf, szBufSize, "0");
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: read_RFCProperty() failed Status %d\n", __FUNCTION__, __LINE__, i);
-    } 
-    else 
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: read_RFCProperty() failed Status %d\n",
+               __FUNCTION__, __LINE__, i);
+    }
+    else
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s\n", __FUNCTION__, __LINE__, tempbuf);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s\n",
+               __FUNCTION__, __LINE__, tempbuf);
     }
-    valueTime= tempbuf;
+    valueTime = tempbuf;
+#endif
+
+    // Save backup hash for both implementations
+    bkup_hash = valueHash;
 
     return;
-
 }
 
 void RuntimeFeatureControlProcessor::InitDownloadData(DownloadData *pDwnData)
@@ -1024,7 +1106,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 83:
                 case 90:
                 case 91:
+#if !defined(RDKB_SUPPORT)
                 NotifyTelemetry2ErrorCode(curl_ret_code);
+#else
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Skipping NotifyTelemetry2ErrorCode alert\n");
+#endif		
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
@@ -1427,10 +1513,12 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                     {
                         NotifyTelemetry2Count("SYST_INFO_ACCID_set");
                     }
+#if !defined(RDKB_SUPPORT)
                     if (isMaintenanceEnabled())
                     {
                         isRebootRequired = true;
                     }
+#endif		    
                 }
                 else
                 {
