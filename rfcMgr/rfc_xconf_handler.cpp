@@ -124,7 +124,428 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
     return found;
 }
 
+bool RuntimeFeatureControlProcessor::ExecuteCommand(const std::string& command, std::string& output)
+{
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        return false;
+    }
 
+    char buffer[128];
+    output = "";
+
+    while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != NULL) {
+            output += buffer;
+        }
+    }
+
+    int status = pclose(pipe);
+    return (status == 0);
+}
+
+bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded)
+{
+    std::string paramName;
+    size_t tr181Pos = configKey.find("tr181");
+
+    if (tr181Pos != std::string::npos) {
+        // Extract parameter name after tr181
+        size_t dotPos = configKey.find(".", tr181Pos);
+        if (dotPos != std::string::npos) {
+            paramName = configKey.substr(dotPos + 1);
+        }
+    }
+
+    if (paramName.empty()) {
+        return false;
+    }
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter name %s\n", paramName.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter value %s\n", configValue.c_str());
+
+    // Initialize rbus connection
+    rbusHandle_t rbusHandle;
+    rbusError_t rc = rbus_open(&rbusHandle, "RFC_Manager");
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to open rbus handle: %s\n", rbusError_ToString(rc));
+        return false;
+    }
+
+    // Check for WanFailOverSupportEnable
+    std::string wanFailOverSupportEnable;
+    rbusValue_t wfoValue = NULL;
+    rc = rbus_get(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WanFailOverSupport.Enable", &wfoValue);
+    if (rc == RBUS_ERROR_SUCCESS && wfoValue != NULL) {
+        if (rbusValue_GetType(wfoValue) == RBUS_BOOLEAN) {
+            wanFailOverSupportEnable = rbusValue_GetBoolean(wfoValue) ? "true" : "false";
+        } else if (rbusValue_GetType(wfoValue) == RBUS_STRING) {
+            wanFailOverSupportEnable = rbusValue_GetString(wfoValue, NULL);
+        }
+        rbusValue_Release(wfoValue);
+    }
+
+    if (wanFailOverSupportEnable == "true") {
+        if (paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.UPnP.Refactor.Enable" ||
+            paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Xupnp") {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter %s is not applied in WFO builds\n", paramName.c_str());
+            rbus_close(rbusHandle);
+            return true;
+        }
+    }
+
+    // Check for WanUnificationEnable
+    std::string wanUnificationEnable;
+    rbusValue_t wuValue = NULL;
+    rc = rbus_get(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WanUnification.Enable", &wuValue);
+    if (rc == RBUS_ERROR_SUCCESS && wuValue != NULL) {
+        if (rbusValue_GetType(wuValue) == RBUS_BOOLEAN) {
+            wanUnificationEnable = rbusValue_GetBoolean(wuValue) ? "true" : "false";
+        } else if (rbusValue_GetType(wuValue) == RBUS_STRING) {
+            wanUnificationEnable = rbusValue_GetString(wuValue, NULL);
+        }
+        rbusValue_Release(wuValue);
+    }
+
+    if (wanUnificationEnable == "true" &&
+        paramName == "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode") {
+
+        std::string enableDocsis = "true";
+        std::string enableEth = "true";
+        std::string persistSelectedInterface = "TRUE";
+
+        if (configValue == "DOCSIS") {
+            enableEth = "false";
+        } else if (configValue == "Ethernet") {
+            enableDocsis = "false";
+        } else if (configValue == "Auto") {
+            persistSelectedInterface = "FALSE";
+        }
+
+        // Set DOCSIS interface using rbus
+        rbusValue_t docsisValue;
+        rbusValue_Init(&docsisValue);
+        rbusValue_SetBoolean(docsisValue, (enableDocsis == "true"));
+        rc = rbus_set(rbusHandle, "Device.X_RDK_WanManager.Interface.[DOCSIS].Selection.Enable", docsisValue, NULL);
+        if (rc != RBUS_ERROR_SUCCESS) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set DOCSIS interface: %s\n", rbusError_ToString(rc));
+        }
+        rbusValue_Release(docsisValue);
+
+        // Set WAN over Ethernet interface using rbus
+        rbusValue_t ethValue;
+        rbusValue_Init(&ethValue);
+        rbusValue_SetBoolean(ethValue, (enableEth == "true"));
+        rc = rbus_set(rbusHandle, "Device.X_RDK_WanManager.Interface.[WANOE].Selection.Enable", ethValue, NULL);
+        if (rc != RBUS_ERROR_SUCCESS) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set WANOE interface: %s\n", rbusError_ToString(rc));
+        }
+        rbusValue_Release(ethValue);
+
+        // Set PersistSelectedInterface using psmcli (keep this as is since it's using PSM)
+        std::string psmcliCmd = "psmcli set \"dmsb.wanmanager.group.1.PersistSelectedInterface\" \"" + persistSelectedInterface + "\"";
+        std::string output;
+        ExecuteCommand(psmcliCmd, output);
+
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "WanUnification Enabled Setting WanManager DML instead of Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode to %s\n", configValue.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[DOCSIS].Selection.Enable to %s\n", enableDocsis.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[WANOE].Selection.Enable %s\n", enableEth.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting dmsb.wanmanager.group.1.PersistSelectedInterface %s\n", persistSelectedInterface.c_str());
+
+        rbus_close(rbusHandle);
+        return true;
+    }
+
+    // Get parameter type and current value using rbus
+    rbusValue_t paramVal = NULL;
+    rc = rbus_get(rbusHandle, paramName.c_str(), &paramVal);
+    if (rc != RBUS_ERROR_SUCCESS || paramVal == NULL) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s: %s\n",
+               paramName.c_str(), rbusError_ToString(rc));
+        rbus_close(rbusHandle);
+        return false;
+    }
+
+    rbusValueType_t paramType = rbusValue_GetType(paramVal);
+    std::string paramTypeStr;
+    std::string paramValue;
+
+    // Extract parameter value based on type
+    switch (paramType) {
+        case RBUS_STRING:
+            paramTypeStr = "string";
+            paramValue = rbusValue_GetString(paramVal, NULL);
+            break;
+        case RBUS_BOOLEAN:
+            paramTypeStr = "bool";
+            paramValue = rbusValue_GetBoolean(paramVal) ? "true" : "false";
+            break;
+        case RBUS_INT32:
+            paramTypeStr = "int";
+            paramValue = std::to_string(rbusValue_GetInt32(paramVal));
+            break;
+        case RBUS_UINT32:
+            paramTypeStr = "uint";
+            paramValue = std::to_string(rbusValue_GetUInt32(paramVal));
+            break;
+        case RBUS_SINGLE:
+        case RBUS_DOUBLE:
+            paramTypeStr = "double";
+            paramValue = std::to_string(rbusValue_GetDouble(paramVal));
+            break;
+        default:
+            paramTypeStr = "string";
+            paramValue = "";
+            break;
+    }
+
+    rbusValue_Release(paramVal);
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "paramType is %s\n", paramTypeStr.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: old parameter value %s\n", paramValue.c_str());
+
+    bool isRfcNameSpace = (paramName.find(".X_RDKCENTRAL-COM_RFC.") != std::string::npos);
+
+    // Check if values are different or if it's RFC namespace
+    if (paramValue != configValue || isRfcNameSpace) {
+        // Create new value with the right type
+        rbusValue_t newValue;
+        rbusValue_Init(&newValue);
+
+        // Set the value based on parameter type
+        bool setSuccess = true;
+        switch (paramType) {
+            case RBUS_STRING:
+                rbusValue_SetString(newValue, configValue.c_str());
+                break;
+            case RBUS_BOOLEAN:
+                rbusValue_SetBoolean(newValue, (configValue == "true" || configValue == "1"));
+                break;
+            case RBUS_INT32:
+                rbusValue_SetInt32(newValue, std::stoi(configValue));
+                break;
+            case RBUS_UINT32:
+                rbusValue_SetUInt32(newValue, std::stoul(configValue));
+                break;
+            case RBUS_SINGLE:
+                rbusValue_SetSingle(newValue, std::stof(configValue));
+                break;
+            case RBUS_DOUBLE:
+                rbusValue_SetDouble(newValue, std::stod(configValue));
+                break;
+            default:
+                setSuccess = false;
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Unsupported parameter type: %d\n", paramType);
+                break;
+        }
+
+        if (setSuccess) {
+            rc = rbus_set(rbusHandle, paramName.c_str(), newValue, NULL);
+            rbusValue_Release(newValue);
+
+            if (rc == RBUS_ERROR_SUCCESS) {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n",
+                       paramName.c_str(), paramValue.c_str(), configValue.c_str());
+
+                // Special handling for account ID
+                if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
+                    std::string cmd = "t2CountNotify \"SYST_INFO_ACCID_set\"";
+                    std::string notifyOutput;
+                    ExecuteCommand(cmd, notifyOutput);
+                }
+
+                // Special handling for Syndication.PartnerId
+                if (paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId") {
+                    if (paramValue == "unknown" || paramValue == "Unknown") {
+                        rebootValue = 1;
+                    }
+                }
+
+                // Check if reboot is needed
+                if (rebootValue == 1) {
+                    rfcRebootCronNeeded = true;
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n",
+                           paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                }
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n",
+                       paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
+                rbus_close(rbusHandle);
+                return false;
+            }
+        } else {
+            rbus_close(rbusHandle);
+            return false;
+        }
+    } else {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n",
+               paramName.c_str(), configValue.c_str());
+    }
+
+    rbus_close(rbusHandle);
+    return true;
+}
+
+/**
+ * C++ implementation of the processJsonResponseB function
+ * Uses rbus for broadband implementation without dcmjsonparser
+ */
+bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
+{
+    std::string rfcList;
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
+
+    // Initialize rbus connection
+    rbusHandle_t rbusHandle;
+    rbusError_t rc = rbus_open(&rbusHandle, "RFC_Manager");
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to open rbus handle: %s\n", rbusError_ToString(rc));
+        return false;
+    }
+
+    // Set initial RFC features
+    rbusValue_t falseVal;
+    rbusValue_Init(&falseVal);
+    rbusValue_SetBoolean(falseVal, false);
+
+    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.CodebigSupport", falseVal, NULL);
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set CodebigSupport: %s\n", rbusError_ToString(rc));
+    }
+
+    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.ContainerSupport", falseVal, NULL);
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ContainerSupport: %s\n", rbusError_ToString(rc));
+    }
+
+    // Set ClearDB to true
+    rbusValue_t trueVal;
+    rbusValue_Init(&trueVal);
+    rbusValue_SetBoolean(trueVal, true);
+
+    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB", trueVal, NULL);
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ClearDB: %s\n", rbusError_ToString(rc));
+    }
+
+    // Process JSON data directly
+    JSON *pJson = ParseJsonStr(featureXConfMsg);
+    if (!pJson) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to parse JSON response\n");
+        rbusValue_Release(falseVal);
+        rbusValue_Release(trueVal);
+        rbus_close(rbusHandle);
+        return false;
+    }
+
+    bool rfcRebootCronNeeded = false;
+
+    // Process features from the JSON
+    JSON *features = GetRuntimeFeatureControlJSON(pJson);
+    JSON *bkp_features = features;
+
+    if (features) {
+        int numFeatures = GetJsonArraySize(features);
+        for (int index = 0; index < numFeatures; index++) {
+            JSON* feature = GetJsonArrayItem(features, index);
+            if (feature) {
+                RuntimeFeatureControlObject *rfcObj = new RuntimeFeatureControlObject;
+
+                if (SUCCESS != getRFCName(feature, rfcObj)) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Name\n", __FUNCTION__, __LINE__);
+                    delete rfcObj;
+                    continue;
+                }
+
+                if (SUCCESS != getRFCEnableParam(feature, rfcObj)) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Enable Param\n", __FUNCTION__, __LINE__);
+                    delete rfcObj;
+                    continue;
+                }
+
+                if (SUCCESS != getEffectiveImmediateParam(feature, rfcObj)) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Effective Immediate\n", __FUNCTION__, __LINE__);
+                    delete rfcObj;
+                    continue;
+                }
+
+                if (SUCCESS != getFeatureInstance(feature, rfcObj)) {
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured\n", __FUNCTION__, __LINE__);
+                } else {
+                    std::string filename = ".RFC_" + rfcObj->name + ".ini";
+                    rfcList += rfcObj->featureInstance + "=true,";
+                    writeRemoteFeatureCntrlFile(filename, rfcObj);
+                }
+
+                writeRemoteFeatureCntrlFile(VARFILE, rfcObj);
+
+                // Special telemetry handling
+                if (rfcObj->name == "PeriodicFWCheck" && rfcObj->enable) {
+                    std::string notifyCmd = "t2CountNotify \"SYS_INFO_RFC_PeriodicFWCheck\"";
+                    std::string output;
+                    ExecuteCommand(notifyCmd, output);
+                } else if (rfcObj->name == "IPv6onLnF" && rfcObj->enable) {
+                    std::string notifyCmd = "t2CountNotify \"INFO_IPv6_LNF_Support\"";
+                    std::string output;
+                    ExecuteCommand(notifyCmd, output);
+                }
+
+                // Apply configuration if needed
+                std::string key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature." + rfcObj->name + ".Enable";
+                std::string value = rfcObj->enable ? "true" : "false";
+                int effectiveImmediate = rfcObj->effectiveImmediate ? 1 : 0;
+
+                ParseConfigValue(key, value, effectiveImmediate, rfcRebootCronNeeded);
+
+                delete rfcObj;
+            }
+        }
+    }
+
+    // Process config data part
+    processXconfResponseConfigDataPart(bkp_features);
+
+    // Write feature list file
+    WriteFile(FEATURE_FILE_LIST, rfcList);
+
+    // Set ClearDBEnd to true
+    rbusValue_t endVal;
+    rbusValue_Init(&endVal);
+    rbusValue_SetBoolean(endVal, true);
+
+    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd", endVal, NULL);
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ClearDBEnd: %s\n", rbusError_ToString(rc));
+    }
+
+    rbusValue_Release(falseVal);
+    rbusValue_Release(trueVal);
+    rbusValue_Release(endVal);
+
+    // Notify telemetry about remote features
+    NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "STAGING");
+
+    // Update Version File
+    WriteFile(".version", _firmware_version);
+
+    HandleScheduledReboot(rfcRebootCronNeeded);
+
+    FreeJson(pJson);
+    rbus_close(rbusHandle);
+    return true;
+}
+
+void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNeeded)
+{
+    if (rfcRebootCronNeeded) {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: RfcRebootCronNeeded=true. Calling script to schedule reboot in maintenance window\n");
+
+        // Execute the reboot cron schedule script
+        std::string cmd = "sh /etc/RfcRebootCronschedule.sh &";
+        std::string output;
+        ExecuteCommand(cmd, output);
+    }
+}
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
 {
@@ -774,6 +1195,20 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 else
                 {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Continue processing RFC response.\n", __FUNCTION__, __LINE__);
+#if defined(RDKB_SUPPORT)
+                    if(ProcessJsonResponseB((char *)DwnLoc.pvOut) == SUCCESS)
+                    {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC processing Successfully.\n", __FUNCTION__, __LINE__);
+                        updateHashAndTimeInDB((char *)HeaderDwnLoc.pvOut);
+                        result = SUCCESS;
+                    }
+                    else
+                    {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing Response Failed!!\n", __FUNCTION__, __LINE__);
+                        updateHashInDB("CLEARED");
+                        updateTimeInDB("0");
+                    }
+#else		    
                     if(ProcessJsonResponse((char *)DwnLoc.pvOut) == SUCCESS)
                     {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC processing Successfully.\n", __FUNCTION__, __LINE__);
@@ -786,6 +1221,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                         updateHashInDB("CLEARED");
                         updateTimeInDB("0");
                     }
+#endif		    
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
@@ -1111,8 +1547,6 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2ErrorCode(int CurlReturn)
     v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2);
 }
 
-
-
 void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
 {
 
@@ -1308,77 +1742,64 @@ void RuntimeFeatureControlProcessor::GetXconfSelect()
 int RuntimeFeatureControlProcessor::ProcessJsonResponse(char *featureXConfMsg)
 {
     std::string rfcList;
-
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
-    JSON *pJson = ParseJsonStr(featureXConfMsg);
 
-    if(!pJson)
-    {
+    JSON *pJson = ParseJsonStr(featureXConfMsg);
+    if (!pJson) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
 
     JSON *features = GetRuntimeFeatureControlJSON(pJson);
     JSON *bkp_features = features;
-
-    if(!features)
-    {
+    if (!features) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Feature Parsing Failed\n", __FUNCTION__, __LINE__);
+        FreeJson(pJson);
         return FAILURE;
     }
 
     int numFeatures = GetJsonArraySize(features);
-    for (int index = 0; index < numFeatures; index++) 
-    {
+    for (int index = 0; index < numFeatures; index++) {
         JSON* feature = GetJsonArrayItem(features, index);
-        if(feature)
-        {
+        if (feature) {
             RuntimeFeatureControlObject *rfcObj = new RuntimeFeatureControlObject;
-            if(SUCCESS != getRFCName(feature, rfcObj))
-            {
+            if (SUCCESS != getRFCName(feature, rfcObj)) {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Name\n", __FUNCTION__, __LINE__);
                 delete rfcObj;
                 continue;
             }
-            if(SUCCESS != getRFCEnableParam(feature, rfcObj))
-            {
+            if (SUCCESS != getRFCEnableParam(feature, rfcObj)) {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Enable Param\n", __FUNCTION__, __LINE__);
                 delete rfcObj;
                 continue;
-            }          
-
-            if(SUCCESS != getEffectiveImmediateParam(feature, rfcObj))
-            {
+            }
+            if (SUCCESS != getEffectiveImmediateParam(feature, rfcObj)) {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Effective Immediate\n", __FUNCTION__, __LINE__);
                 delete rfcObj;
                 continue;
             }
-
-            if(SUCCESS != getFeatureInstance(feature, rfcObj))
-            {
+            if (SUCCESS != getFeatureInstance(feature, rfcObj)) {
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured\n", __FUNCTION__, __LINE__);
-            }
-            else
-            {
+            } else {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
                 rfcList += rfcObj->featureInstance + "=true,";
-                writeRemoteFeatureCntrlFile(filename,rfcObj);
+                writeRemoteFeatureCntrlFile(filename, rfcObj);
             }
-            writeRemoteFeatureCntrlFile(VARFILE,rfcObj);
+            writeRemoteFeatureCntrlFile(VARFILE, rfcObj);
             delete rfcObj;
-
         }
     }
+
     processXconfResponseConfigDataPart(bkp_features);
     WriteFile(FEATURE_FILE_LIST, rfcList);
-    /* prepare json file for parsing and report feature instance list */
 
+    // Notify telemetry about remote features
     NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "STAGING");
 
-    /* Update Version File*/
+    // Update Version File
     WriteFile(".version", _firmware_version);
-    FreeJson(pJson);
 
+    FreeJson(pJson);
     return SUCCESS;
 }
 

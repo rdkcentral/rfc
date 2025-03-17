@@ -49,7 +49,11 @@ extern "C" {
 #endif
 
 #define RFC_PROPERTIES_FILE                "/etc/rfc.properties"
+#if defined(RDKB_SUPPORT)
+#define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
+#else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
+#endif	
 #define WPEFRAMEWORKSECURITYUTILITY        "/usr/bin/WPEFrameworkSecurityUtility"
 #define DIRECTORY_PATH                     "/opt/secure/RFC/"
 #define VARFILE                            "rfcVariable.ini"
@@ -158,8 +162,12 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
+	bool ExecuteCommand(const std::string& command, std::string& output);
+	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
+	bool ProcessJsonResponseB(char* featureXConfMsg);
         void GetValidAccountId();
         void GetValidPartnerId();
+	void HandleScheduledReboot(bool rfcRebootCronNeeded);
         void GetXconfSelect();
         int ProcessJsonResponse(char *featureXConfMsg);
         JSON* GetRuntimeFeatureControlJSON(JSON *);

@@ -64,6 +64,7 @@ enum DeviceStatus {
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
 #else
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/RFCpostprocess.sh"
+#define RFC_LOG_FILE                    "/rdklogs/logs/dcmrfc.log.0"
 #endif
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
@@ -78,7 +79,6 @@ class RFCManager {
         RFCManager(const RFCManager &) = delete;
         RFCManager &operator=(const RFCManager &) = delete;
         int RFCManagerProcessXconfRequest();
-	void checkAndScheduleReboot(int rfcRebootCronNeeded);
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
 	void manageCronJob(const std::string& cron);

@@ -400,7 +400,6 @@ namespace rfc {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
         int reqStatus = FAILURE;
-        int RfcRebootCronNeeded = 0;
 
         /* Initialize xconf Hanlder */
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();
@@ -437,7 +436,6 @@ namespace rfc {
 	if(post_process_result == SUCCESS)
 	{
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
-	    checkAndScheduleReboot(RfcRebootCronNeeded);
 	}
 	else
 	{
@@ -457,34 +455,11 @@ namespace rfc {
         return ret_status;
     }
 
-    void RFCManager::checkAndScheduleReboot(int rfcRebootCronNeeded) 
+    void rfc::RFCManager::manageCronJob(const std::string& cron) 
     {
-        if (rfcRebootCronNeeded == 1) {
-            // Effective Reboot is required for the New RFC config
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: RfcRebootCronNeeded=%d. Calling script to schedule reboot in maintenance window\n", 
-                    __FUNCTION__, __LINE__, rfcRebootCronNeeded);
-        
-            // Check if the script exists
-            if (access("/etc/RfcRebootCronschedule.sh", X_OK) == 0) {
-                // Use v_secure_system to run the script in background
-                int result = v_secure_system("sh /etc/RfcRebootCronschedule.sh &");
-            
-                if (result != 0) {
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute reboot script, return code: %d\n", 
-                        __FUNCTION__, __LINE__, result);
-                }
-            } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Reboot script not found or not executable: /etc/RfcRebootCronschedule.sh\n", 
-                        __FUNCTION__, __LINE__);
-            }
-        }
-    }    
-
-    void rfc::RFCManager::manageCronJob(const std::string& cron) {	    
         if (!cron.empty()) {
             int cron_update = 1;
 
-            // Parse cron components
             std::istringstream iss(cron);
             std::vector<std::string> cronParts;
             std::string part;
@@ -493,12 +468,57 @@ namespace rfc {
             }
 
             if (cronParts.size() >= 5) {
-                // Get cron parts as integers for calculations
-                int vc1 = std::stoi(cronParts[0]);
-                int vc2 = std::stoi(cronParts[1]);
-                int vc3 = std::stoi(cronParts[2]);
-                int vc4 = std::stoi(cronParts[3]);
-                int vc5 = std::stoi(cronParts[4]);
+                int vc1 = 0, vc2 = 0, vc3 = 0, vc4 = 0, vc5 = 0;
+                bool validCron = true;
+
+                try {
+                    for (size_t i = 0; i < 5; i++) {
+                        const std::string& cronPart = cronParts[i];
+                    
+                        if (cronPart == "*") {
+                            if (i == 0) vc1 = 0;      // minute
+                            else if (i == 1) vc2 = 0; // hour
+                            else if (i == 2) vc3 = 1; // day
+                            else if (i == 3) vc4 = 1; // month
+                            else if (i == 4) vc5 = 0; // weekday
+                            continue;
+                        }
+                    
+                        // For each component, check if it's all numeric before converting
+                        bool isNumeric = true;
+                        for (char c : cronPart) {
+                            if (!isdigit(c)) {
+                                isNumeric = false;
+                                break;
+                            }
+                        }
+                    
+                        if (!isNumeric) {
+                            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Non-numeric cron component: %s\n", __FUNCTION__, __LINE__, cronPart.c_str());
+                            validCron = false;
+                            break;
+                        }
+                    
+                        if (i == 0) vc1 = std::stoi(cronPart);
+                        else if (i == 1) vc2 = std::stoi(cronPart);
+                        else if (i == 2) vc3 = std::stoi(cronPart);
+                        else if (i == 3) vc4 = std::stoi(cronPart);
+                        else if (i == 4) vc5 = std::stoi(cronPart);
+                    }
+                } catch (const std::exception& e) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error parsing cron components: %s\n", __FUNCTION__, __LINE__, e.what());
+                    validCron = false;
+                }
+
+                if (!validCron) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron format, using default values\n", __FUNCTION__, __LINE__);
+                    // Default to running at minute 0 of every hour (0 * * * *)
+                    vc1 = 0;
+                    vc2 = 0;
+                    vc3 = 1;
+                    vc4 = 1;
+                    vc5 = 0;
+                }
 
                 // Adjust time
                 if (vc1 > 2) {
@@ -512,48 +532,116 @@ namespace rfc {
                     }
                 }
 
-                // Reconstruct cron string
                 std::ostringstream cronStream;
                 cronStream << vc1 << " " << vc2 << " " << vc3 << " " << vc4 << " " << vc5;
                 std::string adjustedCron = cronStream.str();
 
-                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC_TM_Track : Configuring cron job for rfcMgr, cron = %s\n",
-                       __FUNCTION__, __LINE__, adjustedCron.c_str());
-
-                // Get environment variables
-                std::string RFC_LOG_FILE = std::getenv("RFC_LOG_FILE") ? std::getenv("RFC_LOG_FILE") : "";
-
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC_TM_Track : Configuring cron job for rfcMgr, cron = %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
                 // Define the current cron file path
                 std::string current_cron_file = "/tmp/cron_tab_tmp_file";
 
                 // Check if cronjobs_update.sh exists
                 bool cronjobsUpdateExists = (access("/lib/rdk/cronjobs_update.sh", F_OK) == 0);
 
-    #if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT)
                 std::string crontabPath = "/var/spool/cron/crontabs/";
-    #else
+#else
                 std::string crontabPath = "/var/spool/cron/";
-    #endif
+#endif
 
                 if (!cronjobsUpdateExists) {
-                    // Export existing crontab
-                    std::string cmd = "crontab -l -c " + crontabPath + " > " + current_cron_file;
-                    int result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to export existing crontab\n", __FUNCTION__, __LINE__);
+                    // Make sure the crontab directory exists
+                    std::string crontabDir = crontabPath.substr(0, crontabPath.find_last_of('/'));
+                    if (access(crontabDir.c_str(), F_OK) != 0) {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Creating crontab directory: %s\n", __FUNCTION__, __LINE__, crontabDir.c_str());
+                        mkdir(crontabDir.c_str(), 0755);
                     }
 
-                    // Remove existing rfcMgr entries (both rfcMgr and RFCbase.sh for backward compatibility)
-                    cmd = "sed -i '/[A-Za-z0-9]*rfcMgr[A-Za-z0-9]*/d' " + current_cron_file;
-                    result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to remove existing rfcMgr entries\n", __FUNCTION__, __LINE__);
+                    // Export existing crontab with detailed error handling
+                    std::string crontabCmd = "/usr/bin/crontab -l -c " + crontabPath + " > " + current_cron_file + " 2>&1";
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing crontab command: %s\n", __FUNCTION__, __LINE__, crontabCmd.c_str());
+                
+                    FILE *pipe = popen(crontabCmd.c_str(), "r");
+                    std::string cmdOutput = "";
+                    if (pipe) {
+                        char buffer[256];
+                        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                            cmdOutput += buffer;
+                        }
+                        int status = pclose(pipe);
+                    
+                        if (status != 0) {
+                            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Crontab export returned non-zero: %d. Output: %s\n", __FUNCTION__, __LINE__, status, cmdOutput.c_str());
+                        
+                            // Create an empty file if it doesn't exist
+                            std::ofstream emptyFile(current_cron_file);
+                            if (emptyFile.is_open()) {
+                                emptyFile.close();
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Created empty crontab file\n", __FUNCTION__, __LINE__);
+                            } else {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create empty crontab file\n", __FUNCTION__, __LINE__);
+                            }
+                        } else {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully exported existing crontab\n", __FUNCTION__, __LINE__);
+                        }
+                    } else {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open pipe for crontab command\n", __FUNCTION__, __LINE__);
+                        // Create an empty file directly
+                        std::ofstream emptyFile(current_cron_file);
+                        if (emptyFile.is_open()) {
+                            emptyFile.close();
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Created empty crontab file as fallback\n", __FUNCTION__, __LINE__);
+                        }
                     }
 
-                    cmd = "sed -i '/[A-Za-z0-9]*RFCbase.sh[A-Za-z0-9]*/d' " + current_cron_file;
-                    result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to remove existing RFCbase.sh entries\n", __FUNCTION__, __LINE__);
+                    // Check if file exists before trying to modify it
+                    if (access(current_cron_file.c_str(), F_OK) == 0) {
+                        // Remove existing rfcMgr entries with detailed error handling
+                        std::string sedCmd = "/bin/sed -i '/[A-Za-z0-9]*rfcMgr[A-Za-z0-9]*/d' " + current_cron_file + " 2>&1";
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing sed command: %s\n", __FUNCTION__, __LINE__, sedCmd.c_str());
+                    
+                        pipe = popen(sedCmd.c_str(), "r");
+                        cmdOutput = "";
+                        if (pipe) {
+                            char buffer[256];
+                            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                                cmdOutput += buffer;
+                            }
+                            int status = pclose(pipe);
+                        
+                            if (status != 0) {
+                                RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Sed command returned non-zero: %d. Output: %s\n", __FUNCTION__, __LINE__, status, cmdOutput.c_str());
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully removed existing rfcMgr entries\n", __FUNCTION__, __LINE__);
+                            }
+                        }
+
+                        // Remove existing RFCbase.sh entries with detailed error handling
+                        sedCmd = "/bin/sed -i '/[A-Za-z0-9]*RFCbase.sh[A-Za-z0-9]*/d' " + current_cron_file + " 2>&1";
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing sed command: %s\n", __FUNCTION__, __LINE__, sedCmd.c_str());
+                    
+                        pipe = popen(sedCmd.c_str(), "r");
+                        cmdOutput = "";
+                        if (pipe) {
+                            char buffer[256];
+                            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                                cmdOutput += buffer;
+                            }
+                            int status = pclose(pipe);
+                        
+                            if (status != 0) {
+                                RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Sed command returned non-zero: %d. Output: %s\n",  __FUNCTION__, __LINE__, status, cmdOutput.c_str());
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully removed existing RFCbase.sh entries\n", __FUNCTION__, __LINE__);
+                            }
+                        }
+                    } else {
+                        RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Crontab temp file not found, creating it\n", 
+                              __FUNCTION__, __LINE__);
+                        std::ofstream emptyFile(current_cron_file);
+                        if (emptyFile.is_open()) {
+                            emptyFile.close();
+                        }
                     }
                 }
 
@@ -577,7 +665,7 @@ namespace rfc {
                         }
 
                         outFile << timestamp << " " << adjustedCron << " /usr/bin/rfcMgr >> "
-                               << RFC_LOG_FILE << " 2>&1" << std::endl;
+                               << "/rdklogs/logs/dcmrfc.log.0" << " 2>&1" << std::endl;
                         outFile.close();
 
                         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Added new cron entry for rfcMgr to temporary file\n", __FUNCTION__, __LINE__);
@@ -586,36 +674,51 @@ namespace rfc {
                     }
                 } else {
                     std::string cmd = "sh /lib/rdk/cronjobs_update.sh \"update\" \"rfcMgr\" \""
-                                    + adjustedCron + " /usr/bin/rfcMgr >> "
-                                    + RFC_LOG_FILE + " 2>&1\"";
-                    int result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to update cron job using cronjobs_update.sh\n", __FUNCTION__, __LINE__);
-                    } else {
-                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully updated cron job using cronjobs_update.sh\n", __FUNCTION__, __LINE__);
+                                + adjustedCron + " /usr/bin/rfcMgr >> "
+                                + "/rdklogs/logs/dcmrfc.log.0" + " 2>&1\"";
+                
+                    FILE* pipe = popen((cmd + " 2>&1").c_str(), "r");
+                    std::string cmdOutput = "";
+                    if (pipe) {
+                        char buffer[256];
+                        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                            cmdOutput += buffer;
+                        }
+                        int status = pclose(pipe);
+                    
+                        if (status != 0) {
+                            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] cronjobs_update.sh returned non-zero: %d. Output: %s\n", __FUNCTION__, __LINE__, status, cmdOutput.c_str());
+                        } else {
+                            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully updated cron job using cronjobs_update.sh\n", __FUNCTION__, __LINE__);
+                        }
                     }
                 }
 
                 // Apply the new crontab if needed
                 if (!cronjobsUpdateExists && cron_update == 1) {
-                    std::string cmd = "crontab " + current_cron_file + " -c " + crontabPath;
-                    int result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply updated crontab\n", __FUNCTION__, __LINE__);
+                    // Check if the file exists and has content
+                    struct stat st;
+                    if (stat(current_cron_file.c_str(), &st) == 0) {
+                        std::string cmd = "/usr/bin/crontab " + current_cron_file + " -c " + crontabPath + " 2>&1";
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Executing crontab import command: %s\n", __FUNCTION__, __LINE__, cmd.c_str());
+                    
+                        FILE* pipe = popen(cmd.c_str(), "r");
+                        std::string cmdOutput = "";
+                        if (pipe) {
+                            char buffer[256];
+                            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                                cmdOutput += buffer;
+                            }
+                            int status = pclose(pipe);
+                        
+                            if (status != 0) {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Crontab import returned non-zero: %d. Output: %s\n", __FUNCTION__, __LINE__, status, cmdOutput.c_str());
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully applied updated crontab\n", __FUNCTION__, __LINE__);
+                            }
+                        }
                     } else {
-                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully applied updated crontab\n", __FUNCTION__, __LINE__);
-                    }
-                }
-
-                // Log cron configuration
-                std::string logCmd = "/bin/timestamp > " + RFC_LOG_FILE + " && echo ' " + crontabPath + "root:' >> " + RFC_LOG_FILE;
-                v_secure_system("%s", logCmd.c_str());
-
-                if (!cronjobsUpdateExists) {
-                    std::string cmd = "/bin/timestamp > " + RFC_LOG_FILE + " && cat " + current_cron_file + " >> " + RFC_LOG_FILE;
-                    int result = v_secure_system("%s", cmd.c_str());
-                    if (result != 0) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to log crontab contents\n", __FUNCTION__, __LINE__);
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Temporary crontab file does not exist or is empty\n", __FUNCTION__, __LINE__);
                     }
                 }
 
@@ -627,5 +730,6 @@ namespace rfc {
             RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Empty cron string provided, no action taken\n", __FUNCTION__, __LINE__);
         }
     }
+
 } // namespace RFC
 
