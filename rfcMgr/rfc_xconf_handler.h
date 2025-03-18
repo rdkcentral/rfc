@@ -166,7 +166,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void PreProcessJsonResponse(char *xconfResp);
 	bool ExecuteCommand(const std::string& command, std::string& output);
 	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
-	bool ProcessJsonResponseB(char* featureXConfMsg);
+	int ProcessJsonResponseB(char* featureXConfMsg);
         void GetValidAccountId();
         void GetValidPartnerId();
 	void HandleScheduledReboot(bool rfcRebootCronNeeded);

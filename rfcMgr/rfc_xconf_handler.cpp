@@ -414,7 +414,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
  * C++ implementation of the processJsonResponseB function
  * Uses rbus for broadband implementation without dcmjsonparser
  */
-bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
+int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 {
     std::string rfcList;
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
@@ -424,7 +424,7 @@ bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
     rbusError_t rc = rbus_open(&rbusHandle, "RFC_Manager");
     if (rc != RBUS_ERROR_SUCCESS) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to open rbus handle: %s\n", rbusError_ToString(rc));
-        return false;
+        return FAILURE;
     }
 
     // Set initial RFC features
@@ -459,7 +459,7 @@ bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
         rbusValue_Release(falseVal);
         rbusValue_Release(trueVal);
         rbus_close(rbusHandle);
-        return false;
+        return FAILURE;
     }
 
     bool rfcRebootCronNeeded = false;
@@ -532,20 +532,6 @@ bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
     // Write feature list file
     WriteFile(FEATURE_FILE_LIST, rfcList);
 
-    // Set ClearDBEnd to true
-    rbusValue_t endVal;
-    rbusValue_Init(&endVal);
-    rbusValue_SetBoolean(endVal, true);
-
-    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd", endVal, NULL);
-    if (rc != RBUS_ERROR_SUCCESS) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ClearDBEnd: %s\n", rbusError_ToString(rc));
-    }
-
-    rbusValue_Release(falseVal);
-    rbusValue_Release(trueVal);
-    rbusValue_Release(endVal);
-
     // Notify telemetry about remote features
     NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "STAGING");
 
@@ -556,7 +542,7 @@ bool RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 
     FreeJson(pJson);
     rbus_close(rbusHandle);
-    return true;
+    return SUCCESS;
 }
 
 void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNeeded)
