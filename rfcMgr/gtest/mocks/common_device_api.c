@@ -153,15 +153,29 @@ size_t GetModelNum( char *pModelNum, size_t szBufSize )
 {
     size_t i = 0;
     FILE *fp;
+    char *pTmp;
+    char buf[150];
 
     if( pModelNum != NULL )
     {
         *pModelNum = 0;
-        if( (fp = fopen( "/tmp/.model_number", "r" )) != NULL )
+        if( (fp = fopen( DEVICE_PROPERTIES_FILE, "r" )) != NULL )
         {
-            fgets(pModelNum, szBufSize, fp);
+            while( fgets( buf, sizeof(buf), fp ) != NULL )
+            {
+                pTmp = strstr( buf, "MODEL_NUM=" );
+                if( pTmp && pTmp == buf )   // if match found and match is first character on line
+                {
+                    pTmp = strchr( pTmp, '=' );
+		    if(pTmp != NULL)
+		    {
+                    ++pTmp;
+                    i = snprintf( pModelNum, szBufSize, "%s", pTmp );
+                    i = stripinvalidchar( pModelNum, i );
+		    }
+                }
+            }
             fclose( fp );
-            i = stripinvalidchar( pModelNum, szBufSize );      // remove newline etc.
         }
         else
         {
