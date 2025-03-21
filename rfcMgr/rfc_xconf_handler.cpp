@@ -39,13 +39,14 @@ extern "C" {
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
+     bool dbgServices = isDebugServicesEnabled();
 	
      if(0 != initializeXconfHandler())
      {
 	return FAILURE;
      }
     
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
     }
@@ -61,7 +62,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         return FAILURE;
     }
 
-    rfc_state = (_ebuild_type != ePROD) ? Local : Init;
+    rfc_state = (_ebuild_type != ePROD || dbgServices == true) ? Local : Init;
 
     /* get experience */ 
     if(-1 == GetExperience())
@@ -112,6 +113,24 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
     return found;
 }
 
+bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
+{
+    bool result = false;
+    int ret = -1;
+    char rfc_data[RFC_VALUE_BUF_SIZE];
+
+    *rfc_data = 0;
+    ret = read_RFCProperty("DEBUGSRV", RFC_DEBUGSRV, rfc_data, sizeof(rfc_data));
+    if (ret == -1) {
+        SWLOG_ERROR("%s: rfc Debug services =%s failed Status %d\n", __FUNCTION__, RFC_DEBUGSRV, ret);
+    } else {
+        SWLOG_INFO("%s: rfc Debug services = %s\n", __FUNCTION__, rfc_data);
+        if (strncmp(rfc_data, "true", sizeof(rfc_data)+1 ) == 0) {
+            result = true;
+        }
+    }
+    return result;
+}
 
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
@@ -599,12 +618,13 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
+    bool dbgServices = isDebugServicesEnabled();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from local override\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
             }
