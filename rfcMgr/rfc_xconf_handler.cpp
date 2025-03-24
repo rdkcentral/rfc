@@ -52,27 +52,20 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
+        rfc_state = Local;
     }
     else
     {
         rfc_file = RFC_PROPERTIES_FILE;
+        rfc_state = Init;
     }
     
-#if !defined(RDKB_SUPPORT)
 	/* Get the RFC Parameters */
     if(SUCCESS != GetServURL(rfc_file.c_str()))
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Xconf Server URL\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-#else
-    if(SUCCESS != GetServURLB())
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Xconf Server URL\n", __FUNCTION__, __LINE__);
-        return FAILURE;
-    }
-#endif    
-    rfc_state = (_ebuild_type != ePROD) ? Local : Init;
 
     /* get experience */ 
     if(-1 == GetExperience())
@@ -515,7 +508,6 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
     WriteFile(".version", _firmware_version);
 
     HandleScheduledReboot(rfcRebootCronNeeded);
-
     FreeJson(pJson);
     rbus_close(rbusHandle);
     return SUCCESS;
@@ -723,105 +715,101 @@ int RuntimeFeatureControlProcessor::GetExperience( void )
     return i;
 }
 
-int RuntimeFeatureControlProcessor::GetServURLB()
-{
-    // For RDKB systems, directly apply the broadband logic
-    std::string rfcState = std::getenv("rfcState") ? std::getenv("rfcState") : "";
-    std::string partnerId = std::getenv("partnerId") ? std::getenv("partnerId") : "";
-
-    // Define default URLs based on environment variables
-    std::string RFC_CONFIG_SERVER_URL = std::getenv("RFC_CONFIG_SERVER_URL") ? std::getenv("RFC_CONFIG_SERVER_URL") : "";
-    std::string RFC_CONFIG_SERVER_URL_EU = std::getenv("RFC_CONFIG_SERVER_URL_EU") ? std::getenv("RFC_CONFIG_SERVER_URL_EU") : "";
-
-    if (rfcState != "LOCAL")
-    {
-        // Get TR181 Xconf URL from dmcli
-        FILE* pipe = popen("dmcli eRT getv Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.XconfURL | grep string | cut -d\":\" -f3- | cut -d\" \" -f2- | tr -d ' '", "r");
-        if (pipe)
-        {
-            char buffer[256] = {0};
-            if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-            {
-                std::string tmp_URL(buffer);
-                // Trim trailing newline
-                if (!tmp_URL.empty() && tmp_URL.back() == '\n')
-                {
-                    tmp_URL.pop_back();
-                }
-
-                if (!tmp_URL.empty())
-                {
-                    _xconf_server_url = tmp_URL + "/featureControl/getSettings";
-                }
-                else
-                {
-                    if (partnerId != "sky-uk")
-                    {
-                        _xconf_server_url = RFC_CONFIG_SERVER_URL;
-                    }
-                    else
-                    {
-                        _xconf_server_url = RFC_CONFIG_SERVER_URL_EU;
-                    }
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC: TR181 URL is empty\n", __FUNCTION__, __LINE__);
-                }
-            }
-            pclose(pipe);
-        }
-
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initial URL: %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
-    }
-    else
-    {
-        // Using local configuration
-        if (partnerId != "sky-uk")
-        {
-            _xconf_server_url = RFC_CONFIG_SERVER_URL;
-        }
-        else
-        {
-            _xconf_server_url = RFC_CONFIG_SERVER_URL_EU;
-        }
-    }
-
-    // Common code for all cases
-    if (_xconf_server_url.empty())
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] URL not found in the file.\n", __FUNCTION__, __LINE__);
-        return FAILURE;
-    }
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
-    return SUCCESS;
-
-}
- 
 int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
-{	    
+{
     const std::string m_file = rfcPropertiesFile;
-    std::ifstream inputFile;
-    inputFile.open(m_file.c_str());
+    std::ifstream inputFile(m_file.c_str());
     if (!inputFile.is_open())
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open file.\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
+
+#ifdef RDKB_SUPPORT
+    _xconf_server_url.clear();
+    std::string _xconf_server_url_eu;
+
     std::string line;
     while (std::getline(inputFile, line))
     {
         if (line.find("RFC_CONFIG_SERVER_URL=") == 0)
         {
             _xconf_server_url = line.substr(22);
-            break;
+        }
+        else if (line.find("RFC_CONFIG_SERVER_URL_EU=") == 0)
+        {
+            _xconf_server_url_eu = line.substr(25); // Corrected offset to 25
         }
     }
     inputFile.close();
 
-    // Common code for all cases
+    if (rfc_state != Local)
+    {
+        std::string tmp_URL;
+        // Execute dmcli command to get the XconfURL
+        FILE* pipe = popen("dmcli eRT getv Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.XconfURL | grep string | cut -d\":\" -f3- | cut -d\" \" -f2- | tr -d ' '", "r");
+        if (pipe)
+        {
+            char buffer[256] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != NULL)
+            {
+                tmp_URL = buffer;
+                // Remove newline if present
+                size_t pos = tmp_URL.find_last_not_of("\r\n");
+                if (pos != std::string::npos)
+                {
+                    tmp_URL.erase(pos + 1);
+                }
+            }
+            pclose(pipe);
+        }
+
+        if (!tmp_URL.empty())
+        {
+            _xconf_server_url = tmp_URL + "/featureControl/getSettings";
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using TR181 URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+        }
+        else
+        {
+            if (_partnerId == "sky-uk" && !_xconf_server_url_eu.empty())
+            {
+                _xconf_server_url = _xconf_server_url_eu;
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk\n", __FUNCTION__, __LINE__);
+            }
+
+            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RFC: TR181 URL is empty\n", __FUNCTION__, __LINE__);
+        }
+
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initial URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    }
+    else // rfc_state == Local
+    {
+        if (_partnerId == "sky-uk" && !_xconf_server_url_eu.empty())
+        {
+            _xconf_server_url = _xconf_server_url_eu;
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk in LOCAL mode\n", __FUNCTION__, __LINE__);
+        }
+    }
+#else
+    _xconf_server_url.clear();
+    std::string line;
+    while (std::getline(inputFile, line))
+    {
+        if (line.find("RFC_CONFIG_SERVER_URL=") == 0)
+        {
+            _xconf_server_url = line.substr(22);
+            break; // Found what we need, exit loop
+        }
+    }
+    inputFile.close();
+#endif
+
     if (_xconf_server_url.empty())
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] URL not found in the file.\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
+
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
     return SUCCESS;
 }
