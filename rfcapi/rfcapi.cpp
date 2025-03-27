@@ -294,7 +294,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    }
   
    curl_handle = curl_easy_init();
-   string data = "\{\"names\" : [\"";
+   string data = "{\"names\" : [\"";
    data.append(pcParameterName);
    data.append("\"]}");
 #ifdef TEMP_LOGGING
@@ -305,22 +305,42 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    {
        char pcCallerIDHeader[128];
        if(pcCallerID)
-           sprintf(pcCallerIDHeader, "CallerID: %s", pcCallerID);
+           snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
        else
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
-       curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList);
+       if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
+       }	       
 
-       curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-       curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET");
-       curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length());
-       curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
-       curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
-       curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse);
-       curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response);
-       curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTION_TIMEOUT);
-       curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TRANSFER_TIMEOUT);
+       if(curl_easy_setopt(curl_handle, CURLOPT_URL, url) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_URL\n", __FUNCTION__, __LINE__);
+       } 	       
+       if(curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET") != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CUSTOMREQUEST\n", __FUNCTION__, __LINE__); 
+       }	       
+       if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length()) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDSIZE\n", __FUNCTION__, __LINE__); 
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str()) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDS\n", __FUNCTION__, __LINE__); 
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_FOLLOWLOCATION\n", __FUNCTION__, __LINE__);  
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEFUNCTION\n", __FUNCTION__, __LINE__); 
+       }		       
+       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
+       }       
+       if(curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTION_TIMEOUT) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CONNECTTIMEOUT\n", __FUNCTION__, __LINE__);
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TRANSFER_TIMEOUT) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_TIMEOUT\n", __FUNCTION__, __LINE__);   
+       }	       
 
        res = curl_easy_perform(curl_handle);
        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
@@ -434,7 +454,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    ss << eDataType;
    string strDataType = ss.str();
 
-   string data = "\{\"parameters\" : [{\"name\":\"";
+   string data = "{\"parameters\" : [{\"name\":\"";
    data.append(pcParameterName);
    data.append("\",\"value\":\"");
    data.append(pcParameterValue);
@@ -450,22 +470,36 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    {
        char pcCallerIDHeader[128];
        if(pcCallerID)
-           sprintf(pcCallerIDHeader, "CallerID: %s", pcCallerID);
+           snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
        else
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
 
       struct curl_slist *customHeadersList = NULL;
       customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
-      curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList);
-
-      curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-      curl_easy_setopt(curl_handle, CURLOPT_HTTPPOST, 1L);
-      curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length());
-      curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
-      curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
-      curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse);
-      curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response);
-
+      if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);
+      }
+      if(curl_easy_setopt(curl_handle, CURLOPT_URL, url) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_URL\n", __FUNCTION__, __LINE__); 
+      }
+      if(curl_easy_setopt(curl_handle, CURLOPT_HTTPPOST, 1L) != CURLE_OK){
+	  RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPPOST\n", __FUNCTION__, __LINE__);    
+      } 	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length()) != CURLE_OK){
+	  RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDSIZE\n", __FUNCTION__, __LINE__);    
+      }  	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str()) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDS\n", __FUNCTION__, __LINE__);      	      
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_FOLLOWLOCATION\n", __FUNCTION__, __LINE__);      	      
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEFUNCTION\n", __FUNCTION__, __LINE__);
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
+      } 	      
       res = curl_easy_perform(curl_handle);
       curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
 

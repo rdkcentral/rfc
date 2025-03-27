@@ -565,7 +565,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     }
 
     
-    std::time_t timestamp = std::time(nullptr); // Get current timestamp
+    time_t_compatible timestamp = static_cast<time_t_compatible>(time(0)); // Get current timestamp
     std::string timestampString = std::to_string(timestamp);
     updateTimeInDB(timestampString);
 
@@ -583,8 +583,7 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 
     if (stat(DIRECT_BLOCK_FILENAME, &fileStat) == 0) {
         // Get current time
-        time_t currentTime;
-        time(&currentTime);
+        time_t_compatible currentTime = static_cast<time_t_compatible>(time(0));
 
         // Calculate time difference
         long modtime = difftime(currentTime, fileStat.st_mtime);
@@ -959,7 +958,8 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2ErrorCode(int CurlReturn)
     RemoveSubstring(FQDN,"/featureControl/getSettings");
 
     const char* arg1 = "certerr_split";
-    const char* arg2 = (("RFC, " + CurlReturnStr + ", " + FQDN)).c_str();
+    std::string arg2_str = "RFC, " + CurlReturnStr + ", " + FQDN;
+    const char* arg2 = arg2_str.c_str();
     v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2);
 }
 

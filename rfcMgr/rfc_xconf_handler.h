@@ -29,6 +29,12 @@
 #include <gtest/gtest.h>
 #endif
 
+#if defined (__aarch64__)
+    using time_t_compatible = int64_t;
+#else
+    using time_t_compatible = time_t;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
