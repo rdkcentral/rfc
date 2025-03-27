@@ -273,20 +273,20 @@ int convertType(char type)
 * @param [in] param the object holding the details
 */
 #if defined(USE_TR69HOSTIF)
-static void printParameterDetails(HOSTIF_MsgData_t param )
+static void printParameterDetails(HOSTIF_MsgData_t* param )
 {
 	cout << __FUNCTION__ << " >>Get Operation successfull " <<endl;
-	switch (param.paramtype)
+	switch (param->paramtype)
 	{
 		case hostIf_StringType :
 			cout << __FUNCTION__ << " >>Parameter Type ::String" << endl;
-			cout << __FUNCTION__ << " >>Param value ::" << param.paramValue << endl;
-			cerr << param.paramValue << endl;
+			cout << __FUNCTION__ << " >>Param value ::" << param->paramValue << endl;
+			cerr << param->paramValue << endl;
 			break;
 		case hostIf_IntegerType :
 			{
 				cout << __FUNCTION__ << " >>Parameter Type ::Integer" << endl;
-				int * iptr = (int *)param.paramValue;
+				int * iptr = (int *)param->paramValue;
 				cout << __FUNCTION__ << " >>Param value ::" << (*iptr) << endl;
 				cerr << (*iptr) << endl;
 			}
@@ -294,7 +294,7 @@ static void printParameterDetails(HOSTIF_MsgData_t param )
 		case hostIf_UnsignedIntType :
 			{
 				cout << __FUNCTION__ << " >>Parameter Type ::Unsigned Integer" << endl;
-				int * iptr = (int *)param.paramValue;
+				int * iptr = (int *)param->paramValue;
 				cout << __FUNCTION__ << " >>Param value ::" << (*iptr) << endl;
 				cerr << (*iptr) << endl;
 			}
@@ -302,20 +302,20 @@ static void printParameterDetails(HOSTIF_MsgData_t param )
 		case hostIf_BooleanType:
 			{
 				cout << __FUNCTION__ << " >>Parameter Type ::Boolean" << endl;
-				bool * bptr = (bool *)param.paramValue;
+				bool * bptr = (bool *)param->paramValue;
 				cout << __FUNCTION__ << " >>Param value ::" << (*bptr) << endl;
 				cerr << (*bptr) << endl;
 			}
 			break;
 		case hostIf_DateTimeType:
 			cout << __FUNCTION__ << " >>Parameter Type ::DateTime" << endl;
-			cout << __FUNCTION__ << " >>Param value ::" << param.paramValue << endl;
-			cerr << param.paramValue << endl;
+			cout << __FUNCTION__ << " >>Param value ::" << param->paramValue << endl;
+			cerr << param->paramValue << endl;
 			break;
 		case hostIf_UnsignedLongType:
 			{
 				cout << __FUNCTION__ << " >>Parameter Type ::Unsigned Long" << endl;
-				long * lptr = (long *)param.paramValue;
+				long * lptr = (long *)param->paramValue;
 				cout << __FUNCTION__ << " >>Param value ::" << (*lptr) << endl;
 				cerr << (*lptr) << endl;
 			}
