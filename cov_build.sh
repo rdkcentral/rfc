@@ -25,18 +25,6 @@ export RFC_ROOT=/usr
 export RFC_INSTALL_DIR=${RFC_ROOT}
 mkdir -p $RFC_INSTALL_DIR
 
-cd $RFC_ROOT
-rm -rf common_utilities
-git clone https://github.com/rdkcentral/common_utilities.git -b develop
-cd common_utilities
-sed -i 's/-Werror //g' utils/Makefile.am
-autoreconf -i
-./configure
-make && make install
-cp /usr/common_utilities/lib/* /usr/lib/
-cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
-cd $WORKDIR
-
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
 export CXXFLAGS="-Wno-format -Wno-unused-variable"
