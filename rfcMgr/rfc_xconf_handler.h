@@ -164,9 +164,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
+#if defined(RDKB_SUPPORT)
 	bool ExecuteCommand(const std::string& command, std::string& output);
 	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
 	int ProcessJsonResponseB(char* featureXConfMsg);
+#endif	
         void GetValidAccountId();
         void GetValidPartnerId();
 	void HandleScheduledReboot(bool rfcRebootCronNeeded);

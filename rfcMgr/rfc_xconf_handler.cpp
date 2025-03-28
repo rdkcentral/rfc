@@ -26,8 +26,10 @@
 #include "mtlsUtils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#if defined(RDKB_SUPPORT)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
+#endif
 #include <ctime>
 
 #ifdef __cplusplus
@@ -141,6 +143,7 @@ bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
     return result;
 }
 
+#if defined(RDKB_SUPPORT)
 bool RuntimeFeatureControlProcessor::ExecuteCommand(const std::string& command, std::string& output)
 {
     FILE* pipe = popen(command.c_str(), "r");
@@ -548,6 +551,7 @@ void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNee
         ExecuteCommand(cmd, output);
     }
 }
+#endif
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
 {
