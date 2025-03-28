@@ -37,14 +37,14 @@ extern "C"
 
 #define MAX_PARAM_LEN     (2*1024)
 
-#if !defined(USE_IARMBUS)
+#if defined(RDKB_SUPPORT)
 typedef enum
 {
   SUCCESS=0,
   FAILURE,
   NONE,
   EMPTY
-}DATATYPE;
+}DATA_TYPE;
 #endif
 
 #if defined(USE_IARMBUS)
@@ -57,9 +57,10 @@ typedef struct _RFC_Param_t {
 typedef struct _RFC_Param_t {
    char name[MAX_PARAM_LEN];
    char value[MAX_PARAM_LEN];
-   DATATYPE type;
+   DATA_TYPE type;
 } RFC_ParamData_t;
 #endif
+
 #if defined(USE_IARMBUS)
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParamData);
 WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName, const char* pcParameterValue, DATA_TYPE eDataType);

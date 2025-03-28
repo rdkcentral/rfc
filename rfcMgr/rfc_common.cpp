@@ -24,7 +24,9 @@
 #include <algorithm>
 #include "rfc_common.h"
 #include <unistd.h>
+#if defined(RDKB_SUPPORT)
 #include <rbus/rbus.h>
+#endif	
 
 std::string getSyseventValue(const std::string& key) 
 {

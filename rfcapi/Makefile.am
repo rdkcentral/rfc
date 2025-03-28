@@ -30,7 +30,7 @@ else
 if ENABLE_RDKB
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall $(RDKB_FLAG) -I${top_srcdir}/../rdklogger/include/
 else
-librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c
+librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
 librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers
 endif
 endif
