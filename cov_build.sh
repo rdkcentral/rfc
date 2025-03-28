@@ -46,6 +46,7 @@ make && make install
 
 # rfcMgr/
 cd ../rfcMgr
+autoreconf -i
 export curl_LIBS=" -lcurl"
 make && make install
 
