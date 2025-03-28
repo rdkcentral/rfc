@@ -291,18 +291,23 @@ int main(int argc, char *argv [])
 
       cout.rdbuf(void_file.rdbuf());
    }
+   try {
+      if(mode == GET)
+      {
+         retcode = getAttribute(key);
+      }
+      else if(mode == DELETE_ROW){
+        retcode = clearAttribute(key);
+      }
+      else if( mode == SET && NULL != value){
+        retcode = setAttribute(key,value_type, value);
+      }
 
-   if(mode == GET)
-   {
-      retcode = getAttribute(key);
+   } catch (const std::bad_cast& e) {
+       cout << "Caught bad_cast exception: " << e.what() << endl;
+   } catch (const std::exception& e) {
+       cout << "Exception caught in main: " << e.what() << endl;
    }
-   else if(mode == DELETE_ROW){
-      retcode = clearAttribute(key);
-   }
-   else if( mode == SET && NULL != value){
-      retcode = setAttribute(key,value_type, value);
-   }
-
    //Redirecting again to avoid rfcapi prints
    if(silent)
    {
