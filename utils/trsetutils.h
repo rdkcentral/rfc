@@ -26,4 +26,3 @@
 **/
 
 int trsetutil(int argc, char *argv []);
-static string getErrorDetails(faultCode_t code);
