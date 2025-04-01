@@ -53,7 +53,9 @@ make && make install
 
 # rfcMgr/
 cd ../rfcMgr
-export CLAGS="-I/usr/include/ -L/usr/lib/"
 export curl_LIBS=" -lcurl"
+cp /usr/include/common_device_api.h .
+cp /usr/lib/libfwutils.la* .
+
 make && make install
 
