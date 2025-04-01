@@ -72,7 +72,8 @@ int XconfHandler:: initializeXconfHandler()
 	{
              _build_type_str = tmpbuf;
 	}
-	
+
+        memset(tmpbuf, '\0', sizeof(tmpbuf));	
 	len = GetModelNum( tmpbuf, sizeof(tmpbuf) );
         if( len )
         {
