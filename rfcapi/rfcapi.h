@@ -31,7 +31,7 @@ extern "C"
 {
 #endif
 
-#if defined(USE_IARMBUS)
+#if !defined(RDKB_SUPPORT)
 #include <wdmp-c/wdmp-c.h>
 #endif
 
@@ -61,14 +61,14 @@ typedef struct _RFC_Param_t {
 } RFC_ParamData_t;
 #endif
 
-#if defined(USE_IARMBUS)
+#if defined(RDKB_SUPPORT)
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
+#else
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParamData);
 WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName, const char* pcParameterValue, DATA_TYPE eDataType);
 const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
-#else
-int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #endif
 #ifdef __cplusplus
 }
