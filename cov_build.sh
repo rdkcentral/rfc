@@ -25,17 +25,17 @@ export RFC_ROOT=/usr
 export RFC_INSTALL_DIR=${RFC_ROOT}
 mkdir -p $RFC_INSTALL_DIR
 
-autoreconf -i
-export cjson_CFLAGS="-I/usr/include/cjson"
-export CXXFLAGS="-Wno-format -Wno-unused-variable"
-./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
-
 git clone https://github.com/rdkcentral/common_utilities.git
 cd common_utilities
 autoreconf -i
 ./configure --prefix=${RFC_INSTALL_DIR} CFLAGS="-Wno-unused-result -Wno-format-truncation -Wno-error=format-security"
 make && make install
 cd $WORKDIR
+
+autoreconf -i
+export cjson_CFLAGS="-I/usr/include/cjson"
+export CXXFLAGS="-Wno-format -Wno-unused-variable"
+./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
 
 # rfcapi/
 cd rfcapi
