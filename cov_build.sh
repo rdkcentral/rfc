@@ -30,6 +30,12 @@ export cjson_CFLAGS="-I/usr/include/cjson"
 export CXXFLAGS="-Wno-format -Wno-unused-variable"
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
 
+git clone https://github.com/rdkcentral/common_utilities.git
+cd common_utilities
+autoreconf -i
+./configure --prefix=${RFC_INSTALL_DIR} CFLAGS="-Wno-unused-result -Wno-format-truncation -Wno-error=format-security"
+make && make install
+
 # rfcapi/
 cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
