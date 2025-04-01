@@ -52,6 +52,7 @@ make && make install
 
 # rfcMgr/
 cd ../rfcMgr
+export CLAGS="-I/usr/include/ -L/usr/lib/"
 export curl_LIBS=" -lcurl"
 make && make install
 
