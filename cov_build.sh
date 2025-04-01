@@ -35,6 +35,7 @@ cd common_utilities
 autoreconf -i
 ./configure --prefix=${RFC_INSTALL_DIR} CFLAGS="-Wno-unused-result -Wno-format-truncation -Wno-error=format-security"
 make && make install
+cd $WORKDIR
 
 # rfcapi/
 cd rfcapi
