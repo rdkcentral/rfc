@@ -54,6 +54,7 @@
 #define WRITE_RFC_SUCCESS   1
 #define WRITE_RFC_FAILURE  -1
 #define RETRY_COUNT         3
+#define RETRY_DELAY         10
 #define RFC_MAX_LEN         64
 
 #define RFC_TMP_PATH "/tmp/RFC/tmp"
