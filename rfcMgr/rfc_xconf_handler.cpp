@@ -535,8 +535,11 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
     std::string httpHeader = curlHeaderResp;
-
+#if defined(USE_IARMBUS)
     std::string key = "configSetHash:";
+#else
+    std::string key = "configsethash:";    
+#endif    
     std::size_t start = httpHeader.find(key);
 
     if (start != std::string::npos) {
@@ -710,7 +713,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 break;
             }
             retries++;
-	    sleep(10); /* RETRY DELAY */
+	    sleep(RETRY_DELAY); /* RETRY DELAY */
         }
     }
     return result;
