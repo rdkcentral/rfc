@@ -44,19 +44,8 @@ make && make install
 cd ../utils
 make && make install
 
-cd $RFC_ROOT
-rm -rf common_utilities
-git clone https://github.com/rdkcentral/common_utilities.git -b develop
-cd common_utilities
-sed -i 's/-Werror //g' utils/Makefile.am
-autoreconf -i
-./configure
-make && make install
-cp /usr/common_utilities/lib/* /usr/lib/
-cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
-
 # rfcMgr/
-cd $WORKDIR/rfcMgr
+cd ../rfcMgr
 export curl_LIBS=" -lcurl"
 make && make install
 
