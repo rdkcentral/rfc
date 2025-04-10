@@ -536,12 +536,17 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
     std::string httpHeader = curlHeaderResp;
 
-    std::string key = "configSetHash:";
-    std::size_t start = httpHeader.find(key);
+    std::string key1 = "configSetHash:";
+    std::string key2 = "configsethash:";
+    std::size_t start = httpHeader.find(key1);
+    if (start == std::string::npos) {
+        // some xconf have lowercase string.
+        start = httpHeader.find(key2);
+    }
 
     if (start != std::string::npos) {
         // Start position of the value
-        start += key.length();
+        start += key1.length();
 
         // Find the end of the line where the value ends (handle both \r\n and \n line endings)
         std::size_t end = httpHeader.find("\r\n", start);
