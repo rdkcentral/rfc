@@ -1613,11 +1613,15 @@ int RuntimeFeatureControlProcessor::getJRPCTokenData( char *token, char *pJsonSt
 
 void RuntimeFeatureControlProcessor:: cleanAllFile()
 {
-    for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC")) 
+    // Check if directory exists before trying to iterate
+    if (std::filesystem::exists("/opt/secure/RFC"))
     {
-        if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+        for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC"))
         {
-            std::filesystem::remove(entry.path());
+            if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+            {
+                std::filesystem::remove(entry.path());
+            }
         }
     }
     if (std::remove(VARIABLEFILE) == 0)
