@@ -359,21 +359,35 @@ int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl)
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
     std::string str = "XconfUrl";
+    const int MAX_RETRIES = 10;
+    const int RETRY_DELAY_SECONDS = 10;
 
-    i = read_RFCProperty(str.c_str(), BOOTSTRAP_XCONF_URL_KEY_STR, tempbuf, szBufSize);
-    if (i == READ_RFC_FAILURE) 
+    for (int retryCount = 0; retryCount < MAX_RETRIES; retryCount++)
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC Read Failed for Bootstrap XconfUrl\n");
-        return -1;
-    } 
-    else 
-    {
-        i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s\n", tempbuf);
+        i = read_RFCProperty(str.c_str(), BOOTSTRAP_XCONF_URL_KEY_STR, tempbuf, szBufSize);
+        if (i == READ_RFC_FAILURE)
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC Read Failed for Bootstrap XconfUrl, retry %d/%d\n", retryCount + 1, MAX_RETRIES);
+            if (retryCount < MAX_RETRIES - 1)
+            {
+                sleep(RETRY_DELAY_SECONDS);
+            }
+            else
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "All retries exhausted for Bootstrap XconfUrl\n");
+                return -1;
+            }
+        }
+        else
+        {
+            i = strnlen(tempbuf, szBufSize);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s, found after %d attempts\n", tempbuf, retryCount + 1);
+            XconfUrl = tempbuf;
+            return 0;
+        }
     }
-    XconfUrl = tempbuf;
 
-    return 0;
+    return -1;
 }
 
 bool RuntimeFeatureControlProcessor::checkBootstrap(const std::string& filename, const std::string& target)
@@ -729,6 +743,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
+    url << "manufacturer=" << _manufacturer << "&";
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     url << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     url << "VodId=" << RFC_VIDEO_VOD_ID << "&";
@@ -1612,11 +1627,15 @@ int RuntimeFeatureControlProcessor::getJRPCTokenData( char *token, char *pJsonSt
 
 void RuntimeFeatureControlProcessor:: cleanAllFile()
 {
-    for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC")) 
+    // Check if directory exists before trying to iterate
+    if (std::filesystem::exists("/opt/secure/RFC"))
     {
-        if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+        for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC"))
         {
-            std::filesystem::remove(entry.path());
+            if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+            {
+                std::filesystem::remove(entry.path());
+            }
         }
     }
     if (std::remove(VARIABLEFILE) == 0)
