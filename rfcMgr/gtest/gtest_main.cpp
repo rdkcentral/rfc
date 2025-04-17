@@ -29,6 +29,7 @@
 #include "mtlsUtils.h"
 #include "rfc_common.h"
 #include "rfc_xconf_handler.h"
+#include "tr181api.h"
 #include <urlHelper.h>
 
 using namespace std;
@@ -473,6 +474,17 @@ TEST(rfcMgrTest, cleanAllFile) {
     
 }
 
+
+TEST(rfcMgrTest, getDefaultValue) {
+ 
+  const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+  char *pcCallerID ="rfcdefaults";
+  TR181_ParamData_t pstParamData;
+
+  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData); 
+  EXPECT_EQ(status, 0);
+   	
+}
 
 
 

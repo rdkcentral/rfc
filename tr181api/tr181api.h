@@ -83,6 +83,8 @@ tr181ErrorCode_t setLocalParam(char *pcCallerID, const char* pcParameterName, co
 //NOTE: To clear whole domain/feature, pass the wild card parameter to pcParameterName. eg. clearParam("sysint", "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TelemetryEndpoint.");
 tr181ErrorCode_t clearLocalParam(char *pcCallerID, const char* pcParameterName);
 
+tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
+
 #ifdef __cplusplus
 }
 #endif
