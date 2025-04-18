@@ -40,6 +40,11 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 {
      std::string rfc_file;
 	
+    std::string boot_strap_xconf_url;
+    int rc = GetBootstrapXconfUrl(boot_strap_xconf_url);
+    if(rc != 0)
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get XCONF_BS_URL from Bootstrap config.\n", __FUNCTION__, __LINE__);
+
      if(0 != initializeXconfHandler())
      {
 	return FAILURE;
