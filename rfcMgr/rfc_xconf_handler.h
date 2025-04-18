@@ -104,7 +104,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	std::map<std::string, std::string> _RFCKeyAndValueMap;
 	RfcState     rfc_state; /* RFC State */
 	std::string _last_firmware; /* Last Firmware Version */
-	std::string _xconf_server_url; /* Xconf server URL */ 
+	std::string _xconf_server_url; /* Xconf server URL */
+    std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
 	std::string _valid_accountId; /* Valid Account ID*/
 	std::string _valid_partnerId; /* Valid Partner ID*/
 	std::string _accountId; /* Device Account ID */
