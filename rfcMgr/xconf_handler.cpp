@@ -73,12 +73,21 @@ int XconfHandler:: initializeXconfHandler()
              _build_type_str = tmpbuf;
 	}
 	
+	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetModelNum( tmpbuf, sizeof(tmpbuf) );
         if( len )
         {
 	     _model_number = tmpbuf;
 	}
 	
+	memset(tmpbuf, '\0', sizeof(tmpbuf));
+	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
+        if( len )
+        {
+             _manufacturer = tmpbuf;
+        }
+
+	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
         {

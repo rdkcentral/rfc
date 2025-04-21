@@ -45,6 +45,7 @@ namespace xconf {
         BUILDTYPE   _ebuild_type; /* Device Build Type */
 	std::string _build_type_str;
         std::string _model_number; /* Device Model Number */
+        std::string _manufacturer; /* Device Manufacturer */
         std::string _partner_id; /* Device Partner ID */
 	int ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, int *httpCode);
     };
