@@ -981,8 +981,8 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2ErrorCode(int CurlReturn)
     RemoveSubstring(FQDN,"/featureControl/getSettings");
 
     const char* arg1 = "certerr_split";
-    const char* arg2 = (("RFC, " + CurlReturnStr + ", " + FQDN)).c_str();
-    v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2);
+    std::string arg2 = "RFC, " + CurlReturnStr + ", " + FQDN;
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2.c_str());
 }
 
 
