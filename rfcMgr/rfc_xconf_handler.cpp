@@ -41,6 +41,10 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
      std::string rfc_file;
      bool dbgServices = isDebugServicesEnabled();
 	
+    int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
+    if(rc != 0)
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get XCONF_BS_URL from Bootstrap config.\n", __FUNCTION__, __LINE__);
+
      if(0 != initializeXconfHandler())
      {
 	return FAILURE;
@@ -649,13 +653,11 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
             }
             else 
             {
-                std::string boot_strap_xconf_url;
-                int rc = GetBootstrapXconfUrl(boot_strap_xconf_url);
-                if(rc == 0)
+                if (!_boot_strap_xconf_url.empty())
                 {
                     _xconf_server_url.clear();
-                    _xconf_server_url = boot_strap_xconf_url + "/featureControl/getSettings";
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from Bootstrap config XCONF_BS_URL:%s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str(), boot_strap_xconf_url.c_str());
+                    _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from Bootstrap config XCONF_BS_URL:%s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str(), _boot_strap_xconf_url.c_str());
                 }
             }
             std::stringstream url = CreateXconfHTTPUrl();
