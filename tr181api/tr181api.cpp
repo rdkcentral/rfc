@@ -222,7 +222,7 @@ tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, 
    }
    char defaultsFilename[256] = RFCDEFAULTS_ETC_DIR;
    strncat(defaultsFilename, pcCallerID, sizeof(defaultsFilename) - strlen(RFCDEFAULTS_ETC_DIR) - 5);
-   strcat(defaultsFilename, ".ini");
+   strncat(defaultsFilename, ".ini", sizeof(defaultsFilename) - strlen(defaultsFilename) - 1);
    return getValue(defaultsFilename, pcParameterName, pstParamData);
 }
 
@@ -284,7 +284,7 @@ tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue)
     }
     else
     {
-        m_dict[key] = value;
+        m_dict[key] = std::move(value);
     }
 
     FILE *f = fopen(TR181_LOCAL_STORE_FILE, "w");
