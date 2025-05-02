@@ -423,6 +423,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+         cJSON_Delete(response_json);
       }
    }
    return ret;
@@ -537,6 +538,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+         cJSON_Delete(response_json);
       }
    }
    return ret;
