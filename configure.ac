@@ -135,7 +135,7 @@ AC_ARG_ENABLE([breakpad],
 	      AS_HELP_STRING([--enable-breakpad],[enable breakpad support (default is no)]),
 	      [
 	        case "${enableval}" in
-	         yes) BREAKPAD_CFLAGS="-DINCLUDE_BREAKPAD"
+	         yes) BREAKPAD_CFLAGS="-DINCLUDE_BREAKPAD" ;;
 		 no) AC_MSG_ERROR([breakpad is disabled]) ;;
 		 *) AC_MSG_ERROR([bad value ${enableval} for --enable-breakpad]) ;;
 		 esac
