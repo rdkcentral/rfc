@@ -47,6 +47,10 @@ int main()
     
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
+    //Added by saranya 
+    char *ptr = NULL;
+    *ptr = 20;
+
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
