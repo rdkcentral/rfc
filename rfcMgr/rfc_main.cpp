@@ -25,6 +25,11 @@ extern "C" {
 #endif
 #include "common_device_api.h"
 #include <unistd.h>
+#include <stdlib.h>
+
+#ifdef INCLUDE_BREAKPAD
+#include "breakpad_wrapper.h"
+#endif
 
 int main()
 {
@@ -42,6 +47,9 @@ int main()
     }
     
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
+
+    //Added by saranya 
+    abort();
 
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
@@ -66,6 +74,10 @@ int main()
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
     }
+
+#ifdef INCLUDE_BREAKPAD
+     breakpad_ExceptionHandler();
+#endif
 
     delete rfcMgr;
 

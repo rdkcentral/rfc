@@ -128,6 +128,20 @@ AC_ARG_ENABLE([rdkc],
 
 AM_CONDITIONAL([ENABLE_RDKC], [test x$ENABLE_RDKC = xtrue])
 
+# Check for breakpad
+BREAKPAD_CFLAGS=" "
+BREAKPAD_LFLAGS=" "
+AC_ARG_ENABLE([breakpad],
+	      AS_HELP_STRING([--enable-breakpad],[enable breakpad support (default is no)]),
+	      [
+	        case "${enableval}" in
+	         yes) BREAKPAD_CFLAGS="-DINCLUDE_BREAKPAD" ;;
+		 no) AC_MSG_ERROR([breakpad is disabled]) ;;
+		 *) AC_MSG_ERROR([bad value ${enableval} for --enable-breakpad]) ;;
+		 esac
+		 ],
+              [echo "breakpad is disabled"])
+
 AC_CONFIG_FILES([
         Makefile
         rfcMgr/Makefile
