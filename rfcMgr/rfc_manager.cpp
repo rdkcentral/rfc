@@ -352,6 +352,7 @@ namespace rfc {
         return result;
     }
 
+#if !defined(RDKB_SUPPORT)	
     /** Description: Send event to iarm event manager
      *
      *  @param cur_event_name: event name.
@@ -376,6 +377,7 @@ namespace rfc {
         }
 #endif
     }
+#endif
 
     int RFCManager::RFCManagerPostProcess()
     {

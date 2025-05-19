@@ -53,7 +53,9 @@ int main()
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
+#if !defined(RDKB_SUPPORT)	    
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
+#endif	
         delete rfcMgr;
         return 1;
     }

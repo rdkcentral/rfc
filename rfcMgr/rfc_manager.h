@@ -80,7 +80,9 @@ class RFCManager {
         RFCManager &operator=(const RFCManager &) = delete;
         int RFCManagerProcessXconfRequest();
         rfc::DeviceStatus CheckDeviceIsOnline(void);
+#if !defined(RDKB_SUPPORT)	
         void SendEventToMaintenanceManager(const char *, unsigned int);
+#endif	
 	void manageCronJob(const std::string& cron);
 
     private:
