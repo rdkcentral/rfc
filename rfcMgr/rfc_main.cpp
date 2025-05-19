@@ -25,7 +25,6 @@ extern "C" {
 #endif
 #include "common_device_api.h"
 #include <unistd.h>
-#include <stdlib.h>
 
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
@@ -47,9 +46,6 @@ int main()
     }
     
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
-
-    //Added by saranya 
-    abort();
 
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
