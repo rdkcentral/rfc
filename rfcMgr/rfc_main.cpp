@@ -26,6 +26,10 @@ extern "C" {
 #include "common_device_api.h"
 #include <unistd.h>
 
+#ifdef INCLUDE_BREAKPAD
+#include "breakpad_wrapper.h"
+#endif
+
 int main()
 {
     pid_t pid;
@@ -66,6 +70,10 @@ int main()
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
     }
+
+#ifdef INCLUDE_BREAKPAD
+     breakpad_ExceptionHandler();
+#endif
 
     delete rfcMgr;
 
