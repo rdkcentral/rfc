@@ -124,13 +124,14 @@ int XconfHandler:: initializeXconfHandler()
 	     _model_number = tmpbuf;
 	}
 	
+#if !defined(RDKB_SUPPORT)
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
         {
              _manufacturer = tmpbuf;
         }
-
+#endif
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
