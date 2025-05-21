@@ -37,7 +37,7 @@ int main()
     
     if (pid < 0)
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC:Fork Failed.\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC:Fork Failed.\n", __LINE__);
         exit(EXIT_FAILURE);
     }
     if (pid > 0)
