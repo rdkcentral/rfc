@@ -30,3 +30,8 @@ rfcMgr_CPPFLAGS += $(IARMBUS_EVENT_FLAG) -I$(PKG_CONFIG_SYSROOT_DIR)${includedir
 AM_LDFLAGS += -lIARMBus
 endif
 
+if IS_TELEMETRY2_ENABLED
+rfcMgr_CPPFLAGS +=  $(T2_EVENT_FLAG) -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}
+AM_LDFLAGS += -ltelemetry_msgsender -lt2utils
+endif
+
