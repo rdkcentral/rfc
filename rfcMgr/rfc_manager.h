@@ -64,6 +64,12 @@ enum DeviceStatus {
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
+#ifdef T2_EVENT_ENABLED
+void t2CountNotify(char *marker, int val);
+void t2ValNotify(char *marker, char *val);
+#endif
+
+
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
 /*----------------------------------------------------------------------------*/
