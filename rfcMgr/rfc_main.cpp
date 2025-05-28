@@ -30,6 +30,22 @@ extern "C" {
 #include "breakpad_wrapper.h"
 #endif
 
+#ifdef T2_EVENT_ENABLED
+#include <telemetry_busmessage_sender.h>
+#endif
+
+void t2CountNotify(char *marker, int val) {
+#ifdef T2_EVENT_ENABLED
+    t2_event_d(marker, val);
+#endif
+}
+
+void t2ValNotify(char *marker, char *val) {
+#ifdef T2_EVENT_ENABLED
+    t2_event_s(marker, val);
+#endif
+}
+
 int main()
 {
     pid_t pid;
