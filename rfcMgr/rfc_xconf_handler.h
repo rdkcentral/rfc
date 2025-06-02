@@ -170,6 +170,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
         void NotifyTelemetry2Count(std ::string markerName);
+        void NotifyTelemetry2Value(std ::string markerName, std ::string value);
 	bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
