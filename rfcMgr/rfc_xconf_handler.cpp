@@ -650,7 +650,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
             if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
-                NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", xconf_server_url.c_str());
+                NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
             {
@@ -659,7 +659,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                     _xconf_server_url.clear();
                     _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
                     RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
-                    NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", xconf_server_url.c_str());
+                    NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
             std::stringstream url = CreateXconfHTTPUrl();
@@ -1296,7 +1296,7 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2Count(std ::string markerNa
 
 void RuntimeFeatureControlProcessor::NotifyTelemetry2Value(std ::string markerName, std ::string value)
 {
-    v_secure_system("/usr/bin/telemetry2_0_client %s %d", markerName.c_str(), value.c_str());
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", markerName.c_str(), value.c_str());
 }
 
 void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *features)
