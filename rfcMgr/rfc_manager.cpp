@@ -345,7 +345,7 @@ namespace rfc {
             if(isRebootRequired == true)
             {
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: Posting Reboot Required Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
-		NotifyTelemetry2Count("SYST_INFO_RFC_Reboot");
+		rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Reboot");
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_CRITICAL_UPDATE);
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_REBOOT_REQUIRED);
             }
@@ -354,7 +354,7 @@ namespace rfc {
         else
         {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
-   	    NotifyTelemetry2Count("SYST_INFO_RFC_Error");
+   	    rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
         
@@ -362,7 +362,7 @@ namespace rfc {
 	if(post_process_result == SUCCESS)
 	{
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
-   	    NotifyTelemetry2Count("SYST_INFO_RFC_PostProcess_Success");
+   	    rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_PostProcess_Success");
 	}
 	else
 	{
