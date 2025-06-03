@@ -1528,8 +1528,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Feature List is not found in the file.\n" , __FUNCTION__, __LINE__);
         return;
     }
-    v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
-
+    if (rfcstatus == "STAGING") {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_staging_split %s", line.c_str());
+    } else {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+    }
 }
 
 void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, const std::string& data) 
