@@ -344,7 +344,7 @@ namespace rfc {
             bool isRebootRequired = rfcObj->getRebootRequirement();
             if(isRebootRequired == true)
             {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: Posting Reboot Required Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Posting Reboot Required Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
 		rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Reboot");
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_CRITICAL_UPDATE);
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_REBOOT_REQUIRED);
