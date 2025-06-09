@@ -90,31 +90,17 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     return SUCCESS;
 }
 
-bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
-{
-    const std::string d_file = DEVICE_PROPERTIES_FILE;
-    std::ifstream devicepropFile;
-    bool found = false;
 
-    devicepropFile.open(d_file.c_str());
-    if (!devicepropFile.is_open())
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
+
+bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
+{
+    char value[64] = {0};
+    int ret = getDevicePropertyData("WHOAMI_SUPPORT", value, sizeof(value));
+    if (ret != 0) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
         return false;
     }
-    std::string line;
-
-    while (std::getline(devicepropFile, line))
-    {
-        if (line == "WHOAMI_SUPPORT=true")
-        {
-            found = true;
-           break;
-        }
-    }
-    devicepropFile.close();
-
-    return found;
+    return (strcasecmp(value, "true") == 0);
 }
 
 bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
