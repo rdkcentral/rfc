@@ -100,7 +100,9 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
         return false;
     }
-    return (strcasecmp(value, "true") == 0);
+    bool enabled = (strcasecmp(value, "true") == 0);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Whoami support is %s\n", __FUNCTION__, __LINE__, enabled ? "ENABLED" : "DISABLED");
+    return enabled;
 }
 
 bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
