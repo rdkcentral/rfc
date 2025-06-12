@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define RFCVAR_FILE "/opt/secure/RFC/rfcVariable.ini"
 #define TR181STORE_FILE "/opt/secure/RFC/tr181store.ini"
