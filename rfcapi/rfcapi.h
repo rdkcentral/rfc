@@ -62,7 +62,9 @@ typedef struct _RFC_Param_t {
 #ifdef RDKC
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #else
-WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParamData);
+WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line);
+#define getRFCParameter(pcCallerID, pcParameterName, pstParam) \
+    getRFCParameter_ex(pcCallerID, pcParameterName, pstParam, __FILE__, __LINE__)
 WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName, const char* pcParameterValue, DATA_TYPE eDataType);
 const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
