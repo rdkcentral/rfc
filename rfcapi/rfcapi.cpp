@@ -231,7 +231,10 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 }
 
 #else
- 
+WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    return getRFCParameter_ex(pcCallerID, pcParameterName, pstParam, "unknown", 0);
+}
 WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line)
 //WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
