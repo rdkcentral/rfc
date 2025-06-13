@@ -92,7 +92,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int  InitializeRuntimeFeatureControlProcessor(void);
         int ProcessRuntimeFeatureControlReq();
         bool getRebootRequirement();
-        
+        void NotifyTelemetry2Count(std ::string markerName);
+        void NotifyTelemetry2Value(std ::string markerName, std ::string value);
+
 	private:
 
         typedef struct RuntimeFeatureControlObject {
@@ -169,7 +171,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	int getJRPCTokenData( char *, char *, unsigned int );
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-        void NotifyTelemetry2Count(std ::string markerName);
 	bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
