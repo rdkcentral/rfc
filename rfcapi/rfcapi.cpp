@@ -37,6 +37,7 @@ using namespace std;
 #define RFCDEFAULTS_FILE "/tmp/rfcdefaults.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
+#define TEMP_LOGGING 1
 
 #define CONNECTION_TIMEOUT 5
 #define TRANSFER_TIMEOUT 10
@@ -232,7 +233,7 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 
 #else
 
-static inline WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line)
+WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line)
 //WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
 #ifdef TEMP_LOGGING
