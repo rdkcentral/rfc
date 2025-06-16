@@ -232,7 +232,7 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 
 #else
 
-WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line)
+static inline WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam, const char* file, int line)
 //WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
 #ifdef TEMP_LOGGING
@@ -240,9 +240,7 @@ WDMP_STATUS getRFCParameter_ex(const char *pcCallerID, const char* pcParameterNa
     logofs << prefix() << "getRFCParameter called from " << file << ":" << line << endl;
 #endif
     RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "getRFCParameter called from %s:%d\n", file, line);
-#ifdef TEMP_LOGGING
-   openLogFile();
-#endif
+
    WDMP_STATUS ret = WDMP_FAILURE;
    long http_code = 0;
    string response;
