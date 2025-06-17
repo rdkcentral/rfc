@@ -37,6 +37,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <sstream>
+#include "rdk_debug.h"
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
@@ -73,11 +74,11 @@ static void logCallerInfo(const char* operation, const char* paramName) {
         char* bash_source = getenv("BASH_SOURCE");
         
         if (bash_source && bash_line) {
-            std::cout << "CALLER_DEBUG: " << bash_source << ":" << bash_line 
-                     << " -> " << operation << " " << paramName << std::endl;
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "CALLER_DEBUG: %s:%s -> %s %s\n",
+                    bash_source, bash_line, operation, paramName);
         } else {
-            std::cout << "CALLER_DEBUG: " << script_name 
-                     << " -> " << operation << " " << paramName << std::endl;
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "CALLER_DEBUG: %s -> %s %s\n",
+                    script_name.c_str(), operation, paramName);
         }
     }
 }
