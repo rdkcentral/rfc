@@ -30,6 +30,22 @@ extern "C" {
 #include "breakpad_wrapper.h"
 #endif
 
+#include <signal.h>
+
+// Cleanup function
+void cleanup_lock_file(void)
+{
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC: Completed service, deleting lock\n", __FUNCTION__, __LINE__);
+    unlink(RFC_MGR_SERVICE_LOCK_FILE);
+}
+
+// Signal handler for graceful shutdown
+void signal_handler(int sig)
+{
+    cleanup_lock_file();
+    exit(0);
+}
+
 int main()
 {
     pid_t pid;
@@ -44,13 +60,20 @@ int main()
     {
         exit(EXIT_SUCCESS);
     }
-    
+    atexit(cleanup_lock_file);
+
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);	
+	
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);
+	
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr Process in progress, New instance not allowed. Lock file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);
         delete rfcMgr;
         return 1;
     }
