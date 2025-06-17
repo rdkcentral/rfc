@@ -35,6 +35,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <unistd.h>
+#include <sstream>
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
@@ -46,6 +48,39 @@ static char * key = NULL;
 static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = true;
+
+// Add this function to your existing code
+static void logCallerInfo(const char* operation, const char* paramName) {
+    if (silent) return; // Only log when debug is enabled
+    
+    pid_t ppid = getppid(); // Get parent process ID
+    
+    // Read parent process info
+    std::stringstream cmdline_path;
+    cmdline_path << "/proc/" << ppid << "/cmdline";
+    
+    std::ifstream cmdline_file(cmdline_path.str());
+    if (cmdline_file.is_open()) {
+        std::string cmdline;
+        std::getline(cmdline_file, cmdline, '\0'); // cmdline is null-separated
+        
+        // Get the script name (first argument)
+        size_t space_pos = cmdline.find('\0');
+        std::string script_name = cmdline.substr(0, space_pos);
+        
+        // Try to get line number from bash environment
+        char* bash_line = getenv("BASH_LINENO");
+        char* bash_source = getenv("BASH_SOURCE");
+        
+        if (bash_source && bash_line) {
+            std::cout << "CALLER_DEBUG: " << bash_source << ":" << bash_line 
+                     << " -> " << operation << " " << paramName << std::endl;
+        } else {
+            std::cout << "CALLER_DEBUG: " << script_name 
+                     << " -> " << operation << " " << paramName << std::endl;
+        }
+    }
+}
 
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
@@ -109,6 +144,7 @@ static DATA_TYPE convertType(char type)
 */
 static int getAttribute(char * const paramName)
 {
+   logCallerInfo("getAttribute", paramName);
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
        tr181ErrorCode_t status = getLocalParam(id, paramName, &param);
