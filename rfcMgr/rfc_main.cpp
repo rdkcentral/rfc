@@ -42,6 +42,7 @@ void cleanup_lock_file(void)
 // Signal handler for graceful shutdown
 void signal_handler(int sig)
 {
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
     cleanup_lock_file();
     exit(0);
 }
@@ -73,7 +74,7 @@ int main()
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
-	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr Process in progress, New instance not allowed. Lock file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);
         delete rfcMgr;
         return 1;
     }
