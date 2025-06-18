@@ -75,12 +75,15 @@ static void logCallerInfo(const char* operation, const char* paramName) {
         char* bash_source = getenv("BASH_SOURCE");
         
         if (bash_source && bash_line) {
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "CALLER_DEBUG: %s:%s -> %s %s\n",
-                    bash_source, bash_line, operation, paramName);
+            cout << "CALLER_DEBUG: " << bash_source << ":" << bash_line
+                      << " -> " << operation << " " << paramName << endl;
         } else {
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "CALLER_DEBUG: %s -> %s %s\n",
-                    script_name.c_str(), operation, paramName);
+             cout << "CALLER_DEBUG: " << script_name
+                      << " -> " << operation << " " << paramName << endl;
         }
+    }
+    else {
+        cerr << "CALLER_DEBUG: Failed to open cmdline file for parent process." << endl;
     }
 }
 
