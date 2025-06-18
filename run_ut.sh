@@ -19,11 +19,24 @@
 # limitations under the License.
 ####################################################################################
 
+ENABLE_COV=false
+
+if [ "x$1" = "x--enable-cov" ]; then
+      echo "Enabling coverage options"
+      export CXXFLAGS="-g -O0 -fprofile-arcs -ftest-coverage"
+      export CFLAGS="-g -O0 -fprofile-arcs -ftest-coverage"
+      export LDFLAGS="-lgcov --coverage"
+      ENABLE_COV=true
+fi
+
 cp ./rfcMgr/gtest/mocks/rfc.properties /etc/rfc.properties
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini /tmp/rfcdefaults.ini
 
 mkdir /opt/secure
 mkdir /opt/secure/RFC
+mkdir /etc/rfcdefaults
+touch /etc/rfcdefaults/rfcdefaults.ini
+cp ./rfcMgr/gtest/mocks/rfcdefaults.ini  /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
 
@@ -46,8 +59,18 @@ echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
 make
 ./rfcMgr_gtest
+
+if [ $? -ne 0 ]; then
+    echo "Unit tests failed"
+    exit 1
+fi
 echo "********************"
 
-lcov --capture --directory . --output-file coverage.info
-lcov --remove coverage.info '/usr/*' --output-file coverage.filtered.info
-genhtml coverage.filtered.info --output-directory out
+if [ "$ENABLE_COV" = true ]; then
+    echo "Generating coverage report"
+    lcov --capture --directory . --output-file coverage.info
+    lcov --remove coverage.info '/usr/*' --output-file coverage.info
+    lcov --list coverage.info
+fi
+
+cd $TOP_DIR

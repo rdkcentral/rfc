@@ -307,8 +307,8 @@ int main (int argc , char *argv [])
 		printf("RFC PATH format  is %s\n",root_path);
 		count = iterateAndSaveArrayNodes(root_path,json_string);
 		printf("Total saved entries %d \n", count);
-		delete(json_string);
-		delete(root_path);
+		delete[] json_string;
+		delete[] root_path;
 	}
 	else
 	{

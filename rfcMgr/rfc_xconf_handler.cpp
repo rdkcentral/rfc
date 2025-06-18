@@ -39,13 +39,18 @@ extern "C" {
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
+     bool dbgServices = isDebugServicesEnabled();
 	
+    int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
+    if(rc != 0)
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get XCONF_BS_URL from Bootstrap config.\n", __FUNCTION__, __LINE__);
+
      if(0 != initializeXconfHandler())
      {
 	return FAILURE;
      }
     
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
     }
@@ -61,7 +66,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         return FAILURE;
     }
 
-    rfc_state = (_ebuild_type != ePROD) ? Local : Init;
+    rfc_state = (_ebuild_type != ePROD || dbgServices == true) ? Local : Init;
 
     /* get experience */ 
     if(-1 == GetExperience())
@@ -112,6 +117,24 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
     return found;
 }
 
+bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
+{
+    bool result = false;
+    int ret = -1;
+    char rfc_data[RFC_VALUE_BUF_SIZE];
+
+    *rfc_data = 0;
+    ret = read_RFCProperty("DEBUGSRV", RFC_DEBUGSRV, rfc_data, sizeof(rfc_data));
+    if (ret == -1) {
+        SWLOG_ERROR("%s: rfc Debug services =%s failed Status %d\n", __FUNCTION__, RFC_DEBUGSRV, ret);
+    } else {
+        SWLOG_INFO("%s: rfc Debug services = %s\n", __FUNCTION__, rfc_data);
+        if (strncmp(rfc_data, "true", sizeof(rfc_data)+1 ) == 0) {
+            result = true;
+        }
+    }
+    return result;
+}
 
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
@@ -340,21 +363,35 @@ int RuntimeFeatureControlProcessor::GetBootstrapXconfUrl(std ::string &XconfUrl)
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
     std::string str = "XconfUrl";
+    const int MAX_RETRIES = 10;
+    const int RETRY_DELAY_SECONDS = 10;
 
-    i = read_RFCProperty(str.c_str(), BOOTSTRAP_XCONF_URL_KEY_STR, tempbuf, szBufSize);
-    if (i == READ_RFC_FAILURE) 
+    for (int retryCount = 0; retryCount < MAX_RETRIES; retryCount++)
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC Read Failed for Bootstrap XconfUrl\n");
-        return -1;
-    } 
-    else 
-    {
-        i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s\n", tempbuf);
+        i = read_RFCProperty(str.c_str(), BOOTSTRAP_XCONF_URL_KEY_STR, tempbuf, szBufSize);
+        if (i == READ_RFC_FAILURE)
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC Read Failed for Bootstrap XconfUrl, retry %d/%d\n", retryCount + 1, MAX_RETRIES);
+            if (retryCount < MAX_RETRIES - 1)
+            {
+                sleep(RETRY_DELAY_SECONDS);
+            }
+            else
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "All retries exhausted for Bootstrap XconfUrl\n");
+                return -1;
+            }
+        }
+        else
+        {
+            i = strnlen(tempbuf, szBufSize);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "XconfUrl: = %s, found after %d attempts\n", tempbuf, retryCount + 1);
+            XconfUrl = tempbuf;
+            return 0;
+        }
     }
-    XconfUrl = tempbuf;
 
-    return 0;
+    return -1;
 }
 
 bool RuntimeFeatureControlProcessor::checkBootstrap(const std::string& filename, const std::string& target)
@@ -517,12 +554,17 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
     std::string httpHeader = curlHeaderResp;
 
-    std::string key = "configSetHash:";
-    std::size_t start = httpHeader.find(key);
+    std::string key1 = "configSetHash:";
+    std::string key2 = "configsethash:";
+    std::size_t start = httpHeader.find(key1);
+    if (start == std::string::npos) {
+        // some xconf have lowercase string.
+        start = httpHeader.find(key2);
+    }
 
     if (start != std::string::npos) {
         // Start position of the value
-        start += key.length();
+        start += key1.length();
 
         // Find the end of the line where the value ends (handle both \r\n and \n line endings)
         std::size_t end = httpHeader.find("\r\n", start);
@@ -599,24 +641,25 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
+    bool dbgServices = isDebugServicesEnabled();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from local override\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
             {
-                std::string boot_strap_xconf_url;
-                int rc = GetBootstrapXconfUrl(boot_strap_xconf_url);
-                if(rc == 0)
+                if (!_boot_strap_xconf_url.empty())
                 {
                     _xconf_server_url.clear();
-                    _xconf_server_url = boot_strap_xconf_url + "/featureControl/getSettings";
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from Bootstrap config XCONF_BS_URL:%s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str(), boot_strap_xconf_url.c_str());
+                    _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
+                    NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
             std::stringstream url = CreateXconfHTTPUrl();
@@ -670,6 +713,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                         updateTimeInDB("0");
                     }
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
+   	            NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
                     
@@ -704,6 +748,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
+    url << "manufacturer=" << _manufacturer << "&";
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     url << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     url << "VodId=" << RFC_VIDEO_VOD_ID << "&";
@@ -886,6 +931,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 	    
             switch(curl_ret_code)
             {
+                case  6:
+                case 18:
+                case 28:
                 case 35:
                 case 51:
                 case 53:
@@ -908,6 +956,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
 	        cleanAllFile();
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
+		NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
             }
             else if(httpCode == 304)
             {
@@ -939,8 +988,8 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2ErrorCode(int CurlReturn)
     RemoveSubstring(FQDN,"/featureControl/getSettings");
 
     const char* arg1 = "certerr_split";
-    const char* arg2 = (("RFC, " + CurlReturnStr + ", " + FQDN)).c_str();
-    v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2);
+    std::string arg2 = "RFC, " + CurlReturnStr + ", " + FQDN;
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", arg1, arg2.c_str());
 }
 
 
@@ -1244,6 +1293,12 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2Count(std ::string markerNa
     v_secure_system("/usr/bin/telemetry2_0_client %s %d", markerName.c_str(), count);
 }
 
+
+void RuntimeFeatureControlProcessor::NotifyTelemetry2Value(std ::string markerName, std ::string value)
+{
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", markerName.c_str(), value.c_str());
+}
+
 void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *features)
 {
     CreateConfigDataValueMap(features);
@@ -1473,8 +1528,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Feature List is not found in the file.\n" , __FUNCTION__, __LINE__);
         return;
     }
-    v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
-
+    if (rfcstatus == "STAGING") {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_staging_split %s", line.c_str());
+    } else {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+    }
 }
 
 void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, const std::string& data) 
@@ -1587,11 +1645,15 @@ int RuntimeFeatureControlProcessor::getJRPCTokenData( char *token, char *pJsonSt
 
 void RuntimeFeatureControlProcessor:: cleanAllFile()
 {
-    for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC")) 
+    // Check if directory exists before trying to iterate
+    if (std::filesystem::exists("/opt/secure/RFC"))
     {
-        if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+        for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC"))
         {
-            std::filesystem::remove(entry.path());
+            if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
+            {
+                std::filesystem::remove(entry.path());
+            }
         }
     }
     if (std::remove(VARIABLEFILE) == 0)

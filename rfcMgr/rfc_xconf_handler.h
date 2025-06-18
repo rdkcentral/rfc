@@ -60,6 +60,7 @@ extern "C" {
 #define VARIABLEFILE                       "/opt/secure/RFC/rfcVariable.ini"
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
+#define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
@@ -91,7 +92,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int  InitializeRuntimeFeatureControlProcessor(void);
         int ProcessRuntimeFeatureControlReq();
         bool getRebootRequirement();
-        
+        void NotifyTelemetry2Count(std ::string markerName);
+        void NotifyTelemetry2Value(std ::string markerName, std ::string value);
+
 	private:
 
         typedef struct RuntimeFeatureControlObject {
@@ -104,7 +107,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	std::map<std::string, std::string> _RFCKeyAndValueMap;
 	RfcState     rfc_state; /* RFC State */
 	std::string _last_firmware; /* Last Firmware Version */
-	std::string _xconf_server_url; /* Xconf server URL */ 
+	std::string _xconf_server_url; /* Xconf server URL */
+    std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
 	std::string _valid_accountId; /* Valid Account ID*/
 	std::string _valid_partnerId; /* Valid Partner ID*/
 	std::string _accountId; /* Device Account ID */
@@ -115,7 +119,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool isRebootRequired;
 	std::string bkup_hash;
         bool _is_first_request;
-        bool _url_validation_in_progress;
+        bool _url_validation_in_progress = false;
         std::string  rfcSelectOpt;
         std:: string rfcSelectorSlot;
 		 
@@ -167,7 +171,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	int getJRPCTokenData( char *, char *, unsigned int );
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-        void NotifyTelemetry2Count(std ::string markerName);
+	bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
