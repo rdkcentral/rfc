@@ -53,37 +53,28 @@ static bool silent = true;
 
 // Add this function to your existing code
 static void logCallerInfo(const char* operation, const char* paramName) {
-  
-    
-    pid_t ppid = getppid(); // Get parent process ID
-    
-    // Read parent process info
+    if (silent) return;
+
+    pid_t ppid = getppid();
+
     std::stringstream cmdline_path;
     cmdline_path << "/proc/" << ppid << "/cmdline";
-    
+
     std::ifstream cmdline_file(cmdline_path.str());
+    std::string parent_cmd = "<unknown>";
     if (cmdline_file.is_open()) {
-        std::string cmdline;
-        std::getline(cmdline_file, cmdline, '\0'); // cmdline is null-separated
-        
-        // Get the script name (first argument)
-        size_t space_pos = cmdline.find('\0');
-        std::string script_name = cmdline.substr(0, space_pos);
-        
-        // Try to get line number from bash environment
-        char* bash_line = getenv("BASH_LINENO");
-        char* bash_source = getenv("BASH_SOURCE");
-        
-        if (bash_source && bash_line) {
-            cout << "CALLER_DEBUG: " << bash_source << ":" << bash_line
-                      << " -> " << operation << " " << paramName << endl;
-        } else {
-             cout << "CALLER_DEBUG: " << script_name
-                      << " -> " << operation << " " << paramName << endl;
-        }
+        std::getline(cmdline_file, parent_cmd, '\0');
     }
-    else {
-        cerr << "CALLER_DEBUG: Failed to open cmdline file for parent process." << endl;
+
+    std::string bash_source = getenv("BASH_SOURCE") ? getenv("BASH_SOURCE") : "";
+    std::string bash_lineno = getenv("BASH_LINENO") ? getenv("BASH_LINENO") : "";
+
+    if (!bash_source.empty() && !bash_lineno.empty()) {
+        std::cout << "CALLER_DEBUG: " << bash_source << ":" << bash_lineno
+                  << " -> " << operation << " " << paramName << std::endl;
+    } else {
+        std::cout << "CALLER_DEBUG: " << parent_cmd
+                  << " (pid=" << ppid << ") -> " << operation << " " << paramName << std::endl;
     }
 }
 
