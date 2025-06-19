@@ -54,7 +54,7 @@ static bool silent = true;
 // Add this function to your existing code
 static void logCallerInfo(const char* operation, const char* paramName) {
   
-    
+    cout << "logCallerInfo called" << endl;
     pid_t ppid = getppid(); // Get parent process ID
     
     // Read parent process info
@@ -62,13 +62,15 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     cmdline_path << "/proc/" << ppid << "/cmdline";
     
     std::ifstream cmdline_file(cmdline_path.str());
+    cout<<"line1" << endl;
     if (cmdline_file.is_open()) {
-        std::string cmdline;
-        std::getline(cmdline_file, cmdline, '\0'); // cmdline is null-separated
+        cout<<"second line"<<endl;
+        string cmdline;
+        getline(cmdline_file, cmdline, '\0'); // cmdline is null-separated
         
         // Get the script name (first argument)
         size_t space_pos = cmdline.find('\0');
-        std::string script_name = cmdline.substr(0, space_pos);
+        string script_name = cmdline.substr(0, space_pos);
         
         // Try to get line number from bash environment
         char* bash_line = getenv("BASH_LINENO");
