@@ -53,7 +53,7 @@ static bool silent = true;
 
 // Add this function to your existing code
 static void logCallerInfo(const char* operation, const char* paramName) {
-    if (silent) return; // Only log when debug is enabled
+  
     
     pid_t ppid = getppid(); // Get parent process ID
     
