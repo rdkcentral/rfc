@@ -94,7 +94,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 
 bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
 {
-    char value[64] = {0};
+    char value[8] = {0};
     int ret = getDevicePropertyData("WHOAMI_SUPPORT", value, sizeof(value));
     if (ret != 1) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
