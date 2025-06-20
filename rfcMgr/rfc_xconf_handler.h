@@ -193,6 +193,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, writeRemoteFeatureCntrlFile);
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
+    FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
+    FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
+    FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
+    FRIEND_TEST(rfcMgrTest, GetOsClass);
+    FRIEND_TEST(rfcMgrTest, set_RFCProperty);
 #endif
 };
 
