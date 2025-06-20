@@ -486,6 +486,45 @@ TEST(rfcMgrTest, getDefaultValue) {
    	
 }
 
+TEST(rfcMgrTest, checkWhoamiSupport) {
+    /* Create Object for Xconf Handler */
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->checkWhoamiSupport();
+    delete rfcObj;
+    EXPECT_EQ(result, flase);
+}
+
+TEST(rfcMgrTest, isDebugServicesEnabled) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isDebugServicesEnabled();
+    delete rfcObj;
+    EXPECT_EQ(result,true);
+}
+
+TEST(rfcMgrTest, isMaintenanceEnabled) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isMaintenanceEnabled();
+    delete rfcObj;
+    EXPECT_EQ(result, true);
+}
+
+TEST(rfcMgrTest, GetOsClass) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetOsClass();
+    EXPECT_EQ(rfcObj->_osclass, "TestOsClass");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, set_RFCProperty) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string name = "rfc";
+    std::string value = "true";
+    std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
+    WDMP_STATUS status = rfcObj->set_RFCProperty(name, ClearDBEndKey, value);
+    EXPECT_EQ(status, WDMP_SUCCESS);
+    delete rfcObj;
+}
 
 
 GTEST_API_ int main(int argc, char *argv[]){
