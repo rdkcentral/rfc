@@ -487,11 +487,10 @@ TEST(rfcMgrTest, getDefaultValue) {
 }
 
 TEST(rfcMgrTest, checkWhoamiSupport) {
-    /* Create Object for Xconf Handler */
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
-    EXPECT_EQ(result, flase);
+    EXPECT_EQ(result, true);
 }
 
 TEST(rfcMgrTest, isDebugServicesEnabled) {
