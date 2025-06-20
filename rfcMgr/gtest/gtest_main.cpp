@@ -491,7 +491,7 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
-    EXPECT_EQ(result, flase);
+    EXPECT_EQ(result, false);
 }
 
 TEST(rfcMgrTest, isDebugServicesEnabled) {
