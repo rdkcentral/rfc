@@ -88,7 +88,7 @@ static std::vector<std::pair<pid_t, std::string>> getProcessAncestry(pid_t start
     pid_t current = start_pid;
     for (int i = 0; i < max_depth && current > 1; ++i) {
         std::string cmd = getCmdline(current);
-        ancestry.emplace_back(current, cmd);
+        ancestry.push_back(std::make_pair(current, cmd));
         current = getParentPid(current);
     }
     return ancestry;
@@ -100,7 +100,7 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     if (silent) return;
 
     pid_t ppid = getppid();
-    auto ancestry = getProcessAncestry(ppid);
+    std::vector<std::pair<pid_t, std::string>> ancestry = getProcessAncestry(ppid);
     std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
     bool is_terminal = isatty(STDIN_FILENO);
@@ -140,13 +140,14 @@ static void logCallerInfo(const char* operation, const char* paramName) {
 
     // -- Print Process Ancestry --
     std::cout << "Process Ancestry (up to 5 levels):" << std::endl;
-    for (const auto& [pid, cmd] : ancestry) {
+    for (std::vector<std::pair<pid_t, std::string>>::const_iterator it = ancestry.begin(); it != ancestry.end(); ++it) {
+        pid_t pid = it->first;
+        const std::string& cmd = it->second;
         std::cout << "  PID " << pid << ": " << cmd << std::endl;
     }
 
     std::cout << "==================================================" << std::endl;
 }
-
 
 
 inline bool legacyRfcEnabled() {
