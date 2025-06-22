@@ -41,6 +41,9 @@
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
+#include <vector>
+#include <pwd.h>
+
 using namespace std;
 #define LOG_RFCAPI "LOG.RDK.RFCAPI"
 
@@ -51,33 +54,100 @@ static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = true;
 
-// Add this function to your existing code
+
+
+// -- Helper: Read cmdline of a process --
+static std::string getCmdline(pid_t pid) {
+    std::stringstream path;
+    path << "/proc/" << pid << "/cmdline";
+    std::ifstream file(path.str());
+    std::string cmd = "<unknown>";
+    if (file.is_open()) {
+        std::getline(file, cmd, '\0');
+    }
+    return cmd;
+}
+
+// -- Helper: Get parent PID of a process --
+static pid_t getParentPid(pid_t pid) {
+    std::stringstream path;
+    path << "/proc/" << pid << "/status";
+    std::ifstream file(path.str());
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("PPid:", 0) == 0) {
+            return std::stoi(line.substr(5));
+        }
+    }
+    return -1;
+}
+
+// -- Helper: Build ancestry chain up to root or max depth --
+static std::vector<std::pair<pid_t, std::string>> getProcessAncestry(pid_t start_pid, int max_depth = 5) {
+    std::vector<std::pair<pid_t, std::string>> ancestry;
+    pid_t current = start_pid;
+    for (int i = 0; i < max_depth && current > 1; ++i) {
+        std::string cmd = getCmdline(current);
+        ancestry.emplace_back(current, cmd);
+        current = getParentPid(current);
+    }
+    return ancestry;
+}
+
+// -- Main Function --
 static void logCallerInfo(const char* operation, const char* paramName) {
-    cout << "DEBUG: Entered logCallerInfo with silent=" << silent << endl;
+    extern bool silent;
     if (silent) return;
 
     pid_t ppid = getppid();
+    auto ancestry = getProcessAncestry(ppid);
+    std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
-    std::stringstream cmdline_path;
-    cmdline_path << "/proc/" << ppid << "/cmdline";
+    bool is_terminal = isatty(STDIN_FILENO);
 
-    std::ifstream cmdline_file(cmdline_path.str());
-    std::string parent_cmd = "<unknown>";
-    if (cmdline_file.is_open()) {
-        std::getline(cmdline_file, parent_cmd, '\0');
+    const char* bash_source = getenv("BASH_SOURCE");
+    const char* bash_lineno = getenv("BASH_LINENO");
+
+    const char* user = getlogin();
+    if (!user) {
+        struct passwd* pw = getpwuid(getuid());
+        if (pw) user = pw->pw_name;
     }
 
-    std::string bash_source = getenv("BASH_SOURCE") ? getenv("BASH_SOURCE") : "";
-    std::string bash_lineno = getenv("BASH_LINENO") ? getenv("BASH_LINENO") : "";
+    std::cout << "================== CALLER TRACE ==================" << std::endl;
+    std::cout << "Operation: " << operation << ", Param: " << paramName << std::endl;
+    std::cout << "User: " << (user ? user : "<unknown>") << std::endl;
 
-    if (!bash_source.empty() && !bash_lineno.empty()) {
-        std::cout << "CALLER_DEBUG: " << bash_source << ":" << bash_lineno
-                  << " -> " << operation << " " << paramName << std::endl;
-    } else {
-        std::cout << "CALLER_DEBUG: " << parent_cmd
-                  << " (pid=" << ppid << ") -> " << operation << " " << paramName << std::endl;
+    // -- Call Type Detection --
+    if (bash_source && bash_lineno && std::strlen(bash_source) > 0) {
+        std::cout << "Caller Type: Shell script (exported BASH_SOURCE)" << std::endl;
+        std::cout << "Script: " << bash_source << ":" << bash_lineno << std::endl;
     }
+    else if (parent_cmd.find("bash") != std::string::npos ||
+             parent_cmd.find("sh") != std::string::npos ||
+             parent_cmd.find("dash") != std::string::npos) {
+        if (is_terminal) {
+            std::cout << "Caller Type: Manual shell (interactive)" << std::endl;
+        } else if (parent_cmd.find(".sh") != std::string::npos) {
+            std::cout << "Caller Type: Shell script (inferred from .sh in command)" << std::endl;
+        } else {
+            std::cout << "Caller Type: Likely shell script (non-interactive shell)" << std::endl;
+        }
+    }
+    else {
+        std::cout << "Caller Type: Other binary or system process" << std::endl;
+    }
+
+    // -- Print Process Ancestry --
+    std::cout << "Process Ancestry (up to 5 levels):" << std::endl;
+    for (const auto& [pid, cmd] : ancestry) {
+        std::cout << "  PID " << pid << ": " << cmd << std::endl;
+    }
+
+    std::cout << "==================================================" << std::endl;
 }
+
+
 
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
