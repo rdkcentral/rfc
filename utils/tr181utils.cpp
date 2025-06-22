@@ -53,6 +53,7 @@ static bool silent = true;
 
 // Add this function to your existing code
 static void logCallerInfo(const char* operation, const char* paramName) {
+    cout << "DEBUG: Entered logCallerInfo with silent=" << silent << endl;
     if (silent) return;
 
     pid_t ppid = getppid();
