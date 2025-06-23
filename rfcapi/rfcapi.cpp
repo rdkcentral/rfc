@@ -37,7 +37,7 @@ using namespace std;
 #define RFCDEFAULTS_FILE "/tmp/rfcdefaults.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
-#define TEMP_LOGGING 1
+
 
 #define CONNECTION_TIMEOUT 5
 #define TRANSFER_TIMEOUT 10
