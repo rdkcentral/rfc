@@ -222,7 +222,6 @@ void readdata()
     std::ifstream file("/tmp/device.properties");
     if (!file.is_open()) {
         std::cerr << "Error opening file\n";
-        return 1;
     }
 
     std::stringstream buffer;
@@ -505,6 +504,7 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
+    readdata();
     EXPECT_EQ(result, true);
 }
 
