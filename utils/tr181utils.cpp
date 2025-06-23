@@ -204,7 +204,7 @@ static int getAttribute(char * const paramName)
    else
        script_file = script_path;
    RFC_ParamData_t param;
-   WDMP_STATUS status = getRFCParameter(id, paramName, &param,script_file.c_str(), 0);
+   WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param,script_file.c_str(), 0);
 
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
