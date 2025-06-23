@@ -52,7 +52,7 @@ static char * value = NULL;
 static char * key = NULL;
 static char * id = NULL;
 static REQ_TYPE mode = GET;
-static bool silent = true;
+static bool silent = false;
 
 
 
