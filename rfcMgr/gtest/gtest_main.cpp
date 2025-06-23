@@ -217,18 +217,17 @@ TEST(rfcMgrTest, removeSubstring) {
     EXPECT_EQ(ret, 0);
 }
 
-void readdata()
+void writeToDeviceproperitesFile(const std::string& key, const std::string& value, const std::string& filePath)
 {
-    std::ifstream file("/tmp/device.properties");
-    if (!file.is_open()) {
-        std::cerr << "Error opening file\n";
+    std::ofstream file(filePath); 
+
+    if (file.is_open()) {
+        file << key << "=" << value << std::endl;
+	file.close();
+	std::cout << "Key-value pair written successfully." << std::endl;
+    } else {
+        std::cerr << "Unable to open file.\n";
     }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::cout << buffer.str();
-
-    file.close();
 }
 
 
@@ -500,7 +499,7 @@ TEST(rfcMgrTest, getDefaultValue) {
 }
 
 TEST(rfcMgrTest, checkWhoamiSupport) {
-    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
+    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
