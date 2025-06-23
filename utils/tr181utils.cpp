@@ -103,7 +103,7 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     std::vector<std::pair<pid_t, std::string>> ancestry = getProcessAncestry(ppid);
     std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
-    std::vector<std::string> parent_args = getCmdlineArgs(ppid);
+    std::vector<std::string> parent_args = getCmdline(ppid);
     std::string script_name = "<unknown>";
     if (parent_args.size() > 1) {
         script_name = parent_args[1]; // parent_args[0] is usually the shell, [1] is the script
