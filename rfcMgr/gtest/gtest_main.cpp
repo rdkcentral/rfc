@@ -503,7 +503,6 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
-    readdata();
     EXPECT_EQ(result, true);
 }
 
