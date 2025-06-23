@@ -283,9 +283,16 @@ static int getAttribute(char * const paramName)
        }
        return status;
     }
-
+    // Extract just the script file name
+   std::string script_path = detectScriptName();
+   std::string script_file;
+   size_t last_slash = script_path.find_last_of("/\\");
+   if (last_slash != std::string::npos)
+       script_file = script_path.substr(last_slash + 1);
+   else
+       script_file = script_path;
    RFC_ParamData_t param;
-   WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param, __FILE__, __LINE__);
+   WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param,script_file.c_str(), 0);
 
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
