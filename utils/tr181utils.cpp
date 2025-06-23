@@ -119,6 +119,11 @@ static void logCallerInfo(const char* operation, const char* paramName) {
         script_name = parent_args[1]; // parent_args[0] is usually the shell, [1] is the script
     }
     
+    std::cout << "Parent process arguments:" << std::endl;
+    for (size_t i = 0; i < parent_args.size(); ++i) {
+    std::cout << "  [" << i << "]: " << parent_args[i] << std::endl;
+    }
+
     bool is_terminal = isatty(STDIN_FILENO);
 
     const char* bash_source = getenv("BASH_SOURCE");
