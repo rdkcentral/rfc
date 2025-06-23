@@ -54,7 +54,17 @@ static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = false;
 
-
+std::vector<std::string> splitCmdline(const std::string& cmdline) {
+    std::vector<std::string> args;
+    size_t start = 0;
+    while (start < cmdline.size()) {
+        size_t end = cmdline.find('\0', start);
+        if (end == std::string::npos) end = cmdline.size();
+        if (end > start) args.push_back(cmdline.substr(start, end - start));
+        start = end + 1;
+    }
+    return args;
+}
 
 // -- Helper: Read cmdline of a process --
 static std::string getCmdline(pid_t pid) {
@@ -103,7 +113,7 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     std::vector<std::pair<pid_t, std::string>> ancestry = getProcessAncestry(ppid);
     std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
-    std::vector<std::string> parent_args = getCmdline(ppid);
+    std::vector<std::string> parent_args = splitCmdline(getCmdline(ppid));
     std::string script_name = "<unknown>";
     if (parent_args.size() > 1) {
         script_name = parent_args[1]; // parent_args[0] is usually the shell, [1] is the script
