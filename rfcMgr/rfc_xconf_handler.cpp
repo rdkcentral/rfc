@@ -90,31 +90,19 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     return SUCCESS;
 }
 
-bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
-{
-    const std::string d_file = DEVICE_PROPERTIES_FILE;
-    std::ifstream devicepropFile;
-    bool found = false;
 
-    devicepropFile.open(d_file.c_str());
-    if (!devicepropFile.is_open())
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
+
+bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
+{
+    char value[8] = {0};
+    int ret = getDevicePropertyData("WHOAMI_SUPPORT", value, sizeof(value));
+    if (ret != 1) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
         return false;
     }
-    std::string line;
-
-    while (std::getline(devicepropFile, line))
-    {
-        if (line == "WHOAMI_SUPPORT=true")
-        {
-            found = true;
-           break;
-        }
-    }
-    devicepropFile.close();
-
-    return found;
+    bool enabled = (strcasecmp(value, "true") == 0);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Whoami support is %s\n", __FUNCTION__, __LINE__, enabled ? "ENABLED" : "DISABLED");
+    return enabled;
 }
 
 bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
@@ -649,7 +637,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
         {
             if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from local override\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
             {
@@ -657,7 +646,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 {
                     _xconf_server_url.clear();
                     _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from Bootstrap config XCONF_BS_URL:%s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str(), _boot_strap_xconf_url.c_str());
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
+                    NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
             std::stringstream url = CreateXconfHTTPUrl();
@@ -711,6 +701,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                         updateTimeInDB("0");
                     }
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
+   	            NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
                     
@@ -928,6 +919,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 	    
             switch(curl_ret_code)
             {
+                case  6:
+                case 18:
+                case 28:
                 case 35:
                 case 51:
                 case 53:
@@ -950,6 +944,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
 	        cleanAllFile();
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
+		NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
             }
             else if(httpCode == 304)
             {
@@ -1286,6 +1281,12 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2Count(std ::string markerNa
     v_secure_system("/usr/bin/telemetry2_0_client %s %d", markerName.c_str(), count);
 }
 
+
+void RuntimeFeatureControlProcessor::NotifyTelemetry2Value(std ::string markerName, std ::string value)
+{
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", markerName.c_str(), value.c_str());
+}
+
 void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *features)
 {
     CreateConfigDataValueMap(features);
@@ -1515,8 +1516,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Feature List is not found in the file.\n" , __FUNCTION__, __LINE__);
         return;
     }
-    v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
-
+    if (rfcstatus == "STAGING") {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_staging_split %s", line.c_str());
+    } else {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+    }
 }
 
 void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, const std::string& data) 

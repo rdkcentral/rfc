@@ -59,6 +59,11 @@ echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
 make
 ./rfcMgr_gtest
+
+if [ $? -ne 0 ]; then
+    echo "Unit tests failed"
+    exit 1
+fi
 echo "********************"
 
 if [ "$ENABLE_COV" = true ]; then
