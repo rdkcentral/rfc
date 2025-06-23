@@ -54,6 +54,7 @@ static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = false;
 
+// Helper: Split a null-separated cmdline into arguments
 std::vector<std::string> splitCmdline(const std::string& cmdline) {
     std::vector<std::string> args;
     size_t start = 0;
@@ -66,19 +67,17 @@ std::vector<std::string> splitCmdline(const std::string& cmdline) {
     return args;
 }
 
-// -- Helper: Read cmdline of a process --
+// Helper: Read cmdline of a process as a string
 static std::string getCmdline(pid_t pid) {
     std::stringstream path;
     path << "/proc/" << pid << "/cmdline";
-    std::ifstream file(path.str());
-    std::string cmd = "<unknown>";
-    if (file.is_open()) {
-        std::getline(file, cmd, '\0');
-    }
-    return cmd;
+    std::ifstream file(path.str(), std::ios::in | std::ios::binary);
+    if (!file) return "";
+    std::string buf((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return buf;
 }
 
-// -- Helper: Get parent PID of a process --
+// Helper: Get parent PID of a process
 static pid_t getParentPid(pid_t pid) {
     std::stringstream path;
     path << "/proc/" << pid << "/status";
@@ -92,7 +91,7 @@ static pid_t getParentPid(pid_t pid) {
     return -1;
 }
 
-// -- Helper: Build ancestry chain up to root or max depth --
+// Helper: Build ancestry chain up to root or max depth
 static std::vector<std::pair<pid_t, std::string>> getProcessAncestry(pid_t start_pid, int max_depth = 5) {
     std::vector<std::pair<pid_t, std::string>> ancestry;
     pid_t current = start_pid;
@@ -104,24 +103,59 @@ static std::vector<std::pair<pid_t, std::string>> getProcessAncestry(pid_t start
     return ancestry;
 }
 
-// -- Main Function --
+// -- Improved Script Name Detection --
+static std::string detectScriptName() {
+    // 1. Try BASH_SOURCE environment variable (if exported in the shell script)
+    const char* bash_source = getenv("BASH_SOURCE");
+    if (bash_source && bash_source[0] != '\0') {
+        return std::string(bash_source);
+    }
+
+    // 2. Try scanning parent process arguments for a script
+    pid_t ppid = getppid();
+    std::string parent_cmdline = getCmdline(ppid);
+    std::vector<std::string> parent_args = splitCmdline(parent_cmdline);
+
+    for (size_t i = 1; i < parent_args.size(); ++i) {
+        const std::string& arg = parent_args[i];
+        // Heuristic: ends with script extension
+        if ((arg.size() > 3 && (arg.substr(arg.size()-3) == ".sh" ||
+                                arg.substr(arg.size()-3) == ".py" ||
+                                arg.substr(arg.size()-3) == ".pl")) ||
+            (arg.size() > 2 && arg.substr(arg.size()-2) == ".ksh")) {
+            return arg;
+        }
+        // Or, exists as a file
+        std::ifstream f(arg);
+        if (f.good()) return arg;
+    }
+
+    // 3. Fallback: use our own process's argv[0]
+    std::string self_cmdline = getCmdline(getpid());
+    std::vector<std::string> self_args = splitCmdline(self_cmdline);
+    if (!self_args.empty()) {
+        return self_args[0];
+    }
+
+    // 4. Unknown
+    return "<unknown>";
+}
+
 static void logCallerInfo(const char* operation, const char* paramName) {
     extern bool silent;
     if (silent) return;
 
     pid_t ppid = getppid();
     std::vector<std::pair<pid_t, std::string>> ancestry = getProcessAncestry(ppid);
-    std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
-    std::vector<std::string> parent_args = splitCmdline(getCmdline(ppid));
-    std::string script_name = "<unknown>";
-    if (parent_args.size() > 1) {
-        script_name = parent_args[1]; // parent_args[0] is usually the shell, [1] is the script
-    }
-    
+    std::string parent_cmdline = getCmdline(ppid);
+    std::vector<std::string> parent_args = splitCmdline(parent_cmdline);
+
+    std::string script_name = detectScriptName();
+
     std::cout << "Parent process arguments:" << std::endl;
     for (size_t i = 0; i < parent_args.size(); ++i) {
-    std::cout << "  [" << i << "]: " << parent_args[i] << std::endl;
+        std::cout << "  [" << i << "]: " << parent_args[i] << std::endl;
     }
 
     bool is_terminal = isatty(STDIN_FILENO);
@@ -138,9 +172,10 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     std::cout << "================== CALLER TRACE ==================" << std::endl;
     std::cout << "Operation: " << operation << ", Param: " << paramName << std::endl;
     std::cout << "User: " << (user ? user : "<unknown>") << std::endl;
-    std::cout << "Script Name: " << script_name << std::endl; // <--- NEW LINE
+    std::cout << "Script Name: " << script_name << std::endl;
 
     // -- Call Type Detection --
+    std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
     if (bash_source && bash_lineno && std::strlen(bash_source) > 0) {
         std::cout << "Caller Type: Shell script (exported BASH_SOURCE)" << std::endl;
         std::cout << "Script: " << bash_source << ":" << bash_lineno << std::endl;
@@ -170,7 +205,6 @@ static void logCallerInfo(const char* operation, const char* paramName) {
 
     std::cout << "==================================================" << std::endl;
 }
-
 
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
