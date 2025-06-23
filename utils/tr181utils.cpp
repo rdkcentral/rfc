@@ -202,7 +202,7 @@ static int getAttribute(char * const paramName)
    if (last_slash != std::string::npos)
        script_file = script_path.substr(last_slash + 1);
    else
-       script_file = script_path;
+       script_file = std::move(script_path);
    RFC_ParamData_t param;
    WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param,script_file.c_str(), 0);
 
