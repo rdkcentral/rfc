@@ -217,6 +217,20 @@ TEST(rfcMgrTest, removeSubstring) {
     EXPECT_EQ(ret, 0);
 }
 
+void readdata()
+{
+    std::ifstream file("/tmp/device.properties");
+    if (!file.is_open()) {
+        std::cerr << "Error opening file\n";
+        return 1;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::cout << buffer.str();
+
+    file.close();
+}
 
 
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
