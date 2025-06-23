@@ -237,9 +237,9 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 {
 #ifdef TEMP_LOGGING
     openLogFile();
-    logofs << prefix() << "getRFCParameter called from " << file << ":" << line << endl;
+    //logofs << prefix() << "getRFCParameter called from " << file << ":" << line << endl;
 #endif
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "getRFCParameter called from %s:%d\n", file, line);
+    //RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "getRFCParameter called from %s:%d\n", file, line);
 
    WDMP_STATUS ret = WDMP_FAILURE;
    long http_code = 0;
