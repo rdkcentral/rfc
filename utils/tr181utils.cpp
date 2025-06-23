@@ -45,7 +45,6 @@
 #include <pwd.h>
 
 using namespace std;
-#define LOG_RFCAPI "LOG.RDK.RFCAPI"
 
 static char value_type = 'u';
 static char * value = NULL;
