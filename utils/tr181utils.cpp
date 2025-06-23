@@ -103,6 +103,12 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     std::vector<std::pair<pid_t, std::string>> ancestry = getProcessAncestry(ppid);
     std::string parent_cmd = ancestry.empty() ? "<unknown>" : ancestry[0].second;
 
+    std::vector<std::string> parent_args = getCmdlineArgs(ppid);
+    std::string script_name = "<unknown>";
+    if (parent_args.size() > 1) {
+        script_name = parent_args[1]; // parent_args[0] is usually the shell, [1] is the script
+    }
+    
     bool is_terminal = isatty(STDIN_FILENO);
 
     const char* bash_source = getenv("BASH_SOURCE");
@@ -117,6 +123,7 @@ static void logCallerInfo(const char* operation, const char* paramName) {
     std::cout << "================== CALLER TRACE ==================" << std::endl;
     std::cout << "Operation: " << operation << ", Param: " << paramName << std::endl;
     std::cout << "User: " << (user ? user : "<unknown>") << std::endl;
+    std::cout << "Script Name: " << script_name << std::endl; // <--- NEW LINE
 
     // -- Call Type Detection --
     if (bash_source && bash_lineno && std::strlen(bash_source) > 0) {
