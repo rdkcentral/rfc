@@ -219,17 +219,43 @@ TEST(rfcMgrTest, removeSubstring) {
 
 void writeToDeviceproperitesFile(const std::string& key, const std::string& value, const std::string& filePath)
 {
-    std::ofstream file(filePath); 
+    std::ifstream fileStream(filePath);
+    bool found = false;
+    std::string line;
+    std::vector<std::string> lines;
 
-    if (file.is_open()) {
-        file << key << "=" << value << std::endl;
-	file.close();
-	std::cout << "Key-value pair written successfully." << std::endl;
+    if (fileStream.is_open()) {
+        while (getline(fileStream, line)) {
+            // Check if the current line contains the key
+            if (line.find(key) != std::string::npos && line.substr(0, key.length()) == key) {
+                // Replace the line with the new key-value pair
+                line = key + "=" + value;
+                found = true;
+            }
+            lines.push_back(line);
+        }
+        fileStream.close();
     } else {
-        std::cerr << "Unable to open file.\n";
+        std::cout << "File does not exist or cannot be opened for reading. It will be created." << std::endl;
+    }
+
+    // If the key was not found in an existing file or the file did not exist, add it to the vector
+    if (!found) {
+        lines.push_back(key + "=" + value);
+    }
+
+    // Open the file in write mode to overwrite old content or create new file
+    std::ofstream outFileStream(filePath);
+    if (outFileStream.is_open()) {
+        for (const auto& outputLine : lines) {
+            outFileStream << outputLine << std::endl;
+        }
+        outFileStream.close();
+        std::cout << "Configuration updated successfully." << std::endl;
+    } else {
+        std::cout << "Error opening file for writing." << std::endl;
     }
 }
-
 
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
     /* Create Object for Xconf Handler */
@@ -507,6 +533,7 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
 }
 
 TEST(rfcMgrTest, isDebugServicesEnabled) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini");    
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->isDebugServicesEnabled();
     delete rfcObj;
@@ -514,6 +541,7 @@ TEST(rfcMgrTest, isDebugServicesEnabled) {
 }
 
 TEST(rfcMgrTest, isMaintenanceEnabled) {
+    writeToDeviceproperitesFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->isMaintenanceEnabled();
     delete rfcObj;
