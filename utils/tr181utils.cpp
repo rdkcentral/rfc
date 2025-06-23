@@ -168,7 +168,8 @@ static int getAttribute(char * const paramName)
     }
 
    RFC_ParamData_t param;
-   WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param, __FILE__, __LINE__);
+   //WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param, __FILE__, __LINE__);
+    WDMP_STATUS status = getRFCParameter(id, paramName, &param);
 
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
