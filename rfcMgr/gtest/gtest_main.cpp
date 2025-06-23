@@ -487,6 +487,7 @@ TEST(rfcMgrTest, getDefaultValue) {
 }
 
 TEST(rfcMgrTest, checkWhoamiSupport) {
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;

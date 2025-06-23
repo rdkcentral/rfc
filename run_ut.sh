@@ -38,9 +38,6 @@ mkdir /etc/rfcdefaults
 touch /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini  /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
-echo "WHOAMI_SUPPORT=true" >> /etc/device.properties
-cat  /etc/device.properties
-echo "WHOAMI_SUPPORT=true" >> /tmp/device.properties
 cat /tmp/device.properties
 
 export TOP_DIR=`pwd`
