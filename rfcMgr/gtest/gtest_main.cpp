@@ -556,6 +556,44 @@ TEST(rfcMgrTest, GetOsClass) {
     delete rfcObj;
 }
 
+TEST(rfcMgrTest, NotifyTelemetry2Value) {
+    string xconf_server_url = "https://mockxconf/featureControl/getSettings";
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", xconf_server_url.c_str());
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetValidPartnerId) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetValidPartnerId();
+    EXPECT_EQ(rfcObj->_partner_id, "TestPartnerID");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetValidAccountId) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetValidAccountId();
+    EXPECT_EQ(rfcObj->_accountId, "TestAccountID");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, CreateXconfHTTPUrl) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std:stringstream url = rfcObj->CreateXconfHTTPUrl();
+    EXPECT_EQ(url, "TestAccountID");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, isConfigValueChange) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string newKey;
+    std::string newValue;
+    std::string currentValue;
+    bool result = rfcObj->isConfigValueChange();
+    EXPECT_EQ(url, "TestAccountID");
+    delete rfcObj;
+}
+
 TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
