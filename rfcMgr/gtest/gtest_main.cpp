@@ -591,7 +591,7 @@ TEST(rfcMgrTest, isConfigValueChange) {
     std::string newValue;
     std::string currentValue;
     bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
-    EXPECT_EQ(result, "TestAccountID");
+    EXPECT_EQ(result, true);
     delete rfcObj;
 }
 
