@@ -31,6 +31,7 @@
 #include "rfc_xconf_handler.h"
 #include "tr181api.h"
 #include <urlHelper.h>
+#include <boost/url.hpp>
 
 using namespace std;
 
@@ -574,20 +575,43 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
-    std::cout << url.str(); 	
-    EXPECT_EQ(url.str(), "TestAccountID");
+    std::cout << url.str();
+    auto result = parse_query(query);
+    ASSERT_TRUE(result.has_value());
+
+    params_encoded_view params = result.value();
+    auto it = params.find("version");
+
+    ASSERT_NE(it, params.end());
+    EXPECT_EQ(it->value, "2");      
     delete rfcObj;
 }
 
 TEST(rfcMgrTest, isConfigValueChange) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
-    std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass";
-    std::string newValue = "TestOsUpdated";
-    std::string currentValue = "TestOsClass";
+    std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
+    std::string newValue = "false";
+    std::string currentValue = "true";
     bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
     EXPECT_EQ(result, true);
     delete rfcObj;
+}
+
+TEST(rfcMgrTest, CreateConfigDataValueMap) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+	if(features)
+	{
+           CreateConfigDataValueMap(features);
+	}
+	std::size_t count = _RFCKeyAndValueMap.size();
+        EXPECT_NE(count, 3);
+        delete rfcObj;
+    }	
 }
 
 TEST(rfcMgrTest, IsDirectBlocked) {
