@@ -198,6 +198,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
     FRIEND_TEST(rfcMgrTest, GetOsClass);
     FRIEND_TEST(rfcMgrTest, set_RFCProperty);
+    FRIEND_TEST(rfcMgrTest, GetValidPartnerId);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId);
+    FRIEND_TEST(rfcMgrTest, CreateXconfHTTPUrl);
+
+
 #endif
 };
 
