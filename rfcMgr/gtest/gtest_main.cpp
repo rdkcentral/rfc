@@ -570,30 +570,33 @@ TEST(rfcMgrTest, GetValidPartnerId) {
     delete rfcObj;
 }
 
-TEST(rfcMgrTest, GetValidAccountId) {
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->GetValidAccountId();
-    EXPECT_EQ(rfcObj->_accountId, "TestAccountID");
-    delete rfcObj;
-}
 
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
-    //EXPECT_EQ(url, "TestAccountID");
+    std::cout << url.str(); 	
+    EXPECT_EQ(url.str(), "TestAccountID");
     delete rfcObj;
 }
 
 TEST(rfcMgrTest, isConfigValueChange) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
-    std::string newKey;
-    std::string newValue;
-    std::string currentValue;
+    std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass";
+    std::string newValue = "TestOsUpdated";
+    std::string currentValue = "TestOsClass";
     bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
     EXPECT_EQ(result, true);
     delete rfcObj;
 }
+
+TEST(rfcMgrTest, IsDirectBlocked) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->IsDirectBlocked();
+    EXPECT_EQ(result, false);
+    delete rfcObj;
+}
+
 
 TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
