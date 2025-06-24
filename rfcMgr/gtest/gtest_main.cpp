@@ -586,10 +586,11 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
 
 TEST(rfcMgrTest, isConfigValueChange) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string name = "rfc";
     std::string newKey;
     std::string newValue;
     std::string currentValue;
-    bool result = rfcObj->isConfigValueChange();
+    bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
     EXPECT_EQ(result, "TestAccountID");
     delete rfcObj;
 }
