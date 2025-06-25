@@ -592,7 +592,7 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     std::cout << url.str();
-    auto params = parseQueryString(query);
+    auto params = parseQueryString(url);
 
     ASSERT_TRUE(params.find("version") != params.end());
     int version = std::stoi(params["version"]);
@@ -619,10 +619,9 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
         JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
 	if(features)
 	{
-           CreateConfigDataValueMap(features);
+           rfcObj->CreateConfigDataValueMap(features);
 	}
-	std::size_t count = _RFCKeyAndValueMap.size();
-        EXPECT_NE(count, 3);
+        EXPECT_NE(rfcObj->_RFCKeyAndValueMap.size(), 3);
         delete rfcObj;
     }	
 }
