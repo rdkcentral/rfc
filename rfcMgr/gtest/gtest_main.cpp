@@ -591,7 +591,6 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
-    std::cout << url.str();
     auto params = parseQueryString(url);
 
     ASSERT_TRUE(params.find("version") != params.end());
@@ -621,7 +620,7 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
 	{
            rfcObj->CreateConfigDataValueMap(features);
 	}
-        EXPECT_NE(rfcObj->_RFCKeyAndValueMap.size(), 3);
+        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 3);
         delete rfcObj;
     }	
 }
