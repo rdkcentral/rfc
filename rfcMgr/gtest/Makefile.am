@@ -27,4 +27,4 @@ rfcMgr_gtest_SOURCES = $(TOP_DIR)/tr181api/tr181api.cpp $(TOP_DIR)/rfcMgr/rfc_ma
 AM_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/
 AM_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
 
-AM_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl -lboost_url
+AM_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl

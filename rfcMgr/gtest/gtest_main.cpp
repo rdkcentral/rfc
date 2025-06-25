@@ -31,7 +31,6 @@
 #include "rfc_xconf_handler.h"
 #include "tr181api.h"
 #include <urlHelper.h>
-#include <boost/url.hpp>
 
 using namespace std;
 
@@ -93,6 +92,23 @@ std::string readFileContent(const std::string& filePath) {
         return rtrim(content.str());
     }
     return "";  // Return empty string if file couldn't be opened
+}
+
+std::map<std::string, std::string> parseQueryString(std::stringstream& queryStream) {
+    std::string query = queryStream.str();  // Extract string from stringstream
+    std::map<std::string, std::string> params;
+    std::stringstream ss(query);
+    std::string pair;
+
+    while (std::getline(ss, pair, '&')) {
+        size_t pos = pair.find('=');
+        if (pos != std::string::npos) {
+            std::string key = pair.substr(0, pos);
+            std::string value = pair.substr(pos + 1);
+            params[key] = value;
+        }
+    }
+    return params;
 }
 
 char xconfResp[] = R"({
@@ -576,14 +592,11 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     std::cout << url.str();
-    auto result = parse_query(query);
-    ASSERT_TRUE(result.has_value());
+    auto params = parseQueryString(query);
 
-    params_encoded_view params = result.value();
-    auto it = params.find("version");
-
-    ASSERT_NE(it, params.end());
-    EXPECT_EQ(it->value, "2");      
+    ASSERT_TRUE(params.find("version") != params.end());
+    int version = std::stoi(params["version"]);
+    EXPECT_EQ(version, 2);  
     delete rfcObj;
 }
 
