@@ -465,7 +465,7 @@ TEST(rfcMgrTest, processJsonResponse) {
     std::string actualContent = readFileContent("/opt/secure/RFC/rfcFeature.list");
 
     // Check if the content of the file is equal to "TEMP_VERSION"
-    EXPECT_EQ(actualContent, "11=true,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,");
+    EXPECT_EQ(actualContent, "11=true,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,PartnerId=true,");
     
 }
 
@@ -591,8 +591,8 @@ TEST(rfcMgrTest, NotifyTelemetry2Value) {
 
 TEST(rfcMgrTest, GetValidPartnerId) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->rfc_state = Init;
-    rfcObj->_is_first_request = true;
+    //rfcObj->rfc_state = Init;
+    //rfcObj->_is_first_request = true;
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
     EXPECT_EQ(rfcObj->_partner_id, "comcast");
@@ -631,7 +631,7 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
 	{
            rfcObj->CreateConfigDataValueMap(features);
 	}
-        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 14);
+        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 15);
         delete rfcObj;
     }	
 }
@@ -643,6 +643,111 @@ TEST(rfcMgrTest, IsDirectBlocked) {
     delete rfcObj;
 }
 
+TEST(rfcMgrTest, getRFCName) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+        if(features)
+        {  
+           int numFeatures = GetJsonArraySize(features);
+           if(numFeatures)
+	   {
+
+	   JSON* feature = GetJsonArrayItem(features, 1);
+           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+           rfcObj->getRFCName(feature,rfccObj);
+	   }
+
+        }
+        EXPECT_EQ(rfccObj->name, "ARU");
+        delete rfcObj;
+	delete rfccObj;
+    }
+}
+
+TEST(rfcMgrTest, getFeatureInstance) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+        if(features)
+        {
+           int numFeatures = GetJsonArraySize(features);
+           if(numFeatures)
+           {
+
+           JSON* feature = GetJsonArrayItem(features, 1);
+           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+           rfcObj->getFeatureInstance(feature,rfccObj);
+           }
+
+        }
+        EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+        delete rfcObj;
+        delete rfccObj;
+    }
+}
+
+TEST(rfcMgrTest, getRFCEnableParam) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+        if(features)
+        {
+           int numFeatures = GetJsonArraySize(features);
+           if(numFeatures)
+           {
+
+           JSON* feature = GetJsonArrayItem(features, 1);
+           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+           rfcObj->getRFCEnableParam(feature,rfccObj);
+           }
+
+        }
+        EXPECT_EQ(rfccObj->enable, true);
+        delete rfcObj;
+        delete rfccObj;
+    }
+}
+
+TEST(rfcMgrTest, getEffectiveImmediateParam) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+        if(features)
+        {
+           int numFeatures = GetJsonArraySize(features);
+           if(numFeatures)
+           {
+
+           JSON* feature = GetJsonArrayItem(features, 1);
+           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+           rfcObj->getEffectiveImmediateParam(feature,rfccObj);
+           }
+
+        }
+        EXPECT_EQ(rfccObj->effectiveImmediate, true);
+        delete rfcObj;
+        delete rfccObj;
+    }
+}
+
+TEST(rfcMgrTest, InitDownloadData) {
+    DownloadData DwnLoc;
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->InitDownloadData(&DwnLoc);
+    EXPECT_EQ(DwnLoc.pvOut, nullptr);
+    EXPECT_EQ(DwnLoc.datasize, 0);
+    EXPECT_EQ(DwnLoc.memsize, 0);
+    delete rfcObj;
+}
 
 TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
