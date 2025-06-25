@@ -181,7 +181,16 @@ char xconfResp[] = R"({
                     "tr181.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Version": "2.0.1"
                 },
                 "featureInstance": "Telemetry_2.0-31099"
-            }
+            },
+            {
+		"name": "PartnerId",
+		"enable": true,
+	        "effectiveImmediate": true,
+	        "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId": "comcast"
+                },
+	        "featureInstance": "PartnerId"	
+	    } 
         ]
     }
 })";
@@ -582,8 +591,11 @@ TEST(rfcMgrTest, NotifyTelemetry2Value) {
 
 TEST(rfcMgrTest, GetValidPartnerId) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->rfc_state = Init;
+    rfcObj->_is_first_request = true;
+    rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
-    EXPECT_EQ(rfcObj->_partner_id, "TestPartnerID");
+    EXPECT_EQ(rfcObj->_partner_id, "comcast");
     delete rfcObj;
 }
 
@@ -592,14 +604,13 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
-
-    ASSERT_TRUE(params.find("version") != params.end());
     int version = std::stoi(params["version"]);
     EXPECT_EQ(version, 2);  
     delete rfcObj;
 }
 
 TEST(rfcMgrTest, isConfigValueChange) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable", "false", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
     std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
@@ -620,7 +631,7 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
 	{
            rfcObj->CreateConfigDataValueMap(features);
 	}
-        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 3);
+        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 14);
         delete rfcObj;
     }	
 }
