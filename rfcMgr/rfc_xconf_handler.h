@@ -205,7 +205,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, IsDirectBlocked);
     FRIEND_TEST(rfcMgrTest, CreateConfigDataValueMap);
     FRIEND_TEST(rfcMgrTest, GetRuntimeFeatureControlJSON);
-    FRIEND_TEST(rfcMgrTest, GetRuntimeFeatureControlJSON);
+    FRIEND_TEST(rfcMgrTest, InitDownloadData);
     FRIEND_TEST(rfcMgrTest, getRFCName);
     FRIEND_TEST(rfcMgrTest, getFeatureInstance);
     FRIEND_TEST(rfcMgrTest, getRFCEnableParam);

@@ -655,15 +655,16 @@ TEST(rfcMgrTest, getRFCName) {
            if(numFeatures)
 	   {
 
-	   JSON* feature = GetJsonArrayItem(features, 1);
-           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-           rfcObj->getRFCName(feature,rfccObj);
+	     JSON* feature = GetJsonArrayItem(features, 1);
+             RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+             rfcObj->getRFCName(feature,rfccObj);
+	     EXPECT_EQ(rfccObj->name, "ARU");
+             delete rfccObj;
 	   }
 
         }
         EXPECT_EQ(rfccObj->name, "ARU");
         delete rfcObj;
-	delete rfccObj;
     }
 }
 
@@ -679,15 +680,16 @@ TEST(rfcMgrTest, getFeatureInstance) {
            if(numFeatures)
            {
 
-           JSON* feature = GetJsonArrayItem(features, 1);
-           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-           rfcObj->getFeatureInstance(feature,rfccObj);
+            JSON* feature = GetJsonArrayItem(features, 1);
+            RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+            rfcObj->getFeatureInstance(feature,rfccObj);
+	    EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+	    delete rfccObj;
            }
 
         }
         EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
         delete rfcObj;
-        delete rfccObj;
     }
 }
 
@@ -703,15 +705,15 @@ TEST(rfcMgrTest, getRFCEnableParam) {
            if(numFeatures)
            {
 
-           JSON* feature = GetJsonArrayItem(features, 1);
-           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-           rfcObj->getRFCEnableParam(feature,rfccObj);
+            JSON* feature = GetJsonArrayItem(features, 1);
+            RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+            rfcObj->getRFCEnableParam(feature,rfccObj);
+            EXPECT_EQ(rfccObj->enable, true);
+	    delete rfccObj;
            }
 
         }
-        EXPECT_EQ(rfccObj->enable, true);
         delete rfcObj;
-        delete rfccObj;
     }
 }
 
@@ -727,15 +729,16 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
            if(numFeatures)
            {
 
-           JSON* feature = GetJsonArrayItem(features, 1);
-           RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-           rfcObj->getEffectiveImmediateParam(feature,rfccObj);
+             JSON* feature = GetJsonArrayItem(features, 1);
+             RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+             rfcObj->getEffectiveImmediateParam(feature,rfccObj);
+	     EXPECT_EQ(rfccObj->effectiveImmediate, true);
+	     delete rfccObj;
+
            }
 
         }
-        EXPECT_EQ(rfccObj->effectiveImmediate, true);
         delete rfcObj;
-        delete rfccObj;
     }
 }
 
