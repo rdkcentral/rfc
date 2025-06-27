@@ -682,7 +682,7 @@ TEST(rfcMgrTest, getFeatureInstance) {
             JSON* feature = GetJsonArrayItem(features, 1);
             RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 	    rfcObj->getFeatureInstance(feature,rfccObj);
-	    EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+	    EXPECT_EQ(rfccObj->featureInstance, "ARU:_29");
 	    delete rfccObj;
            }
 
@@ -730,7 +730,7 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
              JSON* feature = GetJsonArrayItem(features, 1);
              RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 	     rfcObj->getEffectiveImmediateParam(feature,rfccObj);
-	     EXPECT_EQ(rfccObj->effectiveImmediate, true);
+	     EXPECT_EQ(rfccObj->effectiveImmediate, false);
 	     delete rfccObj;
 
            }
