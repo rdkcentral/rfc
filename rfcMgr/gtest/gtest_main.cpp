@@ -656,14 +656,13 @@ TEST(rfcMgrTest, getRFCName) {
 	   {
 
 	     JSON* feature = GetJsonArrayItem(features, 1);
-             RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
+	     RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
              rfcObj->getRFCName(feature,rfccObj);
 	     EXPECT_EQ(rfccObj->name, "ARU");
              delete rfccObj;
 	   }
 
         }
-        EXPECT_EQ(rfccObj->name, "ARU");
         delete rfcObj;
     }
 }
@@ -681,14 +680,13 @@ TEST(rfcMgrTest, getFeatureInstance) {
            {
 
             JSON* feature = GetJsonArrayItem(features, 1);
-            RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-            rfcObj->getFeatureInstance(feature,rfccObj);
+            RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+	    rfcObj->getFeatureInstance(feature,rfccObj);
 	    EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
 	    delete rfccObj;
            }
 
         }
-        EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
         delete rfcObj;
     }
 }
@@ -706,8 +704,8 @@ TEST(rfcMgrTest, getRFCEnableParam) {
            {
 
             JSON* feature = GetJsonArrayItem(features, 1);
-            RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-            rfcObj->getRFCEnableParam(feature,rfccObj);
+            RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+	    rfcObj->getRFCEnableParam(feature,rfccObj);
             EXPECT_EQ(rfccObj->enable, true);
 	    delete rfccObj;
            }
@@ -730,8 +728,8 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
            {
 
              JSON* feature = GetJsonArrayItem(features, 1);
-             RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlObject;
-             rfcObj->getEffectiveImmediateParam(feature,rfccObj);
+             RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+	     rfcObj->getEffectiveImmediateParam(feature,rfccObj);
 	     EXPECT_EQ(rfccObj->effectiveImmediate, true);
 	     delete rfccObj;
 
