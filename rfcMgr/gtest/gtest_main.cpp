@@ -591,8 +591,8 @@ TEST(rfcMgrTest, NotifyTelemetry2Value) {
 
 TEST(rfcMgrTest, GetValidPartnerId) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    //rfcObj->rfc_state = Init;
-    //rfcObj->_is_first_request = true;
+    rfcObj->rfc_state = Init;
+    rfcObj->_is_first_request = true;
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
     EXPECT_EQ(rfcObj->_partner_id, "comcast");
@@ -682,7 +682,7 @@ TEST(rfcMgrTest, getFeatureInstance) {
             JSON* feature = GetJsonArrayItem(features, 1);
             RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 	    rfcObj->getFeatureInstance(feature,rfccObj);
-	    EXPECT_EQ(rfccObj->featureInstance, "ARU:_29");
+	    EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
 	    delete rfccObj;
            }
 
@@ -760,6 +760,16 @@ TEST(rfcMgrTest, set_RFCProperty) {
     delete rfcObj;
 }
 
+TEST(rfcMgrTest, GetXconfSelect) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR] = "automation"; 
+    rfcObj->GetXconfSelect();
+    
+    EXPECT_EQ(rfcObj->rfc_state, Redo);
+    EXPECT_EQ(rfcObj->rfcSelectorSlot, "19");
+    delete rfcObj;
+    
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);

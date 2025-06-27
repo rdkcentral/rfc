@@ -210,6 +210,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, getFeatureInstance);
     FRIEND_TEST(rfcMgrTest, getRFCEnableParam);
     FRIEND_TEST(rfcMgrTest, getEffectiveImmediateParam);
+    FRIEND_TEST(rfcMgrTest, GetXconfSelect);
 
 
 
