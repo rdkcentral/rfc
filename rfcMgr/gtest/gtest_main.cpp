@@ -762,6 +762,7 @@ TEST(rfcMgrTest, set_RFCProperty) {
 
 TEST(rfcMgrTest, GetXconfSelect) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
     rfcObj->_RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR] = "automation"; 
     rfcObj->GetXconfSelect();
     
@@ -770,6 +771,57 @@ TEST(rfcMgrTest, GetXconfSelect) {
     delete rfcObj;
     
 }
+
+TEST(rfcMgrTest, updateHashInDB) {
+    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->updateHashInDB("TestConfigSetUpdateHash");
+
+    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
+    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
+    EXPECT_EQ(hashValue ,"TestConfigSetUpdateHash");
+    delete rfcObj;
+
+}
+
+TEST(rfcMgrTest, updateTimeInDB) {
+    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string hashValue;
+    std::string valueTime;
+    std::time_t timestamp = std::time(nullptr);
+    std::string timestampString = std::to_string(timestamp);
+    rfcObj->updateHashInDB(timestampString);
+
+    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
+    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
+    EXPECT_EQ(valueTime ,timestampString);
+    delete rfcObj;
+
+}
+
+TEST(rfcMgrTest, getJRPCTokenData) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    char post_data[] = "{\"jsonrpc\":\"2.0\",\"id\":\"3\",\"method\":\"org.rdk.AuthService.getExperience\", \"params\":{}}";
+    char token_str[] =  "id";
+    int result = rfcObj->getJRPCTokenData(token_str, post_data , sizeof(token_str);
+
+    EXPECT_EQ(result , 0);
+    delete rfcObj;
+
+}
+
+TEST(rfcMgrTest, isStateRedSupported) {
+    int ret = isStateRedSupported();
+    EXPECT_EQ(result , 0); 
+}
+
+
+TEST(rfcMgrTest, isInStateRed) {
+    int ret = isInStateRed();
+    EXPECT_EQ(result , 0);
+}
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
