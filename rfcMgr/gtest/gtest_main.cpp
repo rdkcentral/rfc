@@ -824,6 +824,14 @@ TEST(rfcMgrTest, isInStateRed) {
     EXPECT_EQ(ret , 0);
 }
 
+TEST(rfcMgrTest, executeCommandAndGetOutput) {
+    const char *pArg;
+    std::string result; 	
+    int ret = executeCommandAndGetOutput(eWpeFrameworkSecurityUtility, pArg, result);
+    EXPECT_EQ(ret , 0);
+}
+
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
