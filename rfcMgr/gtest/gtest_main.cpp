@@ -282,6 +282,17 @@ void writeToDeviceproperitesFile(const std::string& key, const std::string& valu
         std::cout << "Error opening file for writing." << std::endl;
     }
 }
+void write_on_file(const std::string& filePath, const std::string& content)
+{ 
+   std::ofstream outfile(filepath, std::ios::app);
+   if (outfile.is_open()) {
+        outfile << "\n" << content;  // Add a newline before appending
+        outfile.close();
+    } else {
+        std::cerr << "Could not open file for appending.\n";
+    }
+    	
+}
 
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
     /* Create Object for Xconf Handler */
@@ -313,7 +324,6 @@ TEST(rfcMgrTest, processRuntimeFeatureControlReq) {
         delete rfcObj;
     }
 }
-
 
 TEST(rfcMgrTest, isNewFirmwareFirstRequest) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -874,6 +884,14 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
     }
 }
 
+
+TEST(rfcMgrTest, CheckIProuteConnectivity) {
+     write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+     RFCManager *rfcmgrObj = new RFCManager();
+     bool result = rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+     EXPECT_EQ(result , true);
+     delete rfcmgrObj;
+}
 
 
 GTEST_API_ int main(int argc, char *argv[]){
