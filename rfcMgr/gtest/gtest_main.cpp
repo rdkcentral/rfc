@@ -849,10 +849,27 @@ TEST(rfcMgrTest, ProcessXconfUrl) {
 TEST(rfcMgrTest, updateTR181File) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::list<std::string> paramList;
+    std::string data = "TR181: " + Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable + " " + true;
     int result ;
+    paramList.push_back(data);
     rfcObj->updateTR181File(TR181_FILE_LIST, paramList);
     EXPECT_EQ(result , 0);
     delete rfcObj;
+}
+
+TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+	JSON *bkp_features = features;
+        if(bkp_features)
+	{
+            rfcObj->processXconfResponseConfigDataPart(bkp_features);	    
+	}
+	delete rfcObj;
+    }
 }
 
 
