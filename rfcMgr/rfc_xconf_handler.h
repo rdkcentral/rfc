@@ -213,6 +213,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, GetXconfSelect);
     FRIEND_TEST(rfcMgrTest, updateHashInDB);
     FRIEND_TEST(rfcMgrTest, updateTimeInDB);
+    FRIEND_TEST(rfcMgrTest, getJRPCTokenData);
 
 
 
