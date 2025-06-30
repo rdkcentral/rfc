@@ -806,7 +806,7 @@ TEST(rfcMgrTest, getJRPCTokenData) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     char post_data[] = "{\"jsonrpc\":\"2.0\",\"id\":\"3\",\"method\":\"org.rdk.AuthService.getExperience\", \"params\":{}}";
     char token_str[] =  "id";
-    int result = rfcObj->getJRPCTokenData(token_str, post_data , sizeof(token_str);
+    int result = rfcObj->getJRPCTokenData(token_str, post_data , sizeof(token_str));
 
     EXPECT_EQ(result , 0);
     delete rfcObj;
