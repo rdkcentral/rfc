@@ -855,7 +855,7 @@ TEST(rfcMgrTest, updateTR181File) {
     int result ;
     paramList.push_back(data);
     rfcObj->updateTR181File(TR181_FILE_LIST, paramList);
-    EXPECT_EQ(result , 0);
+    EXPECT_EQ(paramList.size() , 0);
     delete rfcObj;
 }
 
