@@ -846,7 +846,15 @@ TEST(rfcMgrTest, ProcessXconfUrl) {
     delete rfcObj;
 }
 
-ProcessXconfUrl
+TEST(rfcMgrTest, updateTR181File) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::list<std::string> paramList;
+    int result ;
+    rfcObj->updateTR181File(TR181_FILE_LIST, paramList);
+    EXPECT_EQ(result , 0);
+    delete rfcObj;
+}
+
 
 
 GTEST_API_ int main(int argc, char *argv[]){
