@@ -849,7 +849,7 @@ TEST(rfcMgrTest, ProcessXconfUrl) {
 TEST(rfcMgrTest, updateTR181File) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::list<std::string> paramList;
-    std::string data = "TR181: " + Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable + " " + true;
+    std::string data = "TR181: " + "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable" + " " + "true";
     int result ;
     paramList.push_back(data);
     rfcObj->updateTR181File(TR181_FILE_LIST, paramList);
