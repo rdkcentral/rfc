@@ -831,6 +831,22 @@ TEST(rfcMgrTest, executeCommandAndGetOutput) {
     EXPECT_EQ(ret , 0);
 }
 
+TEST(rfcMgrTest, getRebootRequirement) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->getRebootRequirement();
+    EXPECT_EQ(result , false);
+    delete rfcObj;    
+}
+
+TEST(rfcMgrTest, ProcessXconfUrl) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string xconfURL = "https://xconf.xdp.eu-1.xcal.tv";
+    int result = rfcObj->ProcessXconfUrl(xconfURL.c_str());
+    EXPECT_EQ(result , 0);
+    delete rfcObj;
+}
+
+ProcessXconfUrl
 
 
 GTEST_API_ int main(int argc, char *argv[]){
