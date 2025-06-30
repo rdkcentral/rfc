@@ -777,6 +777,8 @@ TEST(rfcMgrTest, updateHashInDB) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->updateHashInDB("TestConfigSetUpdateHash");
 
+    std::string hashValue;
+    std::string valueTime;
     rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
     std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
     EXPECT_EQ(hashValue ,"TestConfigSetUpdateHash");
@@ -813,13 +815,13 @@ TEST(rfcMgrTest, getJRPCTokenData) {
 
 TEST(rfcMgrTest, isStateRedSupported) {
     int ret = isStateRedSupported();
-    EXPECT_EQ(result , 0); 
+    EXPECT_EQ(ret , 0); 
 }
 
 
 TEST(rfcMgrTest, isInStateRed) {
     int ret = isInStateRed();
-    EXPECT_EQ(result , 0);
+    EXPECT_EQ(ret , 0);
 }
 
 

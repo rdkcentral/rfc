@@ -51,6 +51,8 @@ extern "C" {
 #define STATE_RED_SPRT_FILE ""
 #define STATEREDFLAG ""
 
+int isStateRedSupported(void);
+int isInStateRed(void);
 int getMtlscert(MtlsAuth_t *sec);
 
 #ifdef __cplusplus
