@@ -64,9 +64,6 @@ enum DeviceStatus {
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
-#if defined(GTEST_ENABLE)
-#include <gtest/gtest.h>
-#endif
 
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
