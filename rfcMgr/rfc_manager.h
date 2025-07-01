@@ -41,6 +41,10 @@
 #define ROUTE_FLAG_MAX_CHECK 5
 #define RFC_MGR_INTERNET_CHECK_TIMEOUT 2000
 
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest_prod.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*                                   Namespace                                */
 /*----------------------------------------------------------------------------*/
