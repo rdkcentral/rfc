@@ -888,6 +888,8 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 
 
 TEST(rfcMgrTest, CheckDeviceIsOnline) {
+      write_on_file("/tmp/.GatewayIP_dfltroute", "IPV4 8.8.4.4");
+      write_on_file("/etc/resolv.dnsmasq", "nameserver 2.4.6.8");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
       EXPECT_EQ(status , 0);
