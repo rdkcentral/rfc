@@ -145,7 +145,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void updateTimeInDB(std::string timestampString);
         void updateHashAndTimeInDB(char *curlHeaderResp);
         bool IsDirectBlocked();
-        void clearDB();	
+        void clearDB();
+        void clearDBEnd();
         
         std::stringstream CreateXconfHTTPUrl(); 
         void GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ); 
