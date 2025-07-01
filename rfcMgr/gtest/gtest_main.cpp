@@ -36,6 +36,20 @@
 using namespace std;
 using namespace rfc;
 
+// --- Fixture ---
+class rfcMgrTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        mgr = new rfc::RFCManager();
+    }
+
+    void TearDown() override {
+        delete mgr;
+    }
+
+    rfc::RFCManager* mgr;
+};
+
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode
     std::ifstream fileStream(filePath);
@@ -903,8 +917,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 }
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
-      rfc::RFCManager rfcmgrObj;
-      int result =  rfcmgrObj.RFCManagerPostProcess();
+      int result =  mgr->RFCManagerPostProcess();
       EXPECT_EQ(result , 0);
 }
 
