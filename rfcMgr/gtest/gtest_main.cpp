@@ -916,7 +916,8 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       EXPECT_EQ(result , 0);
 }
 
-TEST_F(rfcMgrTest, RFCManagerPostProcess) {
+TEST(rfcMgrUT,RFCManagerPostProcess) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  mgr->RFCManagerPostProcess();
       EXPECT_EQ(result , 0);
 }

@@ -42,7 +42,7 @@
 #define RFC_MGR_INTERNET_CHECK_TIMEOUT 2000
 
 #if defined(GTEST_ENABLE)
-#include <gtest/gtest_prod.h>
+#include <gtest/gtest.h>
 #endif
 
 /*----------------------------------------------------------------------------*/
@@ -90,7 +90,7 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
-	friend class rfcMgrTest;
+	FRIEND_TEST(rfcMgrUT,RFCManagerPostProcess);
     }; // end of RFCManager Class
 } // end of namespace RFC
 
