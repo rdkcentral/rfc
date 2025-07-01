@@ -896,6 +896,19 @@ TEST(rfcMgrTest, CheckDeviceIsOnline) {
 }
 
 
+TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
+      EXPECT_EQ(result , 0);
+}
+
+TEST(rfcMgrTest, RFCManagerPostProcess) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerPostProcess();
+      EXPECT_EQ(result , 0);
+}
+
+
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
