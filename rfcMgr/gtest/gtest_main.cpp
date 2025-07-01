@@ -903,8 +903,8 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 }
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->RFCManagerPostProcess();
+      rfc::RFCManager rfcmgrObj;
+      int result =  rfcmgrObj.RFCManagerPostProcess();
       EXPECT_EQ(result , 0);
 }
 
