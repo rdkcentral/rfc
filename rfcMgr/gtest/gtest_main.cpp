@@ -916,7 +916,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       EXPECT_EQ(result , 0);
 }
 
-TEST(rfcMgrTest, RFCManagerPostProcess) {
+TEST_F(rfcMgrTest, RFCManagerPostProcess) {
       int result =  mgr->RFCManagerPostProcess();
       EXPECT_EQ(result , 0);
 }
