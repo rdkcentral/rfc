@@ -513,11 +513,13 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void)
 
 void RuntimeFeatureControlProcessor::clearDB(void)
 {
+    DeviceProperty_t *pDeviceInfo;
+
     // clear RFC data store before storing new values
     // this is required as sometime key value pairs will simply
     // disappear from the config data, as mac is mostly removed
     // to disable a feature rather than having different value
-    if ("$DEVICE_TYPE" != "XHC1" )
+    if (strcasecmp(pDeviceInfo->dev_type, "XHC1") != 0)
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
