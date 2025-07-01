@@ -886,14 +886,14 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 }
 
 
-TEST(rfcMgrTest, CheckIProuteConnectivity) {
-     write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
-     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-     bool result = rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
-     EXPECT_EQ(result , true);
-     delete rfcmgrObj;
+
+TEST(rfcMgrTest, CheckDeviceIsOnline) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+      EXPECT_EQ(status , 0);
 }
 
+DeviceStatus RFCManager ::CheckDeviceIsOnline
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
