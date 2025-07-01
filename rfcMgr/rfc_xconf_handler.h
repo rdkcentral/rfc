@@ -109,10 +109,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	RfcState     rfc_state; /* RFC State */
 	std::string _last_firmware; /* Last Firmware Version */
 	std::string _xconf_server_url; /* Xconf server URL */
-    std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
+        std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
 	std::string _valid_accountId; /* Valid Account ID*/
 	std::string _valid_partnerId; /* Valid Partner ID*/
 	std::string _accountId; /* Device Account ID */
+        std::string stashAccountId;
         std::string _partnerId; /* Device Partner ID */
         std::string _bkPartnerId; /* Device Partner ID */
         std::string _experience;
@@ -149,7 +150,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void clearDB();
         void clearDBEnd();	
         void rfcStashStoreParams(void);
-	void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void);
+	void rfcStashRetrieveParams(void);
 
 
         std::stringstream CreateXconfHTTPUrl(); 
