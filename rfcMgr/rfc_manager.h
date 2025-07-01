@@ -82,6 +82,7 @@ class RFCManager {
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
 
+
     private:
         void InitializeIARM(void);
         bool isConnectedToInternet();
@@ -89,10 +90,7 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
-	#if defined(GTEST_ENABLE)
-        FRIEND_TEST(rfcMgrTest, CheckIProuteConnectivity);
-       #endif
-
+        friend class rfcMgrTest; 
     }; // end of RFCManager Class
 } // end of namespace RFC
 
