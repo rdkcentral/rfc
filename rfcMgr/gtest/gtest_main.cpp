@@ -34,7 +34,7 @@
 #include <urlHelper.h>
 
 using namespace std;
-
+using namespace rfc;
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode

@@ -85,6 +85,10 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
+	#if defined(GTEST_ENABLE)
+        FRIEND_TEST(rfcMgrTest, CheckIProuteConnectivity);
+       #endif
+
     }; // end of RFCManager Class
 } // end of namespace RFC
 
