@@ -285,7 +285,7 @@ void writeToDeviceproperitesFile(const std::string& key, const std::string& valu
 }
 void write_on_file(const std::string& filePath, const std::string& content)
 { 
-   std::ofstream outfile(filepath, std::ios::app);
+   std::ofstream outfile(filePath, std::ios::app);
    if (outfile.is_open()) {
         outfile << "\n" << content;  // Add a newline before appending
         outfile.close();
