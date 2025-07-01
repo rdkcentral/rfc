@@ -916,12 +916,10 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       EXPECT_EQ(result , 0);
 }
 
-TEST(rfcMgrUT,RFCManagerPostProcess) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->RFCManagerPostProcess();
-      EXPECT_EQ(result , 0);
+TEST_F(rfcMgrTest, RFCManagerPostProcess) {
+    int result = mgr->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
+    ASSERT_EQ(result, 42);
 }
-
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
