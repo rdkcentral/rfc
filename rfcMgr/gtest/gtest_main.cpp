@@ -889,11 +889,10 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 
 TEST(rfcMgrTest, CheckDeviceIsOnline) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
       EXPECT_EQ(status , 0);
 }
 
-DeviceStatus RFCManager ::CheckDeviceIsOnline
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
