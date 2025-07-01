@@ -90,7 +90,7 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
-	FRIEND_TEST(rfcMgrTest, RFCManagerPostProcess);
+	friend class rfcMgrTest;
     }; // end of RFCManager Class
 } // end of namespace RFC
 
