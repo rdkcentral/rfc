@@ -513,24 +513,37 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void)
 
 void RuntimeFeatureControlProcessor::clearDB(void)
 {
-    # store permanent parameters
-    rfcStashStoreParams                        
-    # clear RFC data store before storing new values
-    # this is required as sometime key value pairs will simply
-    # disappear from the config data, as mac is mostly removed
-    # to disable a feature rather than having different value
-    if [ "$DEVICE_TYPE" != "XHC1" ]; then
-        echo "`/bin/timestamp` RFC: resetting all rfc values in backing store"  >> $RFC_LOG_FILE
-        touch $TR181_STORE_FILENAME
-        echo "`/bin/timestamp` `$RFC_SET -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB`" >>  $RFC_LOG_FILE
-        echo "`/bin/timestamp` `$RFC_SET -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB`" >> $RFC_LOG_FILE
-        echo "`/bin/timestamp` `$RFC_SET -v "$(date +%s )" Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime`" >> $RFC_LOG_FILE
+    // clear RFC data store before storing new values
+    // this is required as sometime key value pairs will simply
+    // disappear from the config data, as mac is mostly removed
+    // to disable a feature rather than having different value
+    if ("$DEVICE_TYPE" != "XHC1" )
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
+
+        std::string name = "rfc";
+        std::string value = "true";
+        std::string ClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB";
+        std::string BootstrapClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB";
+        std::time_t timestamp = std::time(nullptr); // Get current timestamp
+        std::string ConfigChangeTime = std::to_string(timestamp);
+
+        set_RFCProperty(name, ClearDB, value);
+        set_RFCProperty(name, BootstrapClearDB, value);
+
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+    }
     else
-        echo "`/bin/timestamp` RFC: clearing tr181 store"  >> $RFC_LOG_FILE
-        rm -rf $TR181_STORE_FILENAME
-    fi
-    # Now retrieve parameters that must persist
-    rfcStashRetrieveParams 
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
+        if (std::remove(TR181STOREFILE) == 0)
+        {
+          RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s removed successfully\n",__FUNCTION__, __LINE__, TR181STOREFILE);
+        }
+     } 
 }
 
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
