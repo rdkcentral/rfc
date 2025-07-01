@@ -496,7 +496,7 @@ bool RuntimeFeatureControlProcessor::isXconfSelectorSlotProd()
 }
 
 
-void RuntimeFeatureControlProcessor::clearDB(void)
+void RuntimeFeatureControlProcessor::clearDBEnd(void)
 {
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
 
@@ -509,6 +509,28 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, ClearDBEndKey, value);
     set_RFCProperty(name, BootstrapClearDBEndKey, value);
     set_RFCProperty(name, reloadCacheKey, value);
+}
+
+void RuntimeFeatureControlProcessor::clearDB(void)
+{
+    # store permanent parameters
+    rfcStashStoreParams                        
+    # clear RFC data store before storing new values
+    # this is required as sometime key value pairs will simply
+    # disappear from the config data, as mac is mostly removed
+    # to disable a feature rather than having different value
+    if [ "$DEVICE_TYPE" != "XHC1" ]; then
+        echo "`/bin/timestamp` RFC: resetting all rfc values in backing store"  >> $RFC_LOG_FILE
+        touch $TR181_STORE_FILENAME
+        echo "`/bin/timestamp` `$RFC_SET -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB`" >>  $RFC_LOG_FILE
+        echo "`/bin/timestamp` `$RFC_SET -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB`" >> $RFC_LOG_FILE
+        echo "`/bin/timestamp` `$RFC_SET -v "$(date +%s )" Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime`" >> $RFC_LOG_FILE
+    else
+        echo "`/bin/timestamp` RFC: clearing tr181 store"  >> $RFC_LOG_FILE
+        rm -rf $TR181_STORE_FILENAME
+    fi
+    # Now retrieve parameters that must persist
+    rfcStashRetrieveParams 
 }
 
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
@@ -1367,6 +1389,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
+    clearDBEnd();
 }
 
 void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
