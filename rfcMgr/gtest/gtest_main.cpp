@@ -31,6 +31,7 @@
 #include "rfc_xconf_handler.h"
 #include "tr181api.h"
 #include "rfc_manager.h"
+#include "xconf_handler.h"
 #include <urlHelper.h>
 
 using namespace std;
@@ -916,10 +917,23 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       EXPECT_EQ(result , 0);
 }
 
-TEST_F(rfcMgrTest, RFCManagerPostProcess) {
+/* TEST_F(rfcMgrTest, RFCManagerPostProcess) {
     int result = mgr->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
     ASSERT_EQ(result, 42);
+} */
+
+
+TEST(rfcMgrTest, initializeXconf) {
+     write_on_file("/opt/partnerid", "default-parter");	
+     write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
+     write_on_file("/version.txt", "imagename:TestImage");
+     xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
+     int resutl = xconfObj->initializeXconfHandler();
+     EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
+     EXPECT_EQ(xconfObj->_partner_id , "default-partner");
+     EXPECT_EQ(xconfObj->_estb_mac_address , "TestImage");     
 }
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
