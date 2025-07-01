@@ -888,7 +888,7 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 
 TEST(rfcMgrTest, CheckIProuteConnectivity) {
      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
-     RFCManager *rfcmgrObj = new RFCManager();
+     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
      bool result = rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
      EXPECT_EQ(result , true);
      delete rfcmgrObj;
