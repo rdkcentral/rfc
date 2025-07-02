@@ -928,7 +928,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 } */
 
 
-TEST(rfcMgrTest, initializeXconf) {
+TEST_F(rfcMgrTest, initializeXconf) {
      write_on_file("/opt/partnerid", "default-parter");	
      write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
      write_on_file("/version.txt", "imagename:TestImage");
