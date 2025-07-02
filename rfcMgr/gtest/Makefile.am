@@ -17,10 +17,10 @@
 # limitations under the License.
 ##########################################################################
 
-AUTOMAKE_OPTIONS = subdir-objects
+#AUTOMAKE_OPTIONS = subdir-objects
 # Define the program name and the source files
 bin_PROGRAMS = rfcMgr_gtest rfcXconf_gtest
-SUBDIRS = gtest
+#SUBDIRS = gtest
 
 rfcMgr_gtest_SOURCES = $(TOP_DIR)/tr181api/tr181api.cpp $(TOP_DIR)/rfcMgr/rfc_manager.cpp $(TOP_DIR)/rfcMgr/rfc_common.cpp $(TOP_DIR)/rfcMgr/mtlsUtils.cpp $(TOP_DIR)/rfcMgr/rfc_xconf_handler.cpp $(TOP_DIR)/rfcMgr/xconf_handler.cpp $(TOP_DIR)/rfcapi/rfcapi.cpp $(TOP_DIR)/rfcMgr/gtest/gtest_main.cpp $(TOP_DIR)/rfcMgr/gtest/mocks/secure_wrapper.c $(TOP_DIR)/rfcMgr/gtest/mocks/common_device_api.c $(TOP_DIR)/rfcMgr/gtest/mocks/curl_debug.c $(TOP_DIR)/rfcMgr/gtest/mocks/downloadUtil.c $(TOP_DIR)/rfcMgr/gtest/mocks/json_parse.c $(TOP_DIR)/rfcMgr/gtest/mocks/rdk_fwdl_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/system_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/urlHelper.c $(TOP_DIR)/rfcMgr/gtest/mocks/rfcMgr_stubs.cpp
 
