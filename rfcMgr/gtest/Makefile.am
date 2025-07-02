@@ -27,7 +27,13 @@ rfcMgr_gtest_SOURCES = $(TOP_DIR)/tr181api/tr181api.cpp $(TOP_DIR)/rfcMgr/rfc_ma
 rfcXconf_gtest_SOURCES = $(TOP_DIR)/tr181api/tr181api.cpp $(TOP_DIR)/rfcMgr/rfc_manager.cpp $(TOP_DIR)/rfcMgr/rfc_common.cpp $(TOP_DIR)/rfcMgr/mtlsUtils.cpp $(TOP_DIR)/rfcMgr/rfc_xconf_handler.cpp $(TOP_DIR)/rfcMgr/xconf_handler.cpp $(TOP_DIR)/rfcapi/rfcapi.cpp $(TOP_DIR)/rfcMgr/gtest/gtest_xconf.cpp $(TOP_DIR)/rfcMgr/gtest/mocks/secure_wrapper.c $(TOP_DIR)/rfcMgr/gtest/mocks/common_device_api.c $(TOP_DIR)/rfcMgr/gtest/mocks/curl_debug.c $(TOP_DIR)/rfcMgr/gtest/mocks/downloadUtil.c $(TOP_DIR)/rfcMgr/gtest/mocks/json_parse.c $(TOP_DIR)/rfcMgr/gtest/mocks/rdk_fwdl_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/system_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/urlHelper.c $(TOP_DIR)/rfcMgr/gtest/mocks/rfcMgr_stubs.cpp
 
 
-rfcMgr_gtest_AM_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/
-rfcMgr_gtest_AM_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
+rfcMgr_gtest_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/
 
-rfcMgr_gtest_AM_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
+rfcXconf_gtest_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/
+
+rfcMgr_gtest_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
+
+rfcXconf_gtest_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
+
+rfcMgr_gtest_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
+rfcXconf_gtest_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
