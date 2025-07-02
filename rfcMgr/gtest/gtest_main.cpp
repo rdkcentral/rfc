@@ -932,12 +932,11 @@ TEST(rfcMgrTest, RFCManagerPostProcess) {
 TEST(rfcMgrTest, CheckIProuteConnectivity) {
       write_on_file("/tmp/.GatewayIP_dfltroute", "IPV4 8.8.4.4");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->CheckIProuteConnectivity();
+      int result =  rfcmgrObj->CheckIProuteConnectivity("/tmp/.GatewayIP_dfltroute");
       EXPECT_EQ(result , true);
 }
 
 
-CheckDeviceIsOnline
 
 /* TEST_F(rfcMgrTest, RFCManagerPostProcess) {
     int result = mgr->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
