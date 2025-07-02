@@ -40,13 +40,13 @@ using namespace rfc;
 // --- Fixture ---
 class rfcMgrTest : public ::testing::Test {
     protected:
-    class TestableRFCManager : public xconf::XconfHandler {
+    class TestableXconfHandler : public xconf::XconfHandler {
     public:
             using xconf::XconfHandler::_estb_mac_address;  // expose protected member as public
     };
 
     void SetUp() override {
-        mgr = new TestableRFCManager();
+        mgr = new TestableXconfHandler();
     }
 
     void TearDown() override {
