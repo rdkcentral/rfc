@@ -46,11 +46,11 @@ class rfcMgrTest : public ::testing::Test {
     };
 
     void SetUp() override {
-        mgr = new TestableXconfHandler();
+        xconfObj = new TestableXconfHandler();
     }
 
     void TearDown() override {
-        delete mgr;
+        delete xconfObj;
     }
 
     TestableXconfHandler* xconfObj;	
