@@ -953,7 +953,7 @@ TEST(rfcMgrTest, initializeXconf) {
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
      EXPECT_EQ(xconfObj->_partner_id , "default-partner");
-     EXPECT_EQ(xconfObj-> , "TestImage");     
+     EXPECT_EQ(xconfObj->_firmware_version , "TestImage");     
 }
 
 
