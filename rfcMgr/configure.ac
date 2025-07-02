@@ -19,7 +19,7 @@
 
 
 # Initialize Autoconf
-AC_INIT([rfcMgr_gtest], [1.0])
+AC_INIT([rfcTests], [1.0])
 LT_INIT
 # Initialize Automake
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -45,7 +45,7 @@ AC_FUNC_REALLOC
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 
 # Generate the Makefile
- AC_CONFIG_FILES([gtest/Makefile])
+ AC_CONFIG_FILES([Makefile gtest/Makefile])
 
 # Generate the configure script
 AC_OUTPUT
