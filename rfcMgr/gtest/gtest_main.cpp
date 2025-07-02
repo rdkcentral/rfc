@@ -908,11 +908,12 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 
 
 TEST(rfcMgrTest, CheckDeviceIsOnline) {
-      write_on_file("/tmp/.GatewayIP_dfltroute", "IPV4 8.8.4.4");
-      write_on_file("/etc/resolv.dnsmasq", "nameserver 2.4.6.8");
+      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
       EXPECT_EQ(status , 0);
+      delete rfcmgrObj;
 }
 
 
@@ -920,6 +921,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
       EXPECT_EQ(result , 0);
+      delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
@@ -930,18 +932,31 @@ TEST(rfcMgrTest, RFCManagerPostProcess) {
 
 
 TEST(rfcMgrTest, CheckIProuteConnectivity) {
-      write_on_file("/tmp/.GatewayIP_dfltroute", "IPV4 8.8.4.4");
+      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->CheckIProuteConnectivity("/tmp/.GatewayIP_dfltroute");
+      int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
       EXPECT_EQ(result , true);
+      delete rfcmgrObj;
 }
 
 
 
-/* TEST_F(rfcMgrTest, RFCManagerPostProcess) {
-    int result = mgr->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
-    ASSERT_EQ(result, 42);
-} */
+TEST(rfcMgrTest, isDnsResolve) {
+      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->isDnsResolve(DNS_RESOLV_FILE);
+      EXPECT_EQ(result , true);
+      delete rfcmgrObj;
+}
+
+
+
+TEST(rfcMgrTest, RFCManagerPostProcess) {
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result = rfcmgrObj->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
+    ASSERT_EQ(result, 0);
+    delete rfcmgrObj;
+} 
 
 
 TEST(rfcMgrTest, initializeXconf) {
@@ -952,7 +967,8 @@ TEST(rfcMgrTest, initializeXconf) {
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
      EXPECT_EQ(xconfObj->_partner_id , "default-partner");
-     EXPECT_EQ(xconfObj->_firmware_version , "TestImage");     
+     EXPECT_EQ(xconfObj->_firmware_version , "TestImage");
+     delete rfcmgrObj;
 }
 
 
