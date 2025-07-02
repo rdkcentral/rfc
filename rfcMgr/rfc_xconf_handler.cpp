@@ -509,7 +509,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
 #ifndef RDKC
     std::string name = "rfc";
-    bool value = true;
+    const std::string clearValue = "true";
     std::string ClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB";
     std::string BootstrapClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB";
     std::string ConfigChangeTimeKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime";    
@@ -517,8 +517,8 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     std::time_t timestamp = std::time(nullptr);
     std::string ConfigChangeTime = std::to_string(timestamp);    
 
-    set_RFCProperty(name, ClearDB, value);
-    set_RFCProperty(name, BootstrapClearDB, value);
+    set_RFCProperty(name, ClearDB, clearValue);
+    set_RFCProperty(name, BootstrapClearDB, clearValue);
     set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
@@ -589,14 +589,14 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
 
     std::string name = "rfc";
-    bool value = true;
+    const std::string clearValue = "true";
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
     
-    set_RFCProperty(name, ClearDBEndKey, value);
-    set_RFCProperty(name, BootstrapClearDBEndKey, value);
-    set_RFCProperty(name, reloadCacheKey, value);
+    set_RFCProperty(name, ClearDBEndKey, clearValue);
+    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
+    set_RFCProperty(name, reloadCacheKey, clearValue);
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
