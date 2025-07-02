@@ -963,6 +963,16 @@ TEST(rfcMgrTest, initializeXconf) {
      delete xconfObj;
 }
 
+TEST(rfcMgrTest, ExecuteRequest) {
+     FileDwnl_t file_dwnl;
+     MtlsAuth_t sec;
+     int httpCode = -1;     
+     xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
+     int result = xconfObj->ExecuteRequest(&file_dwnl, &sec, &httpCode);
+     EXPECT_EQ(result, -1);
+     delete xconfObj;
+}
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
