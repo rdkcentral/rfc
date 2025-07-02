@@ -23,6 +23,11 @@
 #include <string>
 #include "mtlsUtils.h"
 
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest.h>
+#endif
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +53,7 @@ namespace xconf {
         std::string _manufacturer; /* Device Manufacturer */
         std::string _partner_id; /* Device Partner ID */
 	int ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, int *httpCode);
+        FRIEND_TEST(rfcMgrTest, initializeXconf);
     };
 }
 
