@@ -44,10 +44,11 @@ namespace xconf {
         XconfHandler(const XconfHandler&) = delete;
         XconfHandler& operator=(const XconfHandler&) = delete;
         
-	#if defined(GTEST_ENABLE)
+#if defined(GTEST_ENABLE)
         public:
-        #else
+#else
 	protected :
+#endif
         std::string _estb_mac_address; /* Device Mac Address*/
         std::string _firmware_version; /* Device Frimware version */
         BUILDTYPE   _ebuild_type; /* Device Build Type */
