@@ -38,7 +38,7 @@ using namespace std;
 using namespace rfc;
 
 // --- Fixture ---
-class rfcMgrTest : public ::testing::Test {
+/* class rfcMgrTest : public ::testing::Test {
     protected:
     class TestableXconfHandler : public xconf::XconfHandler {
     public:
@@ -54,7 +54,7 @@ class rfcMgrTest : public ::testing::Test {
     }
 
     TestableXconfHandler* xconfObj;	
-};
+}; */
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode
@@ -928,11 +928,11 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 } */
 
 
-TEST_F(rfcMgrTest, initializeXconf) {
+TEST(rfcMgrTest, initializeXconf) {
      write_on_file("/opt/partnerid", "default-parter");	
      write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
      write_on_file("/version.txt", "imagename:TestImage");
-     //xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
+     xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
      //EXPECT_EQ(xconfObj->_partner_id , "default-partner");
