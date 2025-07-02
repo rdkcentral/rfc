@@ -945,7 +945,6 @@ TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       int result = isDnsResolve(DNS_RESOLV_FILE);
       EXPECT_EQ(result , true);
-      delete rfcmgrObj;
 }
 
 

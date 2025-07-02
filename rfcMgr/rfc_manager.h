@@ -94,6 +94,7 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
+	bool isDnsResolve(const char *);
     }; // end of RFCManager Class
 } // end of namespace RFC
 
