@@ -922,6 +922,23 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       EXPECT_EQ(result , 0);
 }
 
+TEST(rfcMgrTest, RFCManagerPostProcess) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerPostProcess();
+      EXPECT_EQ(result , -1);
+}
+
+
+TEST(rfcMgrTest, CheckIProuteConnectivity) {
+      write_on_file("/tmp/.GatewayIP_dfltroute", "IPV4 8.8.4.4");
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->CheckIProuteConnectivity();
+      EXPECT_EQ(result , true);
+}
+
+
+CheckDeviceIsOnline
+
 /* TEST_F(rfcMgrTest, RFCManagerPostProcess) {
     int result = mgr->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
     ASSERT_EQ(result, 42);
@@ -935,8 +952,8 @@ TEST(rfcMgrTest, initializeXconf) {
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
-     //EXPECT_EQ(xconfObj->_partner_id , "default-partner");
-     //EXPECT_EQ(xconfObj->_estb_mac_address , "TestImage");     
+     EXPECT_EQ(xconfObj->_partner_id , "default-partner");
+     EXPECT_EQ(xconfObj-> , "TestImage");     
 }
 
 

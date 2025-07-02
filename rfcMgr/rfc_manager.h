@@ -83,7 +83,11 @@ class RFCManager {
         void SendEventToMaintenanceManager(const char *, unsigned int);
 
 
-    private:
+    #if defined(GTEST_ENABLE)
+        public:
+    #else
+        private:
+    #endif
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
