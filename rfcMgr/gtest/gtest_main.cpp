@@ -943,8 +943,7 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
 
 TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->isDnsResolve(DNS_RESOLV_FILE);
+      int result = isDnsResolve(DNS_RESOLV_FILE);
       EXPECT_EQ(result , true);
       delete rfcmgrObj;
 }
