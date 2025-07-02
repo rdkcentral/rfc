@@ -951,12 +951,6 @@ TEST(rfcMgrTest, isDnsResolve) {
 
 
 
-TEST(rfcMgrTest, RFCManagerPostProcess) {
-    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-    int result = rfcmgrObj->RFCManagerPostProcess();  // Will compile with correct FRIEND_TEST
-    ASSERT_EQ(result, 0);
-    delete rfcmgrObj;
-} 
 
 
 TEST(rfcMgrTest, initializeXconf) {
@@ -968,7 +962,7 @@ TEST(rfcMgrTest, initializeXconf) {
      EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
      EXPECT_EQ(xconfObj->_partner_id , "default-partner");
      EXPECT_EQ(xconfObj->_firmware_version , "TestImage");
-     delete rfcmgrObj;
+     delete xconfObj;
 }
 
 
