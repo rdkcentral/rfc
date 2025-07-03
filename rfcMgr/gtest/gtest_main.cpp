@@ -948,7 +948,7 @@ TEST(rfcMgrTest, isDnsResolve) {
 }
 
 TEST(rfcMgrTest, initializeXconf) {
-     write_on_file("/tmp/partnerId3.dat", "default-parter");	
+     write_on_file("/tmp/bootstrap.ini", "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId=default-parter");	
      write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
