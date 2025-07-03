@@ -948,8 +948,8 @@ TEST(rfcMgrTest, isDnsResolve) {
 }
 
 TEST(rfcMgrTest, initializeXconf) {
-     write_on_file("/tmp/bootstrap.ini", "default-parter");	
-     write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
+     //write_on_file("/tmp/bootstrap.ini", "default-parter");	
+     write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
      write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
@@ -957,7 +957,7 @@ TEST(rfcMgrTest, initializeXconf) {
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
-     EXPECT_EQ(xconfObj->_partner_id, "default-partner");
+     EXPECT_EQ(xconfObj->_partner_id, "comcast");
      EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
      EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
      EXPECT_EQ(xconfObj->_build_type_str, "dev");
