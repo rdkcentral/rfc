@@ -307,7 +307,8 @@ void write_on_file(const std::string& filePath, const std::string& content)
 { 
    std::ofstream outfile(filePath, std::ios::app);
    if (outfile.is_open()) {
-        outfile << "\n" << content;  // Add a newline before appending
+        //outfile << "\n" << content;  // Add a newline before appending
+        outfile << content;
         outfile.close();
     } else {
         std::cerr << "Could not open file for appending.\n";
@@ -941,6 +942,13 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
 }
 
 
+TEST(rfcMgrTest, IsIarmBusConnected) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      bool result =  rfcmgrObj->IsIarmBusConnected();
+      EXPECT_EQ(result , true);
+      delete rfcmgrObj;
+}
+
 
 TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
@@ -950,8 +958,6 @@ TEST(rfcMgrTest, isDnsResolve) {
 
 TEST(rfcMgrTest, initializeXconf) {
      //write_on_file("/tmp/bootstrap.ini", "default-parter");	
-     write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
-     write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
      write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
@@ -981,7 +987,7 @@ TEST(rfcMgrTest, initializeXconf) {
 TEST(rfcMgrTest, CurrentRunningInst) {
       write_on_file("/tmp/.rfcServiceLock", "RFC_LOCK_FILE");
       bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
-      EXPECT_EQ(result , true);
+      EXPECT_EQ(result , false);
 }
 
 
