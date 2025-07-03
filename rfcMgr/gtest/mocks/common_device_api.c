@@ -75,8 +75,8 @@ size_t GetEstbMac( char *pEstbMac, size_t szBufSize )
         if( (fp = fopen( ESTB_MAC_FILE, "r" )) != NULL )
         {
 	    fgets( pEstbMac, szBufSize, fp );   // better be a valid string on first line
-            fclose( fp );
-	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "GetEstbMac Value = %s\n", pEstbMac);
+	    printf("LOG.RDK.FWUPG : %s\n", pEstbMac);
+	    fclose( fp );
             i = stripinvalidchar( pEstbMac, szBufSize );
         }
     }
