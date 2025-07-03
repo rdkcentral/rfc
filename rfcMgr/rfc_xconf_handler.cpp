@@ -892,7 +892,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
@@ -942,12 +942,14 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
             if((curl_ret_code == 0) && (httpCode == 404))
             {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received HTTP %d Response from Xconf Server. Retry logic not needed!!!\n",__FUNCTION__, __LINE__,httpCode);
 	        cleanAllFile();
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
 		NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
             }
             else if(httpCode == 304)
             {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success. Response unchanged (%d). No processing\n",__FUNCTION__, __LINE__,httpCode);
                 NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "ACTIVE");
                 ret_value= NO_RFC_UPDATE_REQUIRED;
             }
@@ -957,6 +959,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             else 
             {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success, Processing updated (%d) response...\n",__FUNCTION__, __LINE__,httpCode);
                 cleanAllFile();
                 if (std::remove(TR181LISTFILE) == 0)
                 {
