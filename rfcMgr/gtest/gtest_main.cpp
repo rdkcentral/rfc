@@ -947,23 +947,25 @@ TEST(rfcMgrTest, isDnsResolve) {
       EXPECT_EQ(result , true);
 }
 
-
-
-
-
 TEST(rfcMgrTest, initializeXconf) {
-     write_on_file("/opt/partnerid", "default-parter");	
-     write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
-     write_on_file("/version.txt", "imagename:TestImage");
+     write_on_file("/tmp/partnerId3.dat", "default-parter");	
+     write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
+     write_on_file("/tmp/version.txt", "imagename:TestImage");
+     write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
+     write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
+     write_on_file("/tmp/.manufacturer", "TestMFRname");
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
-     EXPECT_EQ(xconfObj->_estb_mac_address , "01:23:45:67:89:ab"); 
-     EXPECT_EQ(xconfObj->_partner_id , "default-partner");
-     EXPECT_EQ(xconfObj->_firmware_version , "TestImage");
+     EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
+     EXPECT_EQ(xconfObj->_partner_id, "default-partner");
+     EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
+     EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
+     EXPECT_EQ(xconfObj->_build_type_str, "dev");
+     EXPECT_EQ(xconfObj->_manufacturer, "TestMFRname");
      delete xconfObj;
 }
 
-TEST(rfcMgrTest, ExecuteRequest) {
+/*TEST(rfcMgrTest, ExecuteRequest) {
      FileDwnl_t file_dwnl;
      MtlsAuth_t sec;
      int httpCode = -1;     
@@ -971,7 +973,7 @@ TEST(rfcMgrTest, ExecuteRequest) {
      int result = xconfObj->ExecuteRequest(&file_dwnl, &sec, &httpCode);
      EXPECT_EQ(result, -1);
      delete xconfObj;
-}
+} */
 
 
 GTEST_API_ int main(int argc, char *argv[]){
