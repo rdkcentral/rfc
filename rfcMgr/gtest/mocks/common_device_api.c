@@ -72,6 +72,7 @@ size_t GetEstbMac( char *pEstbMac, size_t szBufSize )
     if( pEstbMac != NULL )
     {
         *pEstbMac = 0;
+	 printf("LOG.RDK.FWUPG ESTB_MAC_FILE: %s\n", ESTB_MAC_FILE);
         if( (fp = fopen( ESTB_MAC_FILE, "r" )) != NULL )
         {
 	    fgets( pEstbMac, szBufSize, fp );   // better be a valid string on first line
