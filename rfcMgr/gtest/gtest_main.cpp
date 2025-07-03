@@ -925,6 +925,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 }
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
+      write_on_file(RFC_MGR_IPTBLE_INIT_SCRIPT, "executing the iptables init script");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->RFCManagerPostProcess();
       EXPECT_EQ(result , 0);
@@ -949,7 +950,9 @@ TEST(rfcMgrTest, isDnsResolve) {
 
 TEST(rfcMgrTest, initializeXconf) {
      //write_on_file("/tmp/bootstrap.ini", "default-parter");	
-     //write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
+     write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
+     write_on_file("/tmp/.estb_mac", "01:23:45:67:89:ab");
+     write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
      write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
@@ -976,6 +979,7 @@ TEST(rfcMgrTest, initializeXconf) {
 } */
 
 TEST(rfcMgrTest, CurrentRunningInst) {
+      write_on_file("/tmp/.rfcServiceLock", "RFC_LOCK_FILE");
       bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
       EXPECT_EQ(result , true);
 }
