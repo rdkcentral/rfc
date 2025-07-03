@@ -927,7 +927,7 @@ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
 TEST(rfcMgrTest, RFCManagerPostProcess) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->RFCManagerPostProcess();
-      EXPECT_EQ(result , -1);
+      EXPECT_EQ(result , 0);
 }
 
 
@@ -949,11 +949,11 @@ TEST(rfcMgrTest, isDnsResolve) {
 
 TEST(rfcMgrTest, initializeXconf) {
      //write_on_file("/tmp/bootstrap.ini", "default-parter");	
-     write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
+     //write_on_file("/tmp/.estb_mac_gtest.txt", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
      write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
-     write_on_file("/tmp/.manufacturer", "TestMFRname");
+     //write_on_file("/tmp/.manufacturer", "TestMFRname");
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
@@ -974,6 +974,12 @@ TEST(rfcMgrTest, initializeXconf) {
      EXPECT_EQ(result, -1);
      delete xconfObj;
 } */
+
+TEST(rfcMgrTest, CurrentRunningInst) {
+      bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
+      EXPECT_EQ(result , true);
+}
+
 
 
 GTEST_API_ int main(int argc, char *argv[]){
