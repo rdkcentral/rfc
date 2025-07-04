@@ -308,7 +308,7 @@ void write_on_file(const std::string& filePath, const std::string& content)
    std::ofstream outfile(filePath, std::ios::app);
    if (outfile.is_open()) {
         //outfile << "\n" << content;  // Add a newline before appending
-        outfile << content;
+        outfile << content<< "\n" ;
         outfile.close();
     } else {
         std::cerr << "Could not open file for appending.\n";
@@ -962,7 +962,7 @@ TEST(rfcMgrTest, initializeXconf) {
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
      write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
-     //write_on_file("/tmp/.manufacturer", "TestMFRname");
+     write_on_file("/tmp/.manufacturer", "TestMFRname");
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
