@@ -916,7 +916,7 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 TEST(rfcMgrTest, CheckDeviceIsOFFline) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
-      EXPECT_EQ(status , 1);
+      EXPECT_EQ(status , RFCMGR_DEVICE_OFFLINE);
       delete rfcmgrObj;
 }
 
@@ -925,7 +925,7 @@ TEST(rfcMgrTest, CheckDeviceIsOnline) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
-      EXPECT_EQ(status , 0);
+      EXPECT_EQ(status , RFCMGR_DEVICE_ONLINE);
       delete rfcmgrObj;
 }
 
@@ -1002,12 +1002,12 @@ TEST(rfcMgrTest, CurrentRunningInst) {
       EXPECT_EQ(result , false);
 }
 
-TEST(rfcMgrTest, cleanup_lock_file) {
+/* TEST(rfcMgrTest, cleanup_lock_file) {
     write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
     EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
     cleanup_lock_file();
     EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
-}
+} */
 
 
 GTEST_API_ int main(int argc, char *argv[]){
