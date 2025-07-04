@@ -132,6 +132,12 @@ std::map<std::string, std::string> parseQueryString(std::stringstream& queryStre
     return params;
 }
 
+// Helper function to check file existence
+bool file_exists(const char* filename) {
+    struct stat buffer;
+    return (stat(filename, &buffer) == 0);
+}
+
 char xconfResp[] = R"({
     "featureControl": {
         "features": [
@@ -957,7 +963,7 @@ TEST(rfcMgrTest, isDnsResolve) {
 }
 
 TEST(rfcMgrTest, initializeXconf) {
-     //write_on_file("/tmp/bootstrap.ini", "default-parter");	
+     write_on_file("/tmp/partnerId3.dat", "default-parter");	
      write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
      write_on_file("/tmp/version.txt", "imagename:TestImage");
      write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
@@ -966,7 +972,7 @@ TEST(rfcMgrTest, initializeXconf) {
      xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
      int resutl = xconfObj->initializeXconfHandler();
      EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
-     EXPECT_EQ(xconfObj->_partner_id, "comcast");
+     EXPECT_EQ(xconfObj->_partner_id, "default-parter");
      EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
      EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
      EXPECT_EQ(xconfObj->_build_type_str, "dev");
@@ -985,11 +991,17 @@ TEST(rfcMgrTest, initializeXconf) {
 } */
 
 TEST(rfcMgrTest, CurrentRunningInst) {
-      write_on_file("/tmp/.rfcServiceLock", "RFC_LOCK_FILE");
+      //write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "RFC_LOCK_FILE");
       bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
       EXPECT_EQ(result , false);
 }
 
+TEST(rfcMgrTest, cleanup_lock_file() {
+    write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
+    EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
+    cleanup_lock_file();
+    EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
+}
 
 
 GTEST_API_ int main(int argc, char *argv[]){
