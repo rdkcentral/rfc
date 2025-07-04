@@ -647,7 +647,7 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
     rfcObj->GetOsClass();
-    rfcObj->GetAccountId();
+    rfcObj->GetAccountID();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
     int version = std::stoi(params["version"]);
