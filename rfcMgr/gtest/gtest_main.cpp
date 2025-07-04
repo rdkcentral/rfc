@@ -913,7 +913,12 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 }
 
 
-
+TEST(rfcMgrTest, CheckDeviceIsOFFline) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+      EXPECT_EQ(status , 1);
+      delete rfcmgrObj;
+}
 
 TEST(rfcMgrTest, CheckDeviceIsOnline) {
       write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
@@ -997,7 +1002,7 @@ TEST(rfcMgrTest, CurrentRunningInst) {
       EXPECT_EQ(result , false);
 }
 
-TEST(rfcMgrTest, cleanup_lock_file() {
+TEST(rfcMgrTest, cleanup_lock_file) {
     write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
     EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
     cleanup_lock_file();
