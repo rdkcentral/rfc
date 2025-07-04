@@ -323,7 +323,7 @@ void write_on_file(const std::string& filePath, const std::string& content)
 }
 
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
-    /* Create Object for Xconf Handler */
+    /*Create Object for Xconf Handler */
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
     int reqStatus = FAILURE;
@@ -644,10 +644,10 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->WriteFile(".version", "TEMP_VERSION");
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
     rfcObj->GetOsClass();
+    rfcObj->GetAccountId();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
     int version = std::stoi(params["version"]);
