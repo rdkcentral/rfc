@@ -642,7 +642,12 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->WriteFile(".version", "TEMP_VERSION");
+    rfcObj->PreProcessJsonResponse(xconfResp);
+    rfcObj->GetValidPartnerId();
+    rfcObj->GetOsClass();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
     int version = std::stoi(params["version"]);
