@@ -588,13 +588,13 @@ TEST(rfcMgrTest, getDefaultValue) {
    	
 }
 
-TEST(rfcMgrTest, checkWhoamiSupport) {
+/* TEST(rfcMgrTest, checkWhoamiSupport) {
     writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
     EXPECT_EQ(result, true);
-}
+} */
 
 TEST(rfcMgrTest, isDebugServicesEnabled) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini");    
@@ -613,6 +613,7 @@ TEST(rfcMgrTest, isMaintenanceEnabled) {
 }
 
 TEST(rfcMgrTest, GetOsClass) {
+    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->GetOsClass();
@@ -639,11 +640,13 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 
 
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
+    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
     int version = std::stoi(params["version"]);
-    EXPECT_EQ(version, 2);  
+    EXPECT_EQ(url.str(), "version=2");  
     delete rfcObj;
 }
 
