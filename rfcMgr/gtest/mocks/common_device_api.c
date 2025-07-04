@@ -393,7 +393,7 @@ bool CurrentRunningInst(const char *file)
         close(fd);
         return true;
     }
-
+    printf("CurrentRunningInst: Failed to open lock file %s", file);
     /* OK to proceed (lock will be released and file descriptor will be closed on exit) */
 
     return false;
