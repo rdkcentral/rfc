@@ -982,6 +982,13 @@ TEST(rfcMgrTest, InitializeIARM) {
 }
 
 
+TEST(rfcMgrTest, term_event_handler) {
+      int result = term_event_handler();
+      EXPECT_EQ(result , 0);
+      delete rfcmgrObj;
+}
+
+
 /* TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       int result = isDnsResolve(DNS_RESOLV_FILE);
@@ -1028,6 +1035,23 @@ TEST(rfcMgrTest, CurrentRunningInst) {
     cleanup_lock_file();
     EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
 } */
+
+TEST(rfcMgrTest, isRFCEnabled) {
+     bool result = isRFCEnabled("featureTest"); 
+     EXPECT_EQ(result , true);
+}
+
+TEST(rfcMgrTest, getRFCErrorString) {
+    const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
+    EXPECT_EQ(err_string , " Method Not Supported");
+}
+
+TEST(rfcMgrTest, init_rfcdefaults) {
+   bool result = init_rfcdefaults();
+   EXPECT_EQ(result , true);
+}
+
+
 
 
 GTEST_API_ int main(int argc, char *argv[]){
