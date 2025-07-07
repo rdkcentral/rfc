@@ -1054,7 +1054,7 @@ TEST(rfcMgrTest, init_rfcdefaults) {
 TEST(rfcMgrTest, getRFCParameter) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
-   TR181_ParamData_t pstParamData;   
+   RFC_ParamData_t pstParamData;   
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , true);
 }
