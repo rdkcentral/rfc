@@ -1036,19 +1036,28 @@ TEST(rfcMgrTest, CurrentRunningInst) {
 } */
 
 TEST(rfcMgrTest, isRFCEnabled) {
-     bool result = isRFCEnabled("featureTest"); 
+     bool result = isRFCEnabled("featureInstance"); 
      EXPECT_EQ(result , true);
 }
 
 TEST(rfcMgrTest, getRFCErrorString) {
     const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
-    EXPECT_EQ(err_string , " Method Not Supported");
+    EXPECT_EQ(err_string , "Method Not Supported");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
    bool result = init_rfcdefaults();
    EXPECT_EQ(result , true);
 }
+
+TEST(rfcMgrTest, getRFCParameter) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;   
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result , true);
+}
+
 
 
 
