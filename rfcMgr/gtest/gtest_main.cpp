@@ -802,9 +802,9 @@ TEST(rfcMgrTest, InitDownloadData) {
 TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
-    std::string value = "1280000";
+    std::string value = "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings";
     //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
-    std::string speedKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
+    std::string speedKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
     WDMP_STATUS status = rfcObj->set_RFCProperty(name, speedKey, value);
     EXPECT_EQ(status, WDMP_SUCCESS);
     delete rfcObj;
