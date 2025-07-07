@@ -67,6 +67,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
+bool init_rfcdefaults();
 #endif
 #ifdef __cplusplus
 }
