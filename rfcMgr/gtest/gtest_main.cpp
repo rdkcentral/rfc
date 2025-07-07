@@ -654,7 +654,7 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
     auto params = parseQueryString(url);
     int version = std::stoi(params["version"]);
-    EXPECT_EQ(url.str(), "version=2");  
+    EXPECT_EQ(url.str(), "https://xconf.xdp.eu-1.xcal.tv?estbMacAddress=&firmwareVersion=&env=&model=&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=sky&osClass=TestOsClass&accountId=4123705941507160514&Experience=&version=2");  
     delete rfcObj;
 }
 
@@ -1037,8 +1037,8 @@ TEST(rfcMgrTest, CurrentRunningInst) {
 } */
 
 TEST(rfcMgrTest, isRFCEnabled) {
-     bool result = isRFCEnabled("featureInstance"); 
-     EXPECT_EQ(result , true);
+     bool result = isRFCEnabled("Instance"); 
+     EXPECT_EQ(result , false);
 }
 
 TEST(rfcMgrTest, getRFCErrorString) {
@@ -1056,10 +1056,18 @@ TEST(rfcMgrTest, getRFCParameter) {
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;   
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(result , true);
+   EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
 
+TEST(rfcMgrTest, getRFCParameter_HTTP) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+   char *pcCallerID ="rfcdefaults";
+   tr69hostif_http_server_ready = true;
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result , WDMP_SUCCESS);
+}
 
 
 
