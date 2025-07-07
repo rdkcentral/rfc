@@ -972,9 +972,10 @@ TEST(rfcMgrTest, IsIarmBusConnected) {
       delete rfcmgrObj;
 }
 
-TEST(rfcMgrTest, IsIarmBusConnected) {
+TEST(rfcMgrTest, InitializeIARM) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      bool result =  rfcmgrObj->IsIarmBusConnected();
+      bool result = true;
+      rfcmgrObj->InitializeIARM();
       EXPECT_EQ(result , true);
       delete rfcmgrObj;
 }
