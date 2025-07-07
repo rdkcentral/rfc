@@ -371,10 +371,10 @@ TEST(rfcMgrTest, getLastProcessedFirmware) {
 }
 
 TEST(rfcMgrTest, getAccountID) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->GetAccountID();
-    EXPECT_EQ(rfcObj->_accountId, "TestAccount");
+    EXPECT_EQ(rfcObj->_accountId, "4123705941507160514");
     delete rfcObj;
 }
 
@@ -642,7 +642,7 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky"; 
     rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
@@ -663,8 +663,8 @@ TEST(rfcMgrTest, isConfigValueChange) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
     std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
-    std::string newValue = "false";
-    std::string currentValue = "true";
+    std::string newValue = "true";
+    std::string currentValue = "false";
     bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
     EXPECT_EQ(result, true);
     delete rfcObj;
@@ -802,9 +802,10 @@ TEST(rfcMgrTest, InitDownloadData) {
 TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
-    std::string value = "true";
-    std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
-    WDMP_STATUS status = rfcObj->set_RFCProperty(name, ClearDBEndKey, value);
+    std::string value = "1280000";
+    //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
+    std::string speedKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
+    WDMP_STATUS status = rfcObj->set_RFCProperty(name, speedKey, value);
     EXPECT_EQ(status, WDMP_SUCCESS);
     delete rfcObj;
 }
