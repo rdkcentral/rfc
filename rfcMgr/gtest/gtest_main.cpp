@@ -644,7 +644,7 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky-uk"; 
+    rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky"; 
     rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
