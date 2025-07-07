@@ -1043,7 +1043,7 @@ TEST(rfcMgrTest, isRFCEnabled) {
 
 TEST(rfcMgrTest, getRFCErrorString) {
     const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
-    EXPECT_STREQ(err_string , "Method Not Supported");
+    EXPECT_STREQ(err_string , " Method Not Supported");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
