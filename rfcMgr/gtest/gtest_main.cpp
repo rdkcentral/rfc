@@ -804,7 +804,8 @@ TEST(rfcMgrTest, set_RFCProperty) {
     std::string name = "rfc";
     std::string value = "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings";
     //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
-    std::string speedKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
+    std::string xconfURL = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
+    writeToTr181storeFile(xconfURL, "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings", "/opt/secure/RFC/tr181store.ini");
     WDMP_STATUS status = rfcObj->set_RFCProperty(name, speedKey, value);
     EXPECT_EQ(status, WDMP_SUCCESS);
     delete rfcObj;
