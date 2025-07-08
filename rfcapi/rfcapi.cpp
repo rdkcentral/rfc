@@ -441,7 +441,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
-   std::cout "akshay returning ret and exiting from the getrfcparameter= " << ret << std::endl;
+   std::cout << "akshay returning ret and exiting from the getrfcparameter= " << ret << std::endl;
    return ret;
 }
 
