@@ -1065,13 +1065,39 @@ TEST(rfcMgrTest, getRFCParameter) {
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
-   int status = remove("/tmp/.tr69hostif_http_server_ready");
+   if (unlink("/tmp/.tr69hostif_http_server_ready") == 0) {
+    printf("File unlinked successfully.\n");
+   } else {
+    printf("Error unlinking file: %s\n", strerror(errno));
+   }
    EXPECT_EQ(status , 0); 
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
+
+TEST(rfcMgrTest, getTR181ErrorString) {   
+   const char *err_string = getTR181ErrorString(tr181NotWritable);
+   EXPECT_STREQ(err_string , " Not writable");
+}
+
+TEST(rfcMgrTest, getErrorCode) {
+   tr181ErrorCode_t errorCode = getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME);
+   EXPECT_EQ(errorCode , tr181InvalidParameterName);
+}
+
+TEST(rfcMgrTest, getType) {
+   TR181_PARAM_TYPE type = getType(WDMP_DATETIME);
+   EXPECT_EQ(type , TR181_DATETIME);
+}
+
+TEST(rfcMgrTest, setValue) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   const char* pcParamValue ="comcast";    
+   tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
+   EXPECT_EQ(status , tr181Success);
+}
 
 
 GTEST_API_ int main(int argc, char *argv[]){
