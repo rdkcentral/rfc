@@ -1094,6 +1094,24 @@ TEST(rfcMgrTest, setValue) {
    EXPECT_EQ(status , tr181Success);
 }
 
+TEST(rfcMgrTest, getLocalParam) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;
+   tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData->value, "comcast"); 
+   EXPECT_EQ(status , tr181Success);
+}
+
+
+TEST(rfcMgrTest, getParam) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;
+   tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(status , tr181Success);
+}
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
