@@ -1065,11 +1065,7 @@ TEST(rfcMgrTest, getRFCParameter) {
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
-   if (unlink("/tmp/.tr69hostif_http_server_ready") == 0) {
-    printf("File unlinked successfully.\n");
-   } else {
-    printf("Error unlinking file: %s\n", strerror(errno));
-   }
+   write_on_file("/tmp/.tr69hostif_http_server_ready", ".tr69hostif_http_server_ready"); 
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , WDMP_SUCCESS);
