@@ -1071,10 +1071,18 @@ TEST(rfcMgrTest, getRFCParameter_HTTP) {
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
+TEST(rfcMgrTest, getRFCParameter_wildcard) {
+   const char* pcParameterName ="Device.DeviceInfo.";
+   char *pcCallerID ="rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result , WDMP_FAILURE);
+}
+
 
 TEST(rfcMgrTest, getTR181ErrorString) {   
    const char *err_string = getTR181ErrorString(tr181NotWritable);
-   EXPECT_STREQ(err_string , " Not writable");
+   EXPECT_STREQ(err_string , "Not writable");
 }
 
 /* TEST(rfcMgrTest, getErrorCode) {
@@ -1093,6 +1101,24 @@ TEST(rfcMgrTest, setValue) {
    tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
    EXPECT_EQ(status , tr181Success);
 }
+
+TEST(rfcMgrTest, setLocalParam) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+   char *pcCallerID ="rfcdefaults";
+   const char* pcParamValue ="Xfinity";
+   tr181ErrorCode_t status = setLocalParam(pcCallerID, pcParameterName, pcParamValue);
+   EXPECT_EQ(status , tr181Success);
+}
+
+
+TEST(rfcMgrTest, clearLocalParam) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+   char *pcCallerID ="rfcdefaults";
+   const char* pcParamValue ="Xfinity";
+   tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
+   EXPECT_EQ(status , tr181Success);
+}
+
 
 TEST(rfcMgrTest, getLocalParam) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
