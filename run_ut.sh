@@ -40,7 +40,6 @@ cp ./rfcMgr/gtest/mocks/rfcdefaults.ini  /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 touch /opt/secure/RFC/.RFC_featureInstance.ini
 
-ls -l /opt/secure/RFC/.RFC_featureInstance.ini
 
 export TOP_DIR=`pwd`
 cd ./rfcMgr/
