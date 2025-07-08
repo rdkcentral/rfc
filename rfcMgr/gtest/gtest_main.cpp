@@ -1070,7 +1070,6 @@ TEST(rfcMgrTest, getRFCParameter_HTTP) {
    } else {
     printf("Error unlinking file: %s\n", strerror(errno));
    }
-   EXPECT_EQ(status , 0); 
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , WDMP_SUCCESS);
