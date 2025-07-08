@@ -1099,7 +1099,7 @@ TEST(rfcMgrTest, getLocalParam) {
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_STREQ(pstParamData->value, "comcast"); 
+   EXPECT_STREQ(pstParamData.value, "comcast"); 
    EXPECT_EQ(status , tr181Success);
 }
 
