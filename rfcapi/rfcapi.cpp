@@ -234,10 +234,12 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
  
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
+   std::cout << "akshay inside getRFCParameter" << std::endl;
 #ifdef TEMP_LOGGING
    openLogFile();
 #endif
    WDMP_STATUS ret = WDMP_FAILURE;
+   std::cout << "akshay before ret = WDMP_FAILURE" << std::endl;
    long http_code = 0;
    string response;
    CURL *curl_handle = NULL;
@@ -249,6 +251,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        logofs << prefix() << __FUNCTION__ << ": RFC API doesn't support wildcard parameterName " << endl;
 #endif
        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
+       std::cout << "akshay returning ret = " << ret << std::endl;
        return ret;
    }
 
@@ -264,20 +267,29 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
          if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
          {
+            std::cout << "akshay returting form getvalue RFCVAR_FILE" << std::endl;
             return getValue(RFCVAR_FILE, pcParameterName, pstParam);
          }
          else
          {
             ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
+            std::cout << "akshay value of ret after getvalue TR181STORE_FILE = " << ret << std::endl;
             if (WDMP_SUCCESS == ret)
+            {
+               std::cout << "akshay returning from getvalue TR181STORE_FILE sucess" << std::endl;
                return WDMP_SUCCESS;
+            }
 
             // If the param is not found in tr181store.ini, also search in bootstrap.ini. When the hostif is not ready we do not know whether the requested param is regular tr181 param or bootstrap param.
             ret = getValue(BOOTSTRAP_FILE, pcParameterName, pstParam);
+            std::cout << "akshay value of ret after getvalue BOOTSTRAP_FILE = " << ret << std::endl;
             if (WDMP_SUCCESS == ret)
+            {
+               std::cout << "akshay returning from getvalue BOOTSTRAP_FILE sucess" << std::endl;
                return WDMP_SUCCESS;
-
+            }
             // If the param is not found in override files, find it in rfcdefaults.
+            std::cout << "akshay returning from getvalue RFCDEFAULTS_FILE" << std::endl;
             return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
 
          }
@@ -303,6 +315,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"getRFCParam data = %s, datalen = %d\n", data.c_str(), data.length());
    if (curl_handle) 
    {
+      std::cout << "akshay inside curl_handle" << std::endl;
        char pcCallerIDHeader[128];
        if(pcCallerID)
            snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
@@ -418,6 +431,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          if(statusCode)
          {
             ret = (WDMP_STATUS)statusCode->valueint;
+            std::cout << "akshay value of statusCode = " << ret << std::endl;
 #ifdef TEMP_LOGGING
             logofs << prefix() << "statusCode = " << ret << endl;
 #endif
@@ -426,15 +440,18 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   std::cout "akshay returning ret and exiting from the getrfcparameter= " << ret << std::endl;
    return ret;
 }
 
 WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName, const char* pcParameterValue, DATA_TYPE eDataType)
 {
+   std::cout << "akshay inside setRFCParameter" << std::endl;
 #ifdef TEMP_LOGGING 
    openLogFile();
 #endif
    WDMP_STATUS ret = WDMP_FAILURE;
+   std::cout << "akshay before ret = WDMP_FAILURE" << std::endl;
    long http_code = 0;
    string response;
    CURL *curl_handle = NULL;
@@ -446,6 +463,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() <<__FUNCTION__ << ": RFC API doesn't support wildcard parameterName or NULL parameterValue" << endl;
 #endif
        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName or NULL parameterValue\n", __FUNCTION__);
+       std::cout << "akshay value of ret at 452 = " << ret << std::endl;
        return ret;
    }
 
@@ -469,6 +487,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
    if (curl_handle)
    {
+      std::cout << "akshay inside curl_handle" << std::endl;
        char pcCallerIDHeader[128];
        if(pcCallerID)
            snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
@@ -521,6 +540,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    }
    if (res == CURLE_OK)
    {
+      std::cout << "akshay inside res == CURLE_OK" << std::endl;
       cJSON *response_json = NULL;
 #ifdef TEMP_LOGGING
    logofs << prefix() << "curl response: " << response << endl;
@@ -533,6 +553,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
          if(statusCode)
          {
             ret = (WDMP_STATUS)statusCode->valueint;
+            std::cout << "akshay statusCode = " << ret << std::endl;
 #ifdef TEMP_LOGGING
    logofs << prefix() << "statusCode = " << statusCode->valueint << endl;
 #endif
