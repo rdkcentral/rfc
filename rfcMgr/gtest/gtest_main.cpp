@@ -33,10 +33,12 @@
 #include "rfc_manager.h"
 #include "xconf_handler.h"
 #include <urlHelper.h>
+#include "rfcapi.h"
 
 using namespace std;
 using namespace rfc;
 
+extern bool tr69hostif_http_server_ready;
 // --- Fixture ---
 /* class rfcMgrTest : public ::testing::Test {
     protected:
@@ -1063,7 +1065,8 @@ TEST(rfcMgrTest, getRFCParameter) {
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
-   tr69hostif_http_server_ready = true;
+   int status = remove("/tmp/.tr69hostif_http_server_ready");
+   EXPECT_EQ(status , 0); 
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , WDMP_SUCCESS);
