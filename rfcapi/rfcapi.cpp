@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include "rfcapi.h"
 #include "rdk_debug.h"
+#include <iostream>
 using namespace std;
 
 #define LOG_RFCAPI  "LOG.RDK.RFCAPI"
@@ -251,7 +252,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        logofs << prefix() << __FUNCTION__ << ": RFC API doesn't support wildcard parameterName " << endl;
 #endif
        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
-       std::cout << "akshay returning ret = " << ret << std::endl;
+       std::cout << "akshay returning ret at starting= " << ret << std::endl;
        return ret;
    }
 
