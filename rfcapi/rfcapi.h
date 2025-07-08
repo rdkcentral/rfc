@@ -68,9 +68,9 @@ const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
 bool init_rfcdefaults();
-//#if defined(GTEST_ENABLE)
-//static bool tr69hostif_http_server_ready = false;
-//#endif
+#if defined(GTEST_ENABLE)
+static bool tr69hostif_http_server_ready = false;
+#endif
 #endif
 #ifdef __cplusplus
 }
