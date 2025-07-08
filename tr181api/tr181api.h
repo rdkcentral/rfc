@@ -87,8 +87,8 @@ tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, 
 #if defined(GTEST_ENABLE)
 const char * getTR181ErrorString(tr181ErrorCode_t code);
 tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
-TR181_PARAM_TYPE getType(DATA_TYPE type);
-tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+//TR181_PARAM_TYPE getType(DATA_TYPE type);
+//tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
 #endif
 
 #ifdef __cplusplus

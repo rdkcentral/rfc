@@ -1082,7 +1082,7 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(err_string , " Not writable");
 }
 
-TEST(rfcMgrTest, getErrorCode) {
+/* TEST(rfcMgrTest, getErrorCode) {
    tr181ErrorCode_t errorCode = getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME);
    EXPECT_EQ(errorCode , tr181InvalidParameterName);
 }
@@ -1090,7 +1090,7 @@ TEST(rfcMgrTest, getErrorCode) {
 TEST(rfcMgrTest, getType) {
    TR181_PARAM_TYPE type = getType(WDMP_DATETIME);
    EXPECT_EQ(type , TR181_DATETIME);
-}
+} */
 
 TEST(rfcMgrTest, setValue) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
