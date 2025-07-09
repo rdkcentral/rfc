@@ -1058,6 +1058,7 @@ TEST(rfcMgrTest, getRFCParameter) {
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;   
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData.value, "true");
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
@@ -1068,6 +1069,7 @@ TEST(rfcMgrTest, getRFCParameter_HTTP) {
    write_on_file("/tmp/.tr69hostif_http_server_ready", ".tr69hostif_http_server_ready"); 
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData.value, "true");
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
@@ -1077,6 +1079,24 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result , WDMP_FAILURE);
+}
+
+TEST(rfcMgrTest, setRFCParameter_nullValue) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID ="rfcdefaults";
+   const char* pcParameterValue = nullptr;
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
+   EXPECT_EQ(result , WDMP_FAILURE);
+}
+
+TEST(rfcMgrTest, setRFCParameter) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.SsrUrl";
+   char *pcCallerID ="rfcdefaults";
+   const char* pcParameterValue = "https://ssr.ccp.xcal.tv";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
+   EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
 
@@ -1135,6 +1155,15 @@ TEST(rfcMgrTest, getParam) {
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(status , tr181Success);
+}
+
+TEST(rfcMgrTest, getAttribute) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini"); 
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;
+   tr181ErrorCode_t status = getAttribute(pcParameterName);
    EXPECT_EQ(status , tr181Success);
 }
 
