@@ -1,8 +1,7 @@
-
-
 #include <cstring>
 #include <curl/curl.h>
 #include <cstdarg>
+#include <string>
 
 long simulated_http_code = 200;
 CURLcode simulated_curl_result = CURLE_OK;
