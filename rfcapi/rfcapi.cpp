@@ -389,7 +389,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
       logofs << prefix() << "curl response: " << response << endl;
 #endif
       RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
-      std::cout "akshay value of response before parse = " << response << std::endl;
+      std::cout << "akshay value of response before parse = " << response << std::endl;
       response_json = cJSON_Parse(response.c_str());
 
       if (response_json)
