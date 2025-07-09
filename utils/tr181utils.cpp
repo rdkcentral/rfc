@@ -265,6 +265,7 @@ static int parseargs(int argc, char * argv[])
     return  0;
 }
 
+#ifndef GTEST_ENABLE
 int main(int argc, char *argv [])
 {
    if(legacyRfcEnabled() == true)
@@ -316,6 +317,7 @@ int main(int argc, char *argv [])
    }
    return retcode;
 }
+#endif
 /** @} */
 /** @} */
 
