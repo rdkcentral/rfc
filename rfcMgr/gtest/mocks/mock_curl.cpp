@@ -6,7 +6,18 @@
 
 long simulated_http_code = 200;
 CURLcode simulated_curl_result = CURLE_OK;
-std::string simulated_response_body = R"({"parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable","value":"true"}]})";
+//std::string simulated_response_body = R"({"parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable","value":"true"}]})";
+
+std::string simulated_response_body = R"({
+  "parameters": [{
+    "name": "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable",
+    "value": "true",
+    "dataType": 3,
+    "parameterCount": 1,
+    "message": "Success"
+  }],
+  "statusCode": 0
+})";
 
 extern "C" {
 
