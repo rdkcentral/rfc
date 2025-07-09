@@ -43,7 +43,7 @@ CURLcode curl_easy_perform(CURL* curl) {
     if (g_write_callback && !simulated_response_body.empty()) {
         // Call the write callback exactly like libcurl would:
         // size=1, nmemb=length of data
-        g_write_callback(simulated_response_body.c_str(), 1, simulated_response_body.size(), g_write_data);
+	 g_write_callback(const_cast<char*>(simulated_response_body.c_str()), 1, simulated_response_body.size(), g_write_data);
     }
     return simulated_curl_result;
 }
