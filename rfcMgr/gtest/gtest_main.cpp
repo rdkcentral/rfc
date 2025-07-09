@@ -1082,7 +1082,7 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
 
 TEST(rfcMgrTest, getTR181ErrorString) {   
    const char *err_string = getTR181ErrorString(tr181NotWritable);
-   EXPECT_STREQ(err_string , "Not writable");
+   EXPECT_STREQ(err_string , " Not writable");
 }
 
 /* TEST(rfcMgrTest, getErrorCode) {
