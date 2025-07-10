@@ -1055,11 +1055,12 @@ TEST(rfcMgrTest, init_rfcdefaults) {
 }
 
 TEST(rfcMgrTest, getRFCParameter) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini");
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;   
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_STREQ(pstParamData.value, "true");
+   EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
@@ -1083,9 +1084,9 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
 }
 
 TEST(rfcMgrTest, setRFCParameter_wildcard) {
-   const char* pcParameterName ="Device.DeviceInfo.";
+   const char* pcParameterName = "Device.DeviceInfo.";
    char *pcCallerID ="rfcdefaults";
-   const char* pcParameterValue = "true";
+   const char* pcParameterValue = NULL;
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
    EXPECT_EQ(result , WDMP_FAILURE);
@@ -1159,6 +1160,22 @@ TEST(rfcMgrTest, getParam) {
    EXPECT_EQ(status , tr181Success);
 }
 
+TEST(rfcMgrTest, getParamType) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;
+   bool status = getParamType(pcParameterName, WDMP_BOOLEAN);
+   EXPECT_EQ(status , true);
+}
+
+TEST(rfcMgrTest, convertType) {
+   char type = 'i';
+   DATA_TYPE status = convertType(type);
+   EXPECT_EQ(status , WDMP_INT);
+}
+
+
 TEST(rfcMgrTest, getAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini"); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
@@ -1186,6 +1203,29 @@ TEST(rfcMgrTest, clearAttribute) {
    EXPECT_EQ(status , tr181Success);
 }
 
+TEST(rfcMgrTest, readFromFile) {
+    std::string jsonString = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true}})";
+    write_on_file("/tmp/test.json", jsonString);    	
+    char *result = readFromFile("/tmp/test.json");
+    EXPECT_NE(result, nullptr);
+    std::string actual(result);
+    EXPECT_STREQ(actual, jsonString);
+
+    delete [] result;
+    std::remove("/tmp/test.json");
+}
+
+TEST(rfcMgrTest, getArrayNode) {
+    const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
+    cJSON* root = cJSON_Parse(jsonStr);
+    EXPECT_NE(root, nullptr);
+
+    cJSON* arrayNode = getArrayNode(root);
+    EXPECT_NE(arrayNode, nullptr);
+    EXPECT_EQ(cJSON_GetArraySize(arrayNode), 3);
+
+    cJSON_Delete(root);
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
