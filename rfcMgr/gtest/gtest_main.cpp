@@ -34,6 +34,7 @@
 #include "xconf_handler.h"
 #include <urlHelper.h>
 #include "rfcapi.h"
+#include "tr181utils.h"
 
 using namespace std;
 using namespace rfc;
