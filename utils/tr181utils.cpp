@@ -58,7 +58,11 @@ inline bool legacyRfcEnabled() {
 *@param [out] paramType Holds the value of paramtype if call is successful
 *@returns true if the call succeded, false otherwise.
 */
+#if defined(GTEST_ENABLE)
+bool getParamType(char * const paramName, DATA_TYPE * paramType)
+#else
 static bool getParamType(char * const paramName, DATA_TYPE * paramType)
+#endif
 {
    RFC_ParamData_t param = {0};
    param.type = WDMP_NONE;

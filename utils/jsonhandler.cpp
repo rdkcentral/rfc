@@ -290,6 +290,7 @@ char * getFilePath(){
 	return path;
 }
 
+#ifndef GTEST_ENABLE
 int main (int argc , char *argv [])
 {
 	char * json_string = NULL;
@@ -316,3 +317,4 @@ int main (int argc , char *argv [])
 	}
 	return 0;
 }
+#endif
