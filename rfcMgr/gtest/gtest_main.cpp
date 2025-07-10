@@ -1210,7 +1210,7 @@ TEST(rfcMgrTest, readFromFile) {
     char *result = readFromFile("/tmp/test.json");
     EXPECT_NE(result, nullptr);
     std::string actual(result);
-    EXPECT_EQ(actual, jsonString);
+    EXPECT_EQ(actual, jsonString+ "\n");
 
     delete [] result;
     std::remove("/tmp/test.json");
@@ -1233,6 +1233,11 @@ TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
+}
+
+TEST(rfcMgrTest, getFilePath) {
+    char *path = getFilePath();
+    EXPECT_STREQ(path, "/opt/secure/RFC");
 }
 
 
