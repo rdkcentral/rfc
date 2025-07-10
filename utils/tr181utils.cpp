@@ -80,7 +80,11 @@ static bool getParamType(char * const paramName, DATA_TYPE * paramType)
 * Convert the user input to enumeration
 * @param [in] type character value, can be (s)tring, (i)integer or (b) boolean
 */
+#if defined(GTEST_ENABLE)
+DATA_TYPE convertType(char type)
+#else
 static DATA_TYPE convertType(char type)
+#endif
 {
    DATA_TYPE t;
    switch(type)

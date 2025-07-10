@@ -35,6 +35,7 @@
 #include <urlHelper.h>
 #include "rfcapi.h"
 #include "tr181utils.h"
+#include "jsonhandler.h"
 
 using namespace std;
 using namespace rfc;
@@ -1226,6 +1227,14 @@ TEST(rfcMgrTest, getArrayNode) {
 
     cJSON_Delete(root);
 }
+
+
+TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+    const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
+    int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
+    EXPECT_EQ(count, 3);
+}
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);

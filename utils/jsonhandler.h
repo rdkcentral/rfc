@@ -24,15 +24,14 @@
 * @defgroup utils
 * @{
 **/
-#ifndef TR181UTILS_H
-#define TR181UTILS_H
+
+#ifndef JSONHANDLER_H
+#define JSONHANDLER_H
 
 #if defined(GTEST_ENABLE)
-bool getParamType(char * const paramName, DATA_TYPE * paramType);
-DATA_TYPE convertType(char type);
-int getAttribute(char * const paramName);
-int setAttribute(char * const paramName  ,char type, char * value);
-int clearAttribute(char * const paramName);
+char * readFromFile(char * absolutePath);
+cJSON * getArrayNode(cJSON *node);
+int iterateAndSaveArrayNodes(const char * absolutePath,const char * json_data);
 #endif
 
-#endif // TR181UTILS_H
+#endif // JSONHANDLER_H
