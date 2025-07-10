@@ -69,9 +69,15 @@ echo "********************"
 
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
-    lcov --capture --directory . --output-file coverage.info
-    lcov --remove coverage.info '/usr/*' --output-file coverage.info
-    lcov --list coverage.info
+    lcov --capture --directory . --base-directory . --output-file coverage.info
+    lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file coverage.info
+    lcov --extract filtered.info \
+         '*/rfc/rfcMgr/*' \
+         '*/rfc/rfcapi/*' \
+         '*/rfc/tr181api/*' \
+         '*/rfc/utils/*' \
+         --output-file final_coverage.info
+    lcov --list final_coverage.info
 fi
 
 cd $TOP_DIR
