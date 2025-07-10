@@ -150,7 +150,11 @@ static int getAttribute(char * const paramName)
 * @param [in] value  value of the property
 * @return 0 if success, 1 otherwise
 */
+#if defined(GTEST_ENABLE)
+int setAttribute(char * const paramName  ,char type, char * value)
+#else
 static int setAttribute(char * const paramName  ,char type, char * value)
+#endif
 {
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
@@ -186,7 +190,11 @@ static int setAttribute(char * const paramName  ,char type, char * value)
 * @param [in] paramName the parameter whose properties are retrieved
 * @return 0 if succesfully clears value, 1 otherwise
 */
+#if defined(GTEST_ENABLE)
+int clearAttribute(char * const paramName)
+#else	
 static int clearAttribute(char * const paramName)
+#endif
 {
    int status = clearParam(id, paramName);
 

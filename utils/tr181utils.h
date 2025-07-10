@@ -29,6 +29,8 @@
 
 #if defined(GTEST_ENABLE)
 int getAttribute(char * const paramName);
+int setAttribute(char * const paramName  ,char type, char * value);
+int clearAttribute(char * const paramName);
 #endif
 
 #endif // TR181UTILS_H

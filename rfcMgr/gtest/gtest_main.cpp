@@ -1082,10 +1082,10 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
    EXPECT_EQ(result , WDMP_FAILURE);
 }
 
-TEST(rfcMgrTest, setRFCParameter_nullValue) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+TEST(rfcMgrTest, setRFCParameter_wildcard) {
+   const char* pcParameterName ="Device.DeviceInfo.";
    char *pcCallerID ="rfcdefaults";
-   const char* pcParameterValue = nullptr;
+   const char* pcParameterValue = "true";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
    EXPECT_EQ(result , WDMP_FAILURE);
@@ -1165,6 +1165,24 @@ TEST(rfcMgrTest, getAttribute) {
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    int status = getAttribute(pcParameterName);
+   EXPECT_EQ(status , tr181Success);
+}
+
+TEST(rfcMgrTest, setAttribute) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID ="rfcdefaults";
+   char * value = "false";
+   TR181_ParamData_t pstParamData;
+   int status = setAttribute(pcParameterName, 'b', value);
+   EXPECT_EQ(status , tr181Success);
+}
+
+
+TEST(rfcMgrTest, clearAttribute) {
+   //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   int status = clearAttribute(pcParameterName);
    EXPECT_EQ(status , tr181Success);
 }
 
