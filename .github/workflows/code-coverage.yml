@@ -1,8 +1,8 @@
 name: Code Coverage
 
 on:
-  pull_request:
-    branches: [ main, feature/RDKEMW-5323  ]
+  push_request:
+    branches: [ feature/RDKEMW-5323  ]
 
 jobs:
   execute-unit-code-coverage-report-on-release:
