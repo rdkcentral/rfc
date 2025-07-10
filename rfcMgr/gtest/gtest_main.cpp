@@ -1165,8 +1165,8 @@ TEST(rfcMgrTest, getParamType) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
-   TR181_ParamData_t pstParamData;
-   bool status = getParamType(pcParameterName, WDMP_BOOLEAN);
+   DATA_TYPE paramType;
+   bool status = getParamType(pcParameterName, &paramType);
    EXPECT_EQ(status , true);
 }
 
