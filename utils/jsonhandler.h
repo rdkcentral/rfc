@@ -32,6 +32,7 @@
 char * readFromFile(char * absolutePath);
 cJSON * getArrayNode(cJSON *node);
 int iterateAndSaveArrayNodes(const char * absolutePath,const char * json_data);
+char * getFilePath();
 #endif
 
 #endif // JSONHANDLER_H
