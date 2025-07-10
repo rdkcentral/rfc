@@ -1210,7 +1210,7 @@ TEST(rfcMgrTest, readFromFile) {
     char *result = readFromFile("/tmp/test.json");
     EXPECT_NE(result, nullptr);
     std::string actual(result);
-    EXPECT_STREQ(actual, jsonString);
+    EXPECT_EQ(actual, jsonString);
 
     delete [] result;
     std::remove("/tmp/test.json");
