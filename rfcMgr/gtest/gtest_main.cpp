@@ -1164,7 +1164,7 @@ TEST(rfcMgrTest, getAttribute) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
-   tr181ErrorCode_t status = getAttribute(pcParameterName);
+   int status = getAttribute(pcParameterName);
    EXPECT_EQ(status , tr181Success);
 }
 
