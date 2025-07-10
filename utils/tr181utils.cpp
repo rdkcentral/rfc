@@ -107,7 +107,11 @@ static DATA_TYPE convertType(char type)
 * @param [in] paramName the parameter whose properties are retrieved
 * @return 0 if succesfully retrieve value, 1 otherwise
 */
+#if defined(GTEST_ENABLE)
+int getAttribute(char * const paramName)
+#else	
 static int getAttribute(char * const paramName)
+#endif	
 {
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
