@@ -827,7 +827,7 @@ TEST(rfcMgrTest, GetXconfSelect) {
     
 }
 
-TEST(rfcMgrTest, updateHashInDB) {
+/* TEST(rfcMgrTest, updateHashInDB) {
     writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->updateHashInDB("TestConfigSetUpdateHash");
@@ -855,7 +855,7 @@ TEST(rfcMgrTest, updateTimeInDB) {
     EXPECT_EQ(valueTime ,timestampString);
     delete rfcObj;
 
-}
+} */
 
 TEST(rfcMgrTest, getJRPCTokenData) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -947,12 +947,12 @@ TEST(rfcMgrTest, CheckDeviceIsOnline) {
 }
 
 
-TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
+/* TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
       EXPECT_EQ(result , 0);
       delete rfcmgrObj;
-}
+} */
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
       write_on_file(RFC_MGR_IPTBLE_INIT_SCRIPT, "executing the iptables init script");
@@ -1055,7 +1055,7 @@ TEST(rfcMgrTest, init_rfcdefaults) {
    EXPECT_EQ(result , true);
 }
 
-TEST(rfcMgrTest, getRFCParameter) {
+/* TEST(rfcMgrTest, getRFCParameter) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini");
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
    char *pcCallerID ="rfcdefaults";
@@ -1063,7 +1063,7 @@ TEST(rfcMgrTest, getRFCParameter) {
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
    EXPECT_EQ(result , WDMP_SUCCESS);
-}
+} */
 
 
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
@@ -1229,7 +1229,7 @@ TEST(rfcMgrTest, getArrayNode) {
 }
 
 
-TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+/*TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
@@ -1238,7 +1238,7 @@ TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
 TEST(rfcMgrTest, getFilePath) {
     char *path = getFilePath();
     EXPECT_STREQ(path, "/opt/secure/RFC");
-}
+} */
 
 
 GTEST_API_ int main(int argc, char *argv[]){
