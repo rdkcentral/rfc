@@ -36,6 +36,7 @@
 #endif
 
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
+#define LOG_RFCAPI  "LOG.RDK.RFCAPI"
 #define LOG_TR181API  "LOG.RDK.TR181API"
 using namespace std;
 const char *semName = "localstore";

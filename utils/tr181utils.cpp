@@ -35,10 +35,14 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <unistd.h>
+#include <sstream>
+#include "rdk_debug.h"
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
 using namespace std;
+#define LOG_RFCAPI "LOG.RDK.RFCAPI"
 
 static char value_type = 'u';
 static char * value = NULL;
@@ -46,6 +50,44 @@ static char * key = NULL;
 static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = true;
+
+// Add this function to your existing code
+static void logCallerInfo(const char* operation, const char* paramName) {
+  
+    cout << "logCallerInfo called" << endl;
+    pid_t ppid = getppid(); // Get parent process ID
+    
+    // Read parent process info
+    std::stringstream cmdline_path;
+    cmdline_path << "/proc/" << ppid << "/cmdline";
+    
+    std::ifstream cmdline_file(cmdline_path.str());
+    cout<<"line1" << endl;
+    if (cmdline_file.is_open()) {
+        cout<<"second line"<<endl;
+        string cmdline;
+        getline(cmdline_file, cmdline, '\0'); // cmdline is null-separated
+        
+        // Get the script name (first argument)
+        size_t space_pos = cmdline.find('\0');
+        string script_name = cmdline.substr(0, space_pos);
+        
+        // Try to get line number from bash environment
+        char* bash_line = getenv("BASH_LINENO");
+        char* bash_source = getenv("BASH_SOURCE");
+        
+        if (bash_source && bash_line) {
+            cout << "CALLER_DEBUG: " << bash_source << ":" << bash_line
+                      << " -> " << operation << " " << paramName << endl;
+        } else {
+             cout << "CALLER_DEBUG: " << script_name
+                      << " -> " << operation << " " << paramName << endl;
+        }
+    }
+    else {
+        cerr << "CALLER_DEBUG: Failed to open cmdline file for parent process." << endl;
+    }
+}
 
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
@@ -109,6 +151,7 @@ static DATA_TYPE convertType(char type)
 */
 static int getAttribute(char * const paramName)
 {
+   logCallerInfo("getAttribute", paramName);
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
        tr181ErrorCode_t status = getLocalParam(id, paramName, &param);
@@ -125,7 +168,8 @@ static int getAttribute(char * const paramName)
     }
 
    RFC_ParamData_t param;
-   WDMP_STATUS status = getRFCParameter(id, paramName, &param);
+   //WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param, __FILE__, __LINE__);
+    WDMP_STATUS status = getRFCParameter(id, paramName, &param);
 
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
