@@ -258,9 +258,11 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
    if(!tr69hostif_http_server_ready)
    {
+      std::cout << "akshay inside tr69hostif_http_server_ready" << std::endl;
       ifstream ifs_rfc("/tmp/.tr69hostif_http_server_ready");
       if(!ifs_rfc.is_open())
       {
+         std::cout << "akshay inside ifs_rfc.is_open()" << std::endl;
 #ifdef TEMP_LOGGING
          logofs << prefix() << __FUNCTION__ << ": file /tmp/.tr69hostif_http_server_ready doesn't exist, http server isn't ready yet" << endl;
 #endif
@@ -297,6 +299,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
       }
       else
       {
+          std::cout << "akshay inside ifs_rfc.is_open() else" << std::endl;
          ifs_rfc.close();
 #ifdef TEMP_LOGGING
          logofs << prefix() << __FUNCTION__ << ": http server is ready" << endl;
@@ -332,35 +335,45 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
        if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
-           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);
+           std::cout << "akshay curl_easy_setopt CURLOPT_HTTPHEADER failed" << std::endl;
        }	       
 
        if(curl_easy_setopt(curl_handle, CURLOPT_URL, url) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_URL\n", __FUNCTION__, __LINE__);
+             std::cout << "akshay curl_easy_setopt CURLOPT_URL failed" << std::endl;
        } 	       
        if(curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET") != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CUSTOMREQUEST\n", __FUNCTION__, __LINE__); 
+           std::cout << "akshay curl_easy_setopt CURLOPT_CUSTOMREQUEST failed" << std::endl;
        }	       
        if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length()) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDSIZE\n", __FUNCTION__, __LINE__); 
+             std::cout << "akshay curl_easy_setopt CURLOPT_POSTFIELDSIZE failed" << std::endl;
        }
        if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str()) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDS\n", __FUNCTION__, __LINE__); 
+             std::cout << "akshay curl_easy_setopt CURLOPT_POSTFIELDS failed" << std::endl;
        }
        if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_FOLLOWLOCATION\n", __FUNCTION__, __LINE__);  
+               std::cout << "akshay curl_easy_setopt CURLOPT_FOLLOWLOCATION failed" << std::endl;
        }
        if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEFUNCTION\n", __FUNCTION__, __LINE__); 
+             std::cout << "akshay curl_easy_setopt CURLOPT_WRITEFUNCTION failed" << std::endl;
        }		       
        if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
+             std::cout << "akshay curl_easy_setopt CURLOPT_WRITEDATA failed" << std::endl;
        }       
        if(curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTION_TIMEOUT) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CONNECTTIMEOUT\n", __FUNCTION__, __LINE__);
+             std::cout << "akshay curl_easy_setopt CURLOPT_CONNECTTIMEOUT failed" << std::endl;
        }
        if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TRANSFER_TIMEOUT) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_TIMEOUT\n", __FUNCTION__, __LINE__);   
+           std::cout << "akshay curl_easy_setopt CURLOPT_TIMEOUT failed" << std::endl;
        }	       
 
        res = curl_easy_perform(curl_handle);
@@ -370,7 +383,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
        std::cout << "akshay value of curl res = " << res << std::endl;
-         std::cout << "akshay value of http_response_code = " << http_code << std::endl;
+       std::cout << "akshay value of http_response_code = " << http_code << std::endl;
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
