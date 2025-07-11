@@ -80,7 +80,7 @@ int main()
 
     return 0;
 }
+#endif
 #ifdef __cplusplus
 }
-#endif
 #endif
