@@ -70,7 +70,7 @@ echo "********************"
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
     lcov --capture --directory . --base-directory . --output-file coverage.info
-    lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file coverage.info
+    lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info \
          '*/rfc/rfcMgr/*' \
          '*/rfc/rfcapi/*' \
