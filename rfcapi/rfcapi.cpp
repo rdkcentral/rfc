@@ -145,7 +145,11 @@ WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_Para
 }
 #endif
 
+#if defined(GTEST_ENABLE)
+size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
+#else
 static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
+#endif
 {
    size_t realsize = size * nmemb;
    string temp(static_cast<const char*>(ptr), realsize);

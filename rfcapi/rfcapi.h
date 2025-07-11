@@ -68,6 +68,7 @@ const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
 bool init_rfcdefaults();
+size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream);
 #endif
 #ifdef __cplusplus
 }
