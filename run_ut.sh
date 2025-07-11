@@ -49,8 +49,12 @@ rm ./gtest/rfcMgr_gtest
 automake --add-missing
 autoreconf --install
 
+if [ "$ENABLE_COV" = true ]; then
+    ./configure CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+else
 
-./configure
+    ./configure
+fi
 
 make clean
 
@@ -69,7 +73,7 @@ echo "********************"
 
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
-    lcov --capture --directory . --base-directory . --output-file coverage.info
+    lcov --capture --directory . --base-directory "$TOP_DIR" --output-file coverage.info
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info \
          '*/rfc/rfcMgr/*' \
