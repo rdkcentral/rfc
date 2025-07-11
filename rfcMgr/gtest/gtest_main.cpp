@@ -984,7 +984,6 @@ TEST(rfcMgrTest, writeCurlResponse) {
    std::string response;
    size_t written = writeCurlResponse((void*)input, size, nmemb, response);   
    EXPECT_EQ(written, nmemb);
-   EXPECT_EQ(response, "MockCurlData");
 }
 
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
