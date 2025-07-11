@@ -40,6 +40,7 @@
 using namespace std;
 using namespace rfc;
 
+#define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
 extern bool tr69hostif_http_server_ready;
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
