@@ -977,6 +977,16 @@ TEST(rfcMgrTest, init_rfcdefaults) {
    EXPECT_EQ(result , true);
 }
 
+TEST(rfcMgrTest, writeCurlResponse) {
+   const char* input = "MockCurlData";
+   size_t size = 1;
+   size_t nmemb = strlen(input);
+   std::string response;
+   size_t written = writeCurlResponse((void*)input, size, nmemb, response);   
+   EXPECT_EQ(written, nmemb);
+   EXPECT_EQ(result, "MockCurlData");
+}
+
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
@@ -1105,6 +1115,22 @@ TEST(rfcMgrTest, clearAttribute) {
    int status = clearAttribute(pcParameterName);
    EXPECT_EQ(status , tr181Success);
 }
+
+TEST(rfcMgrTest, clearParam) {
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID ="rfcdefaults";
+   tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
+   EXPECT_EQ(status, tr181Success);
+}
+
+TEST(rfcMgrTest, setParam) {
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
+   char *pcCallerID ="rfcdefaults";
+   const char* pcParameterValue = "1280000";
+   tr181ErrorCode_t status = setParam(pcCallerID, pcParameterName, pcParameterValue);
+   EXPECT_EQ(status, tr181Success);
+}
+
 
 TEST(rfcMgrTest, readFromFile) {
     std::string jsonString = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true}})";

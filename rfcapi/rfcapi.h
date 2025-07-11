@@ -22,6 +22,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <string>
+using std::string;
 
 #define RFCVAR_FILE "/opt/secure/RFC/rfcVariable.ini"
 #define TR181STORE_FILE "/opt/secure/RFC/tr181store.ini"
