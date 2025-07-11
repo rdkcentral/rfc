@@ -71,9 +71,11 @@ if [ $? -ne 0 ]; then
 fi
 echo "********************"
 
+cd $TOP_DIR
+
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
-    lcov --capture --directory . --base-directory "$TOP_DIR" --output-file coverage.info
+    lcov --capture --directory . --base-directory . --output-file coverage.info
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info \
          '*/rfc/rfcMgr/*' \
