@@ -1028,6 +1028,15 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(err_string , " Not writable");
 }
 
+TEST(rfcMgrTest, getValue) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE); 
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+   TR181_ParamData_t pstParam;
+   tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
+   EXPECT_EQ(status, tr181Success);
+   EXPECT_STREQ(pstParam.value, "true");
+}
+
 
 TEST(rfcMgrTest, setValue) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
