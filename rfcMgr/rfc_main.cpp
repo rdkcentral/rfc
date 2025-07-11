@@ -30,6 +30,7 @@ extern "C" {
 #include "breakpad_wrapper.h"
 #endif
 
+#ifndef GTEST_ENABLE
 int main()
 {
     pid_t pid;
@@ -81,4 +82,5 @@ int main()
 }
 #ifdef __cplusplus
 }
+#endif
 #endif
