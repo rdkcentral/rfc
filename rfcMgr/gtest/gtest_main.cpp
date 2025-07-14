@@ -44,6 +44,9 @@ using namespace rfc;
 extern bool tr69hostif_http_server_ready;
 extern int setAttribute(char * const paramName  ,char type, char * value);
 extern int clearAttribute(char * const paramName);
+extern int getAttribute(char * const paramName);
+DATA_TYPE convertType(char type);
+bool getParamType(char * const paramName, DATA_TYPE * paramType);
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode
