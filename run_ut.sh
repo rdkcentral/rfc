@@ -78,6 +78,8 @@ cd ./utils
 
 gcov -f -b ../utils/jsonhandler.cpp
 gcov -f -b ../utils/tr181utils.cpp
+grep -r GTEST_ENABLE tr181utils.o
+nm tr181utils.o | grep clearAttribute
 
 cd $TOP_DIR
 
