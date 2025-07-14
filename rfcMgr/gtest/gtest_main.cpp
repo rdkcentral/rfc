@@ -42,6 +42,9 @@ using namespace rfc;
 
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
 extern bool tr69hostif_http_server_ready;
+extern "C" {
+    int clearAttribute(char * const paramName); // declare it
+}
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode
