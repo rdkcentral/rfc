@@ -85,7 +85,6 @@ tr181ErrorCode_t clearLocalParam(char *pcCallerID, const char* pcParameterName);
 
 tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
 #if defined(GTEST_ENABLE)
-const char * getTR181ErrorString(tr181ErrorCode_t code);
 tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
 tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
 //TR181_PARAM_TYPE getType(DATA_TYPE type);
