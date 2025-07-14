@@ -38,6 +38,7 @@
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
+#include "tr181utils"
 using namespace std;
 
 static char value_type = 'u';
