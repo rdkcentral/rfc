@@ -1123,11 +1123,11 @@ TEST(rfcMgrTest, setAttribute) {
 }
 
 
-TEST(rfcMgrTest, clearAttribute) {
+TEST(rfcMgrTest, CallclearAttribute) {
    //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    int status = clearAttribute(pcParameterName);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 TEST(rfcMgrTest, clearParam) {
