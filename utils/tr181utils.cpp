@@ -63,6 +63,7 @@ inline bool legacyRfcEnabled() {
 bool getParamType(char * const paramName, DATA_TYPE * paramType)
 #else
 static bool getParamType(char * const paramName, DATA_TYPE * paramType)
+#endif
 {
    RFC_ParamData_t param = {0};
    param.type = WDMP_NONE;
@@ -88,6 +89,7 @@ static bool getParamType(char * const paramName, DATA_TYPE * paramType)
 DATA_TYPE convertType(char type)
 #else
 static DATA_TYPE convertType(char type)
+#endif
 {
    DATA_TYPE t;
    switch(type)
@@ -118,6 +120,7 @@ static DATA_TYPE convertType(char type)
 int getAttribute(char * const paramName)
 #else
 static int getAttribute(char * const paramName)
+#endif
 {
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
@@ -160,6 +163,7 @@ static int getAttribute(char * const paramName)
 int setAttribute(char * const paramName  ,char type, char * value)
 #else
 static int setAttribute(char * const paramName  ,char type, char * value)
+#endif
 {
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
@@ -199,6 +203,7 @@ static int setAttribute(char * const paramName  ,char type, char * value)
 int clearAttribute(char * const paramName)
 #else
 static int clearAttribute(char * const paramName)
+#endif
 {
    int status = clearParam(id, paramName);
 
