@@ -105,10 +105,10 @@ if [ "$ENABLE_COV" = true ]; then
     lcov --capture --directory . --base-directory . --output-file coverage.info
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info \
-         './rfcMgr/*' \
-         './rfcapi/*' \
-         './tr181api/*' \
-         './utils/*' \
+         '*/rfcMgr/*' \
+         '*/rfcapi/*' \
+         '*/tr181api/*' \
+         '*/utils/*' \
          --output-file final_coverage.info
     lcov --list final_coverage.info
 fi
