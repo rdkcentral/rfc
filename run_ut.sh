@@ -59,6 +59,8 @@ fi
 make clean
 
 echo "TOP_DIR = $TOP_DIR"
+find . -name "*.gcda" -delete
+find . -name "*.gcno" -delete
 
 echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
@@ -70,9 +72,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "********************"
-cd $TOP_DIR/rfc/utils
-gcov -f -b jsonhandler.cpp
-gcov -f -b tr181utils.cpp
+cd $TOP_DIR
+cd ./utils
+
+gcov -f -b ../utils/jsonhandler.cpp
+gcov -f -b ../utils/tr181utils.cpp
 
 cd $TOP_DIR
 
