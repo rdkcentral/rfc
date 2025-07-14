@@ -1096,14 +1096,14 @@ TEST(rfcMgrTest, getParamType) {
    EXPECT_EQ(status , true);
 }
 
-TEST(rfcMgrTest, convertType) {
+TEST(rfcMgrTest, CallconvertType) {
    char type = 'i';
    DATA_TYPE status = convertType(type);
    EXPECT_EQ(status , WDMP_INT);
 }
 
 
-TEST(rfcMgrTest, getAttribute) {
+TEST(rfcMgrTest, CallgetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini"); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
@@ -1112,7 +1112,7 @@ TEST(rfcMgrTest, getAttribute) {
    EXPECT_EQ(status , tr181Success);
 }
 
-TEST(rfcMgrTest, setAttribute) {
+TEST(rfcMgrTest, CallsetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
@@ -1130,14 +1130,14 @@ TEST(rfcMgrTest, CallclearAttribute) {
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, clearParam) {
+TEST(rfcMgrTest, CallclearParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, setParam) {
+TEST(rfcMgrTest, CallsetParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
    char *pcCallerID ="rfcdefaults";
    const char* pcParameterValue = "1280000";
@@ -1146,7 +1146,7 @@ TEST(rfcMgrTest, setParam) {
 }
 
 
-TEST(rfcMgrTest, readFromFile) {
+TEST(rfcMgrTest, CallreadFromFile) {
     std::string jsonString = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true}})";
     write_on_file("/tmp/test.json", jsonString);    	
     char *result = readFromFile("/tmp/test.json");
@@ -1158,7 +1158,7 @@ TEST(rfcMgrTest, readFromFile) {
     std::remove("/tmp/test.json");
 }
 
-TEST(rfcMgrTest, getArrayNode) {
+TEST(rfcMgrTest, CallgetArrayNode) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     cJSON* root = cJSON_Parse(jsonStr);
     EXPECT_NE(root, nullptr);
