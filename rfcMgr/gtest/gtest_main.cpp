@@ -940,7 +940,13 @@ TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       int result = isDnsResolve(DNS_RESOLV_FILE);
       EXPECT_EQ(result, true);
-} 
+}
+ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
+      EXPECT_EQ(result , 0);
+      delete rfcmgrObj;
+}
 
 TEST(rfcMgrTest, initializeXconf) {
      write_on_file("/tmp/partnerId3.dat", "default-parter");	
@@ -990,6 +996,16 @@ TEST(rfcMgrTest, writeCurlResponse) {
    std::string response;
    size_t written = writeCurlResponse((void*)input, size, nmemb, response);   
    EXPECT_EQ(written, nmemb);
+}
+
+TEST(rfcMgrTest, getRFCParameter) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini");
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
+   char *pcCallerID ="rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   //EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
+   EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
