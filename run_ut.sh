@@ -73,11 +73,18 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "********************"
+nm rfcMgr_gtest | c++filt | grep clearAttribute
+
 cd $TOP_DIR
 cd ./utils
 
-gcov -f -b ../utils/jsonhandler.cpp
-gcov -f -b ../utils/tr181utils.cpp
+gcov -f -b ./utils/jsonhandler.cpp
+gcov -f -b ./utils/tr181utils.cpp
+grep -A2 "clearAttribute" utils/tr181utils.cpp
+
+gcov -v
+gcov -f -b -o ./utils ./utils/tr181utils.cpp
+
 grep -r GTEST_ENABLE tr181utils.o
 nm tr181utils.o | grep clearAttribute
 
