@@ -70,6 +70,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "********************"
+cd $TOP_DIR/rfc/utils
+gcov -f -b jsonhandler.cpp
+gcov -f -b tr181utils.cpp
 
 cd $TOP_DIR
 
