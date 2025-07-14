@@ -89,6 +89,10 @@ grep -r GTEST_ENABLE tr181utils.o
 nm tr181utils.o | grep clearAttribute
 
 cd $TOP_DIR
+cd ./tr181api
+gcov -b -f -p tr181api.cpp
+
+cd $TOP_DIR
 
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
