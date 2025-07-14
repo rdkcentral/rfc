@@ -77,6 +77,8 @@ nm rfcMgr_gtest | c++filt | grep clearAttribute
 
 cd $TOP_DIR
 cd ./utils
+nm tr181utils.o | grep clearAttribute
+
 
 gcov -f -b jsonhandler.cpp
 gcov -f -b tr181utils.cpp
@@ -91,6 +93,7 @@ nm tr181utils.o | grep clearAttribute
 cd $TOP_DIR
 cd ./tr181api
 gcov -b -f -p tr181api.cpp
+
 
 cd $TOP_DIR
 

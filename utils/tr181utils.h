@@ -26,13 +26,22 @@
 **/
 #ifndef TR181UTILS_H
 #define TR181UTILS_H
+#include <string.h>
+#include <stdlib.h>
 
-#if defined(GTEST_ENABLE)
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 bool getParamType(char * const paramName, DATA_TYPE * paramType);
 DATA_TYPE convertType(char type);
 int getAttribute(char * const paramName);
 int setAttribute(char * const paramName  ,char type, char * value);
 int clearAttribute(char * const paramName);
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif // TR181UTILS_H
