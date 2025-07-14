@@ -59,11 +59,7 @@ inline bool legacyRfcEnabled() {
 *@param [out] paramType Holds the value of paramtype if call is successful
 *@returns true if the call succeded, false otherwise.
 */
-#if defined(GTEST_ENABLE)
 bool getParamType(char * const paramName, DATA_TYPE * paramType)
-#else
-static bool getParamType(char * const paramName, DATA_TYPE * paramType)
-#endif
 {
    RFC_ParamData_t param = {0};
    param.type = WDMP_NONE;
@@ -85,11 +81,7 @@ static bool getParamType(char * const paramName, DATA_TYPE * paramType)
 * Convert the user input to enumeration
 * @param [in] type character value, can be (s)tring, (i)integer or (b) boolean
 */
-#if defined(GTEST_ENABLE)
 DATA_TYPE convertType(char type)
-#else
-static DATA_TYPE convertType(char type)
-#endif
 {
    DATA_TYPE t;
    switch(type)
@@ -116,11 +108,7 @@ static DATA_TYPE convertType(char type)
 * @param [in] paramName the parameter whose properties are retrieved
 * @return 0 if succesfully retrieve value, 1 otherwise
 */
-#if defined(GTEST_ENABLE)
 int getAttribute(char * const paramName)
-#else	
-static int getAttribute(char * const paramName)
-#endif	
 {
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
@@ -159,11 +147,7 @@ static int getAttribute(char * const paramName)
 * @param [in] value  value of the property
 * @return 0 if success, 1 otherwise
 */
-#if defined(GTEST_ENABLE)
 int setAttribute(char * const paramName  ,char type, char * value)
-#else
-static int setAttribute(char * const paramName  ,char type, char * value)
-#endif
 {
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
@@ -199,11 +183,7 @@ static int setAttribute(char * const paramName  ,char type, char * value)
 * @param [in] paramName the parameter whose properties are retrieved
 * @return 0 if succesfully clears value, 1 otherwise
 */
-#if defined(GTEST_ENABLE)
 int clearAttribute(char * const paramName)
-#else	
-static int clearAttribute(char * const paramName)
-#endif
 {
    int status = clearParam(id, paramName);
 
