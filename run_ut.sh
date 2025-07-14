@@ -57,10 +57,11 @@ else
 fi
 
 make clean
-
-echo "TOP_DIR = $TOP_DIR"
 find . -name "*.gcda" -delete
 find . -name "*.gcno" -delete
+
+
+echo "TOP_DIR = $TOP_DIR"
 
 echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
