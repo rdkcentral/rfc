@@ -78,8 +78,8 @@ nm rfcMgr_gtest | c++filt | grep clearAttribute
 cd $TOP_DIR
 cd ./utils
 
-gcov -f -b ./utils/jsonhandler.cpp
-gcov -f -b ./utils/tr181utils.cpp
+gcov -f -b jsonhandler.cpp
+gcov -f -b tr181utils.cpp
 grep -A2 "clearAttribute" utils/tr181utils.cpp
 
 gcov -v
@@ -96,13 +96,19 @@ cd $TOP_DIR
 
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
+    echo "PWD: $(pwd)"
+    echo "Listing all gcda files:"
+    find . -name '*.gcda'
+    echo "Listing all gcno files:"
+    find . -name '*.gcno'
+
     lcov --capture --directory . --base-directory . --output-file coverage.info
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info \
-         '*/rfc/rfcMgr/*' \
-         '*/rfc/rfcapi/*' \
-         '*/rfc/tr181api/*' \
-         '*/rfc/utils/*' \
+         'rfcMgr/*' \
+         'rfcapi/*' \
+         'tr181api/*' \
+         'utils/*' \
          --output-file final_coverage.info
     lcov --list final_coverage.info
 fi
