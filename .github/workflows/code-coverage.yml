@@ -26,7 +26,7 @@ jobs:
       - name: Caculate the code coverage summary
         run: |
           cd ./rfcMgr/gtest
-          lcov --list coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
+          lcov --list rfc_coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
           cd -
         
       - name: Update the coverage report to Pull request using actions

@@ -75,8 +75,11 @@ fi
 echo "********************"
 #nm rfcMgr_gtest | c++filt | grep clearAttribute
 ./rfcMgr_gtest --gtest_filter=*clearAttribute* --gtest_output=stdout
+./rfcMgr_gtest --gtest_filter=*setAttribute* --gtest_output=stdout
 
 nm --demangle rfcMgr_gtest | grep clearAttribute
+
+nm --demangle rfcMgr_gtest | grep setAttribute
 echo "********************End of nm cmd"
 cd $TOP_DIR
 cd ./utils
@@ -108,8 +111,8 @@ if [ "$ENABLE_COV" = true ]; then
          '*/rfcapi/*' \
          '*/tr181api/*' \
          '*/utils/*' \
-         --output-file final_coverage.info
-    lcov --list final_coverage.info
+         --output-file rfc_coverage.info
+    lcov --list rfc_coverage.info
 fi
 
 cd $TOP_DIR
