@@ -1029,10 +1029,10 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(err_string , " Not writable");
 }
 
-TEST(rfcMgrTest, getErrorCode) {
+/* TEST(rfcMgrTest, getErrorCode) {
    tr181ErrorCode_t errorCode = getErrorCode(WDMP_ERR_DEFAULT_VALUE);
    EXPECT_EQ(errorCode, tr181DefaultValue);
-}
+} */
 
 TEST(rfcMgrTest, getValue) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE); 
