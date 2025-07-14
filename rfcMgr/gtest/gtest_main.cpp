@@ -911,7 +911,7 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
       write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
-      EXPECT_EQ(result , true);
+      EXPECT_EQ(result, true);
       delete rfcmgrObj;
 }
 
@@ -919,7 +919,7 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
 TEST(rfcMgrTest, IsIarmBusConnected) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       bool result =  rfcmgrObj->IsIarmBusConnected();
-      EXPECT_EQ(result , true);
+      EXPECT_EQ(result, true);
       delete rfcmgrObj;
 }
 
@@ -927,14 +927,14 @@ TEST(rfcMgrTest, InitializeIARM) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       bool result = true;
       rfcmgrObj->InitializeIARM();
-      EXPECT_EQ(result , true);
+      EXPECT_EQ(result, true);
       delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, isDnsResolve) {
       write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
       int result = isDnsResolve(DNS_RESOLV_FILE);
-      EXPECT_EQ(result , true);
+      EXPECT_EQ(result, true);
 } 
 
 TEST(rfcMgrTest, initializeXconf) {
@@ -959,23 +959,23 @@ TEST(rfcMgrTest, initializeXconf) {
 TEST(rfcMgrTest, CurrentRunningInst) {
       //write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "RFC_LOCK_FILE");
       bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
-      EXPECT_EQ(result , false);
+      EXPECT_EQ(result, false);
 }
 
 
 TEST(rfcMgrTest, isRFCEnabled) {
      bool result = isRFCEnabled("Instance"); 
-     EXPECT_EQ(result , false);
+     EXPECT_EQ(result, false);
 }
 
 TEST(rfcMgrTest, getRFCErrorString) {
     const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
-    EXPECT_STREQ(err_string , " Method Not Supported");
+    EXPECT_STREQ(err_string, " Method Not Supported");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
    bool result = init_rfcdefaults();
-   EXPECT_EQ(result , true);
+   EXPECT_EQ(result, true);
 }
 
 TEST(rfcMgrTest, writeCurlResponse) {
@@ -994,7 +994,7 @@ TEST(rfcMgrTest, getRFCParameter_HTTP) {
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_STREQ(pstParamData.value, "true");
-   EXPECT_EQ(result , WDMP_SUCCESS);
+   EXPECT_EQ(result, WDMP_SUCCESS);
 }
 
 TEST(rfcMgrTest, getRFCParameter_wildcard) {
@@ -1002,7 +1002,7 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(result , WDMP_FAILURE);
+   EXPECT_EQ(result, WDMP_FAILURE);
 }
 
 TEST(rfcMgrTest, setRFCParameter_wildcard) {
@@ -1011,7 +1011,7 @@ TEST(rfcMgrTest, setRFCParameter_wildcard) {
    const char* pcParameterValue = NULL;
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
-   EXPECT_EQ(result , WDMP_FAILURE);
+   EXPECT_EQ(result, WDMP_FAILURE);
 }
 
 TEST(rfcMgrTest, setRFCParameter) {
@@ -1020,7 +1020,7 @@ TEST(rfcMgrTest, setRFCParameter) {
    const char* pcParameterValue = "https://ssr.ccp.xcal.tv";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
-   EXPECT_EQ(result , WDMP_SUCCESS);
+   EXPECT_EQ(result, WDMP_SUCCESS);
 }
 
 
@@ -1048,7 +1048,7 @@ TEST(rfcMgrTest, setValue) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
    const char* pcParamValue ="comcast";    
    tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 TEST(rfcMgrTest, setLocalParam) {
@@ -1056,7 +1056,7 @@ TEST(rfcMgrTest, setLocalParam) {
    char *pcCallerID ="rfcdefaults";
    const char* pcParamValue ="Xfinity";
    tr181ErrorCode_t status = setLocalParam(pcCallerID, pcParameterName, pcParamValue);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 
@@ -1065,7 +1065,7 @@ TEST(rfcMgrTest, clearLocalParam) {
    char *pcCallerID ="rfcdefaults";
    const char* pcParamValue ="Xfinity";
    tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 
@@ -1075,7 +1075,7 @@ TEST(rfcMgrTest, getLocalParam) {
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_STREQ(pstParamData.value, "comcast"); 
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 
@@ -1084,7 +1084,7 @@ TEST(rfcMgrTest, getParam) {
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 TEST(rfcMgrTest, getParamType) {
@@ -1093,33 +1093,33 @@ TEST(rfcMgrTest, getParamType) {
    char *pcCallerID ="rfcdefaults";
    DATA_TYPE paramType;
    bool status = getParamType(pcParameterName, &paramType);
-   EXPECT_EQ(status , true);
+   EXPECT_EQ(status, true);
 }
 
-TEST(rfcMgrTest, convertType) {
+TEST(rfcMgrTest, CallconvertType) {
    char type = 'i';
    DATA_TYPE status = convertType(type);
-   EXPECT_EQ(status , WDMP_INT);
+   EXPECT_EQ(status, WDMP_INT);
 }
 
 
-TEST(rfcMgrTest, getAttribute) {
+TEST(rfcMgrTest, CallgetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini"); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    int status = getAttribute(pcParameterName);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, setAttribute) {
+TEST(rfcMgrTest, CallsetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    char * value = "false";
    TR181_ParamData_t pstParamData;
    int status = setAttribute(pcParameterName, 'b', value);
-   EXPECT_EQ(status , tr181Success);
+   EXPECT_EQ(status, tr181Success);
 }
 
 
@@ -1130,14 +1130,14 @@ TEST(rfcMgrTest, CallclearAttribute) {
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, clearParam) {
+TEST(rfcMgrTest, CallclearParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, setParam) {
+TEST(rfcMgrTest, CallsetParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
    char *pcCallerID ="rfcdefaults";
    const char* pcParameterValue = "1280000";
@@ -1146,7 +1146,7 @@ TEST(rfcMgrTest, setParam) {
 }
 
 
-TEST(rfcMgrTest, readFromFile) {
+TEST(rfcMgrTest, CallreadFromFile) {
     std::string jsonString = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true}})";
     write_on_file("/tmp/test.json", jsonString);    	
     char *result = readFromFile("/tmp/test.json");
@@ -1158,7 +1158,7 @@ TEST(rfcMgrTest, readFromFile) {
     std::remove("/tmp/test.json");
 }
 
-TEST(rfcMgrTest, getArrayNode) {
+TEST(rfcMgrTest, CallgetArrayNode) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     cJSON* root = cJSON_Parse(jsonStr);
     EXPECT_NE(root, nullptr);
