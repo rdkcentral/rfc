@@ -48,7 +48,7 @@ extern DATA_TYPE (*getConvertTypeFunc())(char);
 extern int (*getClearAttributeFunc())(char * const);
 extern int (*getSetAttributeFunc())(char * const, char, char *);
 extern int (*getGetAttributeFunc())(char * const);
-extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string& stream);
+extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
 #endif
 
 
