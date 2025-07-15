@@ -17,16 +17,29 @@
 # limitations under the License.
 ##########################################################################
 
-bin_PROGRAMS = rfcMgr
+bin_PROGRAMS = rfcMgr rfcInit
 
 rfcMgr_SOURCES = rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp rfc_xconf_handler.cpp xconf_handler.cpp
 rfcMgr_CPPFLAGS = -std=c++17 -Wall -Werror -DRDK_LOGGER -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(cjson_CFLAGS) $(curl_CFLAGS) $(CFLAGS)
+
+rfcInit_SOURCES = rfcInit.cpp rfc_common.h
+rfcInit_CPPFLAGS = -std=c++17 -Wall -Werror -DRDK_LOGGER \
+                   -I${top_srcdir}/rfcMgr \
+                   -I${top_srcdir}/rfcapi/ \
+                   -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk \
+                   -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmmgrs \
+                   -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus
+
 AM_LDFLAGS = -L$(PKG_CONFIG_SYSROOT_DIR)/$(libdir)
 AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
 AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper
 
+rfcInit_LDFLAGS = -pthread
+rfcInit_LDADD = -lrdkloggers
+
 if IS_IARMBUS_ENABLED
 rfcMgr_CPPFLAGS += $(IARMBUS_EVENT_FLAG) -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus
 AM_LDFLAGS += -lIARMBus
+rfcInit_CPPFLAGS += $(IARMBUS_EVENT_FLAG)
+rfcInit_LDADD += -lIARMBus
 endif
-
