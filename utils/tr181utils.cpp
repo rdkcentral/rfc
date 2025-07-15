@@ -347,5 +347,11 @@ int (*getGetAttributeFunc())(char * const)
 {
     return &getAttribute;
 }
+
+int (*getparseargsFunc())(int argc, char * argv[])
+{
+    return &parseargs;
+}
+
 #endif
 

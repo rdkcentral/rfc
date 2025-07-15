@@ -49,6 +49,7 @@ extern int (*getClearAttributeFunc())(char * const);
 extern int (*getSetAttributeFunc())(char * const, char, char *);
 extern int (*getGetAttributeFunc())(char * const);
 extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
+extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
 
 enum ValueFormat {
@@ -640,100 +641,102 @@ TEST(rfcMgrTest, IsDirectBlocked) {
 
 TEST(rfcMgrTest, getRFCName) {
     JSON *pJson = ParseJsonStr(xconfResp);
-    if(pJson)
-    {
+    if (pJson) {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
         JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
-        if(features)
-        {  
-           int numFeatures = GetJsonArraySize(features);
-           if(numFeatures)
-	   {
 
-	     JSON* feature = GetJsonArrayItem(features, 1);
-	     RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
-             rfcObj->getRFCName(feature,rfccObj);
-	     EXPECT_EQ(rfccObj->name, "ARU");
-             delete rfccObj;
-	   }
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
 
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getRFCName(feature, rfccObj);
+                EXPECT_EQ(rfccObj->name, "ARU");
+
+                delete rfccObj;
+            }
         }
+
         delete rfcObj;
     }
 }
 
+
 TEST(rfcMgrTest, getFeatureInstance) {
     JSON *pJson = ParseJsonStr(xconfResp);
-    if(pJson)
-    {
+    if (pJson) {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
         JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
-        if(features)
-        {
-           int numFeatures = GetJsonArraySize(features);
-           if(numFeatures)
-           {
 
-            JSON* feature = GetJsonArrayItem(features, 1);
-            RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
-	    rfcObj->getFeatureInstance(feature,rfccObj);
-	    EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
-	    delete rfccObj;
-           }
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
 
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getFeatureInstance(feature, rfccObj);
+                EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+
+                delete rfccObj;
+            }
         }
+
         delete rfcObj;
     }
 }
 
 TEST(rfcMgrTest, getRFCEnableParam) {
     JSON *pJson = ParseJsonStr(xconfResp);
-    if(pJson)
-    {
+    if (pJson) {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
         JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
-        if(features)
-        {
-           int numFeatures = GetJsonArraySize(features);
-           if(numFeatures)
-           {
 
-            JSON* feature = GetJsonArrayItem(features, 1);
-            RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
-	    rfcObj->getRFCEnableParam(feature,rfccObj);
-            EXPECT_EQ(rfccObj->enable, true);
-	    delete rfccObj;
-           }
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
 
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getRFCEnableParam(feature, rfccObj);
+                EXPECT_EQ(rfccObj->enable, true);
+
+                delete rfccObj;
+            }
         }
+
         delete rfcObj;
     }
 }
+
 
 TEST(rfcMgrTest, getEffectiveImmediateParam) {
     JSON *pJson = ParseJsonStr(xconfResp);
-    if(pJson)
-    {
+    if (pJson) {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
         JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
-        if(features)
-        {
-           int numFeatures = GetJsonArraySize(features);
-           if(numFeatures)
-           {
 
-             JSON* feature = GetJsonArrayItem(features, 1);
-             RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
-	     rfcObj->getEffectiveImmediateParam(feature,rfccObj);
-	     EXPECT_EQ(rfccObj->effectiveImmediate, false);
-	     delete rfccObj;
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
 
-           }
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 
+                rfcObj->getEffectiveImmediateParam(feature, rfccObj);
+                EXPECT_EQ(rfccObj->effectiveImmediate, false);
+
+                delete rfccObj;
+            }
         }
+
         delete rfcObj;
     }
 }
+
 
 TEST(rfcMgrTest, InitDownloadData) {
     DownloadData DwnLoc;
@@ -953,12 +956,12 @@ TEST(rfcMgrTest, writeCurlResponse) {
 }
 
 TEST(rfcMgrTest, getRFCParameter) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini", Quoted);
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini", Plain);
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   //EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
+   EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
@@ -1010,12 +1013,12 @@ TEST(rfcMgrTest, getTR181ErrorString) {
 } */
 
 TEST(rfcMgrTest, getValue) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Quoted); 
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain); 
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
    TR181_ParamData_t pstParam;
    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
    EXPECT_EQ(status, tr181Success);
-   //EXPECT_STREQ(pstParam.value, "true");
+   EXPECT_STREQ(pstParam.value, "true");
 }
 
 
@@ -1084,7 +1087,7 @@ TEST(rfcMgrTest, CallgetAttribute) {
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
    int status = getGetAttributeFunc()(pcParameterName);
-   EXPECT_EQ(status, tr181Success);
+   EXPECT_EQ(status, 0);
 }
 
 TEST(rfcMgrTest, CallsetAttribute) {
@@ -1093,7 +1096,7 @@ TEST(rfcMgrTest, CallsetAttribute) {
    char *pcCallerID ="rfcdefaults";
    char * value = const_cast<char*>("false");
    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
-   EXPECT_EQ(status, tr181Success);
+   EXPECT_EQ(status, 0);
 }
 
 
@@ -1101,7 +1104,26 @@ TEST(rfcMgrTest, CallclearAttribute) {
    //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    int status = getClearAttributeFunc()(pcParameterName);
-   EXPECT_EQ(status, tr181Success);
+   EXPECT_EQ(status, 0);
+}
+
+TEST(rfcMgrTest, Callparseargs) {
+   char* argv[] = { "tr181", "-n", "localonly" };
+   int argc = 3;
+   int status = getparseargsFunc()(argc, argv);	
+   EXPECT_EQ(status, 0);
+}
+
+TEST(rfcMgrTest, CallsetAttribute_args) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
+   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
+   char *pcCallerID ="rfcdefaults";
+   char * value = const_cast<char*>("false");
+   char* argv[] = { "tr181", "-n", "localonly" };
+   int argc = 3;
+   int status = getparseargsFunc()(argc, argv);
+   int status = getSetAttributeFunc()(pcParameterName, 'b', value);
+   EXPECT_EQ(status, 0);
 }
 
 TEST(rfcMgrTest, CallclearParam) {
