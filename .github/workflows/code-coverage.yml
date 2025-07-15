@@ -18,10 +18,6 @@ jobs:
       - name: Run unit tests with coverage flags enabled
         run: |
           sh run_ut.sh --enable-cov
- 
-      - name: List generated .gcda files
-        run: |
-          find . -name "*.gcda" | grep -E "rfcapi|tr181api|utils|rfcMgr" || echo "No .gcda files found!"
 
       - name: Caculate the code coverage summary
         run: |

@@ -22,8 +22,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <string>
-using std::string;
 
 #define RFCVAR_FILE "/opt/secure/RFC/rfcVariable.ini"
 #define TR181STORE_FILE "/opt/secure/RFC/tr181store.ini"
@@ -69,7 +67,9 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
+#if defined(GTEST_ENABLE)
 bool init_rfcdefaults();
+#endif
 #endif
 #ifdef __cplusplus
 }

@@ -217,10 +217,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ProcessXconfUrl);
     FRIEND_TEST(rfcMgrTest, updateTR181File);
     FRIEND_TEST(rfcMgrTest, processXconfResponseConfigDataPart);
-
-
-
-
 #endif
 };
 

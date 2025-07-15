@@ -51,20 +51,40 @@ extern int (*getGetAttributeFunc())(char * const);
 extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
 #endif
 
+enum ValueFormat {
+    Plain,      // key=value
+    Quoted      // key="value"
+};
 
-void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
+void write_on_file(const std::string& filePath, const std::string& content)
+{
+   std::ofstream outfile(filePath, std::ios::app);
+   if (outfile.is_open()) {
+        outfile << content<< "\n" ;
+        outfile.close();
+    } else {
+        std::cerr << "Could not open file for appending.\n";
+    }
+
+}
+
+void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
     // Check if the file exists and is openable in read mode
     std::ifstream fileStream(filePath);
     bool found = false;
     std::string line;
     std::vector<std::string> lines;
 
+    std::string formattedLine = (format == Quoted)
+        ? key + "=\"" + value + "\""
+        : key + "=" + value;
+
     if (fileStream.is_open()) {
         while (getline(fileStream, line)) {
             // Check if the current line contains the key
             if (line.find(key) != std::string::npos && line.substr(0, key.length()) == key) {
                 // Replace the line with the new key-value pair
-                line = key + "=\"" + value + "\"";
+                line = formattedLine;
                 found = true;
             }
             lines.push_back(line);
@@ -76,7 +96,7 @@ void writeToTr181storeFile(const std::string& key, const std::string& value, con
 
     // If the key was not found in an existing file or the file did not exist, add it to the vector
     if (!found) {
-        lines.push_back(key + "=\"" + value + "\"");
+        lines.push_back(formattedLine);
     }
 
     // Open the file in write mode to overwrite old content or create new file
@@ -111,22 +131,6 @@ std::string readFileContent(const std::string& filePath) {
     return "";  // Return empty string if file couldn't be opened
 }
 
-std::map<std::string, std::string> parseQueryString(std::stringstream& queryStream) {
-    std::string query = queryStream.str();  // Extract string from stringstream
-    std::map<std::string, std::string> params;
-    std::stringstream ss(query);
-    std::string pair;
-
-    while (std::getline(ss, pair, '&')) {
-        size_t pos = pair.find('=');
-        if (pos != std::string::npos) {
-            std::string key = pair.substr(0, pos);
-            std::string value = pair.substr(pos + 1);
-            params[key] = value;
-        }
-    }
-    return params;
-}
 
 // Helper function to check file existence
 bool file_exists(const char* filename) {
@@ -266,58 +270,6 @@ TEST(rfcMgrTest, removeSubstring) {
     EXPECT_EQ(ret, 0);
 }
 
-void writeToDeviceproperitesFile(const std::string& key, const std::string& value, const std::string& filePath)
-{
-    std::ifstream fileStream(filePath);
-    bool found = false;
-    std::string line;
-    std::vector<std::string> lines;
-
-    if (fileStream.is_open()) {
-        while (getline(fileStream, line)) {
-            // Check if the current line contains the key
-            if (line.find(key) != std::string::npos && line.substr(0, key.length()) == key) {
-                // Replace the line with the new key-value pair
-                line = key + "=" + value;
-                found = true;
-            }
-            lines.push_back(line);
-        }
-        fileStream.close();
-    } else {
-        std::cout << "File does not exist or cannot be opened for reading. It will be created." << std::endl;
-    }
-
-    // If the key was not found in an existing file or the file did not exist, add it to the vector
-    if (!found) {
-        lines.push_back(key + "=" + value);
-    }
-
-    // Open the file in write mode to overwrite old content or create new file
-    std::ofstream outFileStream(filePath);
-    if (outFileStream.is_open()) {
-        for (const auto& outputLine : lines) {
-            outFileStream << outputLine << std::endl;
-        }
-        outFileStream.close();
-        std::cout << "Configuration updated successfully." << std::endl;
-    } else {
-        std::cout << "Error opening file for writing." << std::endl;
-    }
-}
-void write_on_file(const std::string& filePath, const std::string& content)
-{ 
-   std::ofstream outfile(filePath, std::ios::app);
-   if (outfile.is_open()) {
-        //outfile << "\n" << content;  // Add a newline before appending
-        outfile << content<< "\n" ;
-        outfile.close();
-    } else {
-        std::cerr << "Could not open file for appending.\n";
-    }
-    	
-}
-
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
     /*Create Object for Xconf Handler */
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -367,10 +319,10 @@ TEST(rfcMgrTest, getLastProcessedFirmware) {
 }
 
 TEST(rfcMgrTest, getAccountID) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->GetAccountID();
-    EXPECT_EQ(rfcObj->_accountId, "4123705941507160514");
+    EXPECT_EQ(rfcObj->_accountId, "TestAccount");
     delete rfcObj;
 }
 
@@ -427,7 +379,7 @@ TEST(rfcMgrTest, getServURL) {
 }
 
 TEST(rfcMgrTest, getBootstrapXconfUrl) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string boot_strap_xconf_url;
     int ret = rfcObj->GetBootstrapXconfUrl(boot_strap_xconf_url);
@@ -438,7 +390,7 @@ TEST(rfcMgrTest, getBootstrapXconfUrl) {
 }
 
 TEST(rfcMgrTest, checkBootstrap) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool is_Bootstrap = rfcObj->checkBootstrap(BS_STORE_FILENAME, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl");
     
@@ -447,7 +399,7 @@ TEST(rfcMgrTest, checkBootstrap) {
 }
 
 TEST(rfcMgrTest, isXconfSelectorSlotProd) {
-    writeToTr181storeFile(XCONF_SELECTOR_KEY_STR, "prod", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile(XCONF_SELECTOR_KEY_STR, "prod", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool ret = rfcObj->isXconfSelectorSlotProd();
     
@@ -457,8 +409,8 @@ TEST(rfcMgrTest, isXconfSelectorSlotProd) {
 }
 
 TEST(rfcMgrTest, getStoredHashAndTime) {
-    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
-    writeToTr181storeFile(RFC_CONFIG_SET_TIME, "TestConfigSetTime", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini", Quoted);
+    writeToTr181storeFile(RFC_CONFIG_SET_TIME, "TestConfigSetTime", "/opt/secure/RFC/tr181store.ini", Quoted);
 
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string hashValue;
@@ -585,7 +537,7 @@ TEST(rfcMgrTest, getDefaultValue) {
 }
 
 TEST(rfcMgrTest, checkWhoamiSupport) {
-    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
@@ -593,7 +545,7 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
 }
 
 TEST(rfcMgrTest, isDebugServicesEnabled) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini");    
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);    
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->isDebugServicesEnabled();
     delete rfcObj;
@@ -601,7 +553,7 @@ TEST(rfcMgrTest, isDebugServicesEnabled) {
 }
 
 TEST(rfcMgrTest, isMaintenanceEnabled) {
-    writeToDeviceproperitesFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties");
+    writeToTr181storeFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->isMaintenanceEnabled();
     delete rfcObj;
@@ -609,8 +561,8 @@ TEST(rfcMgrTest, isMaintenanceEnabled) {
 }
 
 TEST(rfcMgrTest, GetOsClass) {
-    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->GetOsClass();
     EXPECT_EQ(rfcObj->_osclass, "TestOsClass");
@@ -636,9 +588,9 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 
 
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
-    writeToDeviceproperitesFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties");
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini");
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini". Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky"; 
     rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
@@ -648,14 +600,12 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     rfcObj->GetAccountID();
     rfcObj->GetXconfSelect();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
-    auto params = parseQueryString(url);
-    int version = std::stoi(params["version"]);
     EXPECT_EQ(url.str(), "https://xconf.xdp.eu-1.xcal.tv?estbMacAddress=&firmwareVersion=&env=&model=&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=sky&osClass=TestOsClass&accountId=4123705941507160514&Experience=&version=2");  
     delete rfcObj;
 }
 
 TEST(rfcMgrTest, isConfigValueChange) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable", "false", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable", "false", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
     std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
@@ -801,7 +751,7 @@ TEST(rfcMgrTest, set_RFCProperty) {
     std::string value = "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings";
     //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string xconfURL = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
-    writeToTr181storeFile(xconfURL, "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile(xconfURL, "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings", "/opt/secure/RFC/tr181store.ini", Quoted);
     WDMP_STATUS status = rfcObj->set_RFCProperty(name, xconfURL, value);
     EXPECT_EQ(status, WDMP_SUCCESS);
     delete rfcObj;
@@ -1003,7 +953,7 @@ TEST(rfcMgrTest, writeCurlResponse) {
 }
 
 TEST(rfcMgrTest, getRFCParameter) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini");
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini", Quoted);
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;
@@ -1060,7 +1010,7 @@ TEST(rfcMgrTest, getTR181ErrorString) {
 } */
 
 TEST(rfcMgrTest, getValue) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE); 
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Quoted); 
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
    TR181_ParamData_t pstParam;
    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
@@ -1113,7 +1063,7 @@ TEST(rfcMgrTest, getParam) {
 }
 
 TEST(rfcMgrTest, getParamType) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    DATA_TYPE paramType;
@@ -1129,7 +1079,7 @@ TEST(rfcMgrTest, CallconvertType) {
 
 
 TEST(rfcMgrTest, CallgetAttribute) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini"); 
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
@@ -1138,7 +1088,7 @@ TEST(rfcMgrTest, CallgetAttribute) {
 }
 
 TEST(rfcMgrTest, CallsetAttribute) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    char * value = const_cast<char*>("false");

@@ -96,7 +96,6 @@ class RFCManager {
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
-	int term_event_handler(void);
     }; // end of RFCManager Class
 } // end of namespace RFC
 
