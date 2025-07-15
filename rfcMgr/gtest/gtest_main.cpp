@@ -48,6 +48,7 @@ extern DATA_TYPE (*getConvertTypeFunc())(char);
 extern int (*getClearAttributeFunc())(char * const);
 extern int (*getSetAttributeFunc())(char * const, char, char *);
 extern int (*getGetAttributeFunc())(char * const);
+extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string& stream);
 #endif
 
 
@@ -997,7 +998,7 @@ TEST(rfcMgrTest, writeCurlResponse) {
    size_t size = 1;
    size_t nmemb = strlen(input);
    std::string response;
-   size_t written = writeCurlResponse((void*)input, size, nmemb, response);   
+   size_t written = getWriteCurlResponse()((void*)input, size, nmemb, response);   
    EXPECT_EQ(written, nmemb);
 }
 

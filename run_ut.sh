@@ -49,12 +49,7 @@ rm ./gtest/rfcMgr_gtest
 automake --add-missing
 autoreconf --install
 
-#if [ "$ENABLE_COV" = true ]; then
-#    ./configure CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
-#else
-
-    ./configure
-#fi
+./configure
 
 make clean
 find . -name "*.gcda" -delete

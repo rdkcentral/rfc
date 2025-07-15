@@ -145,11 +145,7 @@ WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_Para
 }
 #endif
 
-#if defined(GTEST_ENABLE)
-size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
-#else
 static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
-#endif
 {
    size_t realsize = size * nmemb;
    string temp(static_cast<const char*>(ptr), realsize);
@@ -678,4 +674,11 @@ bool isRFCEnabled(const char *feature)
    return (stat(fileName.c_str(), &buffer) == 0);
 }
 
+#endif
+
+// Define your write callback function
+#ifdef GTEST_ENABLE
+size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string& stream) {
+    return &writeCurlResponse;
+}
 #endif
