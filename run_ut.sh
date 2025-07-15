@@ -86,7 +86,7 @@ echo "********************"
 #nm tr181utils.o | grep clearAttribute
 
 
-gcov -f -b tr181utils.cpp
+#gcov -f -b tr181utils.cpp
 
 
 #grep -r GTEST_ENABLE tr181utils.o

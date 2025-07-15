@@ -1192,7 +1192,19 @@ TEST(rfcMgrTest, CallgetArrayNode) {
 }
 
 
+TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+    const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
+    int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
+    EXPECT_EQ(count, 3);
+}
 
+TEST(rfcMgrTest, getFilePath) {
+    char *path = getFilePath();
+    std::string expected = "RFC_PATH/RFC_LIST_FILE_NAME_PREFIX%s.RFC_LIST_FILE_NAME_SUFFIX";
+    EXPECT_STREQ(expected, path.c_str());
+    
+    delete[] path;
+}
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
