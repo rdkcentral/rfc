@@ -944,7 +944,7 @@ TEST(rfcMgrTest, isDnsResolve) {
  TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
-      EXPECT_EQ(result , 0);
+      EXPECT_EQ(result, FAILURE);
       delete rfcmgrObj;
 }
 
