@@ -34,17 +34,11 @@ extern "C"
 {
 #endif
 #if defined(GTEST_ENABLE)
-bool getParamType(char * const paramName, DATA_TYPE * paramType);
-DATA_TYPE convertType(char type);
-int getAttribute(char * const paramName);
-int setAttribute(char * const paramName  ,char type, char * value);
-int clearAttribute(char * const paramName);
-#else
-static bool getParamType(char * const paramName, DATA_TYPE * paramType);
-static DATA_TYPE convertType(char type);
-static int getAttribute(char * const paramName);
-static int setAttribute(char * const paramName  ,char type, char * value);
-static int clearAttribute(char * const paramName);
+bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *);
+DATA_TYPE (*getConvertTypeFunc())(char);
+int (*getClearAttributeFunc())(char * const);
+int (*getSetAttributeFunc())(char * const, char, char *);
+int (*getGetAttributeFunc())(char * const)
 #endif
 
 #ifdef __cplusplus
