@@ -40,7 +40,7 @@ int (*getClearAttributeFunc())(char * const);
 int (*getSetAttributeFunc())(char * const, char, char *);
 int (*getGetAttributeFunc())(char * const)
 #endif
-
+}
 #ifdef __cplusplus
 }
 #endif
