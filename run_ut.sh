@@ -49,12 +49,12 @@ rm ./gtest/rfcMgr_gtest
 automake --add-missing
 autoreconf --install
 
-if [ "$ENABLE_COV" = true ]; then
-    ./configure CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
-else
+#if [ "$ENABLE_COV" = true ]; then
+#    ./configure CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+#else
 
     ./configure
-fi
+#fi
 
 make clean
 find . -name "*.gcda" -delete
@@ -73,45 +73,14 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "********************"
-#nm rfcMgr_gtest | c++filt | grep clearAttribute
-#./rfcMgr_gtest --gtest_filter=*clearAttribute* --gtest_output=stdout
-#./rfcMgr_gtest --gtest_filter=*setAttribute* --gtest_output=stdout
-
-#nm --demangle rfcMgr_gtest | grep clearAttribute
-
-#nm --demangle rfcMgr_gtest | grep setAttribute
-#echo "********************End of nm cmd"
-#cd $TOP_DIR
-#cd ./utils
-#nm tr181utils.o | grep clearAttribute
-
-
-#gcov -f -b tr181utils.cpp
-
-
-#grep -r GTEST_ENABLE tr181utils.o
-#nm tr181utils.o | grep clearAttribute
-#echo "********************End of grep clearAttribute"
-
 
 cd $TOP_DIR
 
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
-    echo "PWD: $(pwd)"
-    echo "Listing all gcda files:"
-    find . -name '*.gcda'
-    echo "Listing all gcno files:"
-    find . -name '*.gcno'
-
     lcov --capture --directory . --base-directory . --output-file coverage.info
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
-    lcov --extract filtered.info \
-         '*/rfcMgr/*' \
-         '*/rfcapi/*' \
-         '*/tr181api/*' \
-         '*/utils/*' \
-         --output-file rfc_coverage.info
+    lcov --extract filtered.info '*/rfcMgr/*' '*/rfcapi/*' '*/tr181api/*' '*/utils/*' --output-file rfc_coverage.info
     lcov --list rfc_coverage.info
 fi
 
