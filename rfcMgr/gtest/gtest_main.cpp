@@ -43,6 +43,28 @@ using namespace rfc;
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
 extern bool tr69hostif_http_server_ready;
 
+extern "C" {
+    bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *);
+}
+
+extern "C" {
+    DATA_TYPE (*getConvertTypeFunc())(char);
+}
+
+extern "C" {
+    int (*getClearAttributeFunc())(char * const);
+}
+
+extern "C" {
+    int (*getSetAttributeFunc())(char * const, char, char *);
+}
+
+extern "C" {
+    int (*getGetAttributeFunc())(char * const);
+}
+
+
+
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
     // Check if the file exists and is openable in read mode
     std::ifstream fileStream(filePath);
@@ -1108,15 +1130,15 @@ TEST(rfcMgrTest, getParamType) {
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    DATA_TYPE paramType;
-   bool (*getParamTypeFunc)(char * const, DATA_TYPE *) = getGetParamTypeFunc();
-   bool status = getParamTypeFunc(pcParameterName, &paramType);
+   auto myFunctionPtr = getGetParamTypeFunc();
+   bool status = myFunctionPtr(pcParameterName, &paramType);
    EXPECT_EQ(status, true);
 }
 
 TEST(rfcMgrTest, CallconvertType) {
    char type = 'i';
-   DATA_TYPE (*convertTypeFunc)(char) = getConvertTypeFunc();
-   DATA_TYPE status = convertTypeFunc(type);
+   auto myFunctionPtr = getConvertTypeFunc();
+   DATA_TYPE status = myFunctionPtr(type);
    EXPECT_EQ(status, WDMP_INT);
 }
 
@@ -1126,8 +1148,8 @@ TEST(rfcMgrTest, CallgetAttribute) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    TR181_ParamData_t pstParamData;
-   int (*getAttrFunc)(char * const) = getGetAttributeFunc();
-   int status = getAttrFunc(pcParameterName);
+   auto myFunctionPtr = getGetAttributeFunc();
+   int status = myFunctionPtr(pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
@@ -1136,8 +1158,8 @@ TEST(rfcMgrTest, CallsetAttribute) {
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    char * value = const_cast<char*>("false");
-   int (*setAttrFunc)(char * const, char, char *) = getSetAttributeFunc();
-   int status = setAttrFunc(pcParameterName, 'b', value);
+   auto myFunctionPtr = getSetAttributeFunc();
+   int status = myFunctionPtr(pcParameterName, 'b', value);
    EXPECT_EQ(status, tr181Success);
 }
 
@@ -1145,8 +1167,8 @@ TEST(rfcMgrTest, CallsetAttribute) {
 TEST(rfcMgrTest, CallclearAttribute) {
    //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
-   int (*clearAttrFunc)(char * const) = getClearAttributeFunc();
-   int status = clearAttrFunc(pcParameterName);
+   auto myFunctionPtr = getClearAttributeFunc();
+   int status = myFunctionPtr(pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
