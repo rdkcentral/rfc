@@ -34,7 +34,6 @@
 #include "xconf_handler.h"
 #include <urlHelper.h>
 #include "rfcapi.h"
-#include "tr181utils.h"
 #include "jsonhandler.h"
 
 using namespace std;
