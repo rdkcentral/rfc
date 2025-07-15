@@ -72,11 +72,9 @@ size_t GetEstbMac( char *pEstbMac, size_t szBufSize )
     if( pEstbMac != NULL )
     {
         *pEstbMac = 0;
-	 printf("LOG.RDK.FWUPG ESTB_MAC_FILE: %s\n", ESTB_MAC_FILE);
         if( (fp = fopen( ESTB_MAC_FILE, "r" )) != NULL )
         {
 	    fgets( pEstbMac, szBufSize, fp );   // better be a valid string on first line
-	    printf("LOG.RDK.FWUPG : %s\n", pEstbMac);
 	    fclose( fp );
             i = stripinvalidchar( pEstbMac, szBufSize );
         }
@@ -393,7 +391,6 @@ bool CurrentRunningInst(const char *file)
         close(fd);
         return true;
     }
-    printf("CurrentRunningInst: Failed to open lock file %s", file);
     /* OK to proceed (lock will be released and file descriptor will be closed on exit) */
 
     return false;
