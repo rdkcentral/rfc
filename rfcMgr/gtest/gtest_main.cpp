@@ -1201,7 +1201,7 @@ TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
 TEST(rfcMgrTest, getFilePath) {
     char *path = getFilePath();
     std::string expected = "RFC_PATH/RFC_LIST_FILE_NAME_PREFIX%s.RFC_LIST_FILE_NAME_SUFFIX";
-    EXPECT_STREQ(expected, path.c_str());
+    EXPECT_STREQ(path, expected.c_str());
     
     delete[] path;
 }
