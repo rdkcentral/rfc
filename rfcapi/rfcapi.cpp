@@ -678,7 +678,7 @@ bool isRFCEnabled(const char *feature)
 
 // Define your write callback function
 #ifdef GTEST_ENABLE
-size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string& stream) {
+size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream) {
     return &writeCurlResponse;
 }
 #endif
