@@ -45,6 +45,7 @@ export TOP_DIR=`pwd`
 cd ./rfcMgr/
 
 rm ./gtest/rfcMgr_gtest
+rm -f configure config.status Makefile Makefile.in
 
 automake --add-missing
 autoreconf --install
