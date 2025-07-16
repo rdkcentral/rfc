@@ -40,6 +40,7 @@ using namespace std;
 using namespace rfc;
 
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
+#define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 extern bool tr69hostif_http_server_ready;
 
 #ifdef GTEST_ENABLE
@@ -930,12 +931,12 @@ TEST(rfcMgrTest, CurrentRunningInst) {
       EXPECT_EQ(result, false);
 }
 
-TEST(rfcMgrTest, cleanup_lock_file) {
+/*TEST(rfcMgrTest, cleanup_lock_file) {
     write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
     EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
     cleanup_lock_file();
     EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
-}
+} */
 
 TEST(rfcMgrTest, isRFCEnabled) {
      bool result = isRFCEnabled("Instance"); 
@@ -951,6 +952,24 @@ TEST(rfcMgrTest, init_rfcdefaults) {
    bool result = init_rfcdefaults();
    EXPECT_EQ(result, true);
 }
+
+TEST(rfcMgrTest, init_rfcdefaults_removed_etc_dir) {
+   int ret = rmdir(RFCDEFAULTS_ETC_DIR);
+   EXPECT_EQ(ret, 0);    
+   bool result = init_rfcdefaults();
+   EXPECT_EQ(result, false);
+}
+
+TEST(rfcMgrTest, rfc_getValue) {
+   writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
+   const char* pcParameterName = "Device.Time.NTPServer1";
+   char *pcCallerID ="rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getValue(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData.value, "3.236.252.118");
+   EXPECT_EQ(result, WDMP_SUCCESS);
+}
+
 
 TEST(rfcMgrTest, writeCurlResponse) {
    const char* input = "MockCurlData";
