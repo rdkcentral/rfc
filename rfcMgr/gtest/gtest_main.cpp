@@ -1121,7 +1121,7 @@ TEST(rfcMgrTest, CallsetAttribute_args) {
    char * value = const_cast<char*>("false");
    char* argv[] = { "tr181", "-n", "localonly" };
    int argc = 3;
-   int status = getparseargsFunc()(argc, argv);
+   int args_status = getparseargsFunc()(argc, argv);
    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
    EXPECT_EQ(status, 0);
 }
