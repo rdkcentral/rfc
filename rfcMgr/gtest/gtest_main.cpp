@@ -930,6 +930,12 @@ TEST(rfcMgrTest, CurrentRunningInst) {
       EXPECT_EQ(result, false);
 }
 
+TEST(rfcMgrTest, cleanup_lock_file) {
+    write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
+    EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
+    cleanup_lock_file();
+    EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
+}
 
 TEST(rfcMgrTest, isRFCEnabled) {
      bool result = isRFCEnabled("Instance"); 

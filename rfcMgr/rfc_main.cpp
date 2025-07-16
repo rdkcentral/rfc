@@ -30,7 +30,6 @@ extern "C" {
 #include "breakpad_wrapper.h"
 #endif
 
-
 #include <signal.h>
 
 // Cleanup function
