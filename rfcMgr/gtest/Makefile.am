@@ -25,7 +25,17 @@ rfcMgr_gtest_SOURCES =  $(TOP_DIR)/utils/tr181utils.cpp $(TOP_DIR)/tr181api/tr18
 
 rfapi_gtest_SOURCES = $(TOP_DIR)/rfcMgr/gtest/gtest_rfcapi.cpp 
 
-AM_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
-AM_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
+COMMON_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
+COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
 
-AM_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
+COMMON_LDFLAGS =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
+
+rfcMgr_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
+rfcMgr_gtest_LDFLAGS = $(COMMON_LDFLAGS)
+rfcMgr_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
+
+
+rfcapi_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
+rfcapi_gtest_LDFLAGS = $(COMMON_LDFLAGS)
+rfcapi_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
+
