@@ -946,6 +946,24 @@ TEST(rfcMgrTest, isRFCEnabled) {
 TEST(rfcMgrTest, getRFCErrorString) {
     const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
     EXPECT_STREQ(err_string, " Method Not Supported");
+    EXPECT_STREQ(getRFCErrorString(WDMP_SUCCESS), " Success");
+    EXPECT_STREQ(getRFCErrorString(WDMP_FAILURE), " Request Failed");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_TIMEOUT), " Request Timeout");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_PARAMETER_NAME), " Invalid Parameter Name");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_PARAMETER_TYPE), " Invalid Parameter Type");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_PARAMETER_VALUE), " Invalid Parameter Value");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NOT_WRITABLE), " Not writable");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SETATTRIBUTE_REJECTED), " SetAttribute Rejected");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NAMESPACE_OVERLAP), " Namespace Overlap");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_UNKNOWN_COMPONENT), " Unknown Component");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NAMESPACE_MISMATCH), " Namespace Mismatch");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_UNSUPPORTED_NAMESPACE), " Unsupported Namespace");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DP_COMPONENT_VERSION_MISMATCH), " Component Version Mismatch");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_PARAM), " Invalid Param");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_UNSUPPORTED_DATATYPE), " Unsupported Datatype");
+    EXPECT_STREQ(getRFCErrorString(WDMP_STATUS_RESOURCES), " Resources");
+
+   
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
@@ -991,6 +1009,16 @@ TEST(rfcMgrTest, getRFCParameter) {
    EXPECT_EQ(result , WDMP_SUCCESS);
 }
 
+TEST(rfcMgrTest, getRFCParameter_rfcdefault) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed", "12800", "/opt/secure/RFC/bootstrap.ini", Plain);
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed";
+   char *pcCallerID ="rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result, WDMP_SUCCESS);
+   EXPECT_STREQ(pstParamData.value, "12800");
+}
+
 TEST(rfcMgrTest, getRFCParameter_HTTP) {
    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
    char *pcCallerID ="rfcdefaults";
@@ -1009,15 +1037,6 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
    EXPECT_EQ(result, WDMP_FAILURE);
 }
 
-TEST(rfcMgrTest, getRFCParameter_rfcdefault) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed", "12800", "/opt/secure/RFC/bootstrap.ini", Plain);
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed";
-   char *pcCallerID ="rfcdefaults";
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(result, WDMP_SUCCESS);
-   EXPECT_STREQ(pstParamData.value, "12800");
-}
 
 TEST(rfcMgrTest, setRFCParameter_wildcard) {
    const char* pcParameterName = "Device.DeviceInfo.";
