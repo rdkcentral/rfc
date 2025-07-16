@@ -1011,7 +1011,7 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
 
 TEST(rfcMgrTest, getRFCParameter_rfcdefault) {
    writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
-   const char* pcParameterName ="Device.DeviceInfo.";
+   const char* pcParameterName ="Device.Time.NTPServer1";
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
@@ -1111,8 +1111,20 @@ TEST(rfcMgrTest, getParamType) {
 }
 
 TEST(rfcMgrTest, CallconvertType) {
-   char type = 'i';
-   DATA_TYPE status = getConvertTypeFunc()(type);
+   char itype = 'i';
+   DATA_TYPE status = getConvertTypeFunc()(itype);
+   EXPECT_EQ(status, WDMP_INT);
+   
+   char stype = 's';
+   status = getConvertTypeFunc()(stype);
+   EXPECT_EQ(status, WDMP_STRING);
+   
+   char btype = 'b';
+   status = getConvertTypeFunc()(btype);
+   EXPECT_EQ(status, WDMP_BOOLEAN);
+
+   char dtype = 'x';
+   status = getConvertTypeFunc()(dtype);
    EXPECT_EQ(status, WDMP_INT);
 }
 
@@ -1144,7 +1156,7 @@ TEST(rfcMgrTest, CallclearAttribute) {
 }
 
 TEST(rfcMgrTest, Callparseargs) {
-   char* argv[] = { "tr181", "-n", "localonly" };
+   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localonly" };
    int argc = 3;
    int status = getparseargsFunc()(argc, argv);	
    EXPECT_EQ(status, 0);
@@ -1155,7 +1167,7 @@ TEST(rfcMgrTest, CallsetAttribute_args) {
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    char * value = const_cast<char*>("false");
-   char* argv[] = { "tr181", "-n", "localonly" };
+   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localonly" };
    int argc = 3;
    int args_status = getparseargsFunc()(argc, argv);
    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
