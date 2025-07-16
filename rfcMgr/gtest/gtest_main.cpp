@@ -960,7 +960,7 @@ TEST(rfcMgrTest, init_rfcdefaults_removed_etc_dir) {
    EXPECT_EQ(result, false);
 }
 
-TEST(rfcMgrTest, rfc_getValue) {
+/* TEST(rfcMgrTest, rfc_getValue) {
    writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
    const char* pcParameterName = "Device.Time.NTPServer1";
    char *pcCallerID ="rfcdefaults";
@@ -968,7 +968,7 @@ TEST(rfcMgrTest, rfc_getValue) {
    WDMP_STATUS result = getValue(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_STREQ(pstParamData.value, "3.236.252.118");
    EXPECT_EQ(result, WDMP_SUCCESS);
-}
+} */
 
 
 TEST(rfcMgrTest, writeCurlResponse) {

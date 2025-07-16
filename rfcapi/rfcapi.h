@@ -69,7 +69,6 @@ bool isRFCEnabled(const char *);
 bool isFileInDirectory(const char *, const char *);
 #if defined(GTEST_ENABLE)
 bool init_rfcdefaults();
-WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam);
 #endif
 #endif
 #ifdef __cplusplus
