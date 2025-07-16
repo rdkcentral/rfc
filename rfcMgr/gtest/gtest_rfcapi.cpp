@@ -26,11 +26,7 @@
 #include <iostream>
 #include <cstdio>
 
-#include "mtlsUtils.h"
-#include "rfc_common.h"
-#include "rfc_xconf_handler.h"
 #include "tr181api.h"
-#include <urlHelper.h>
 
 using namespace std;
 

@@ -48,7 +48,7 @@ rm ./gtest/rfcMgr_gtest
 automake --add-missing
 autoreconf --install
 
-./configure
+./configure CXXFLAGS="-g -O0 -fprofile-arcs -ftest-coverage -DGTEST_ENABLE"
 
 make clean
 find . -name "*.gcda" -delete
