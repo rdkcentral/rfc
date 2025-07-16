@@ -965,8 +965,8 @@ TEST(rfcMgrTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WIFI_BUSY), " Wifi Busy");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_ATTRIBUTES), " Invalid Attributes");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WILDCARD_NOT_SUPPORTED), " Wildcard Not Supported");
-    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WILDCARD_NOT_SUPPORTED), " WDMP_ERR_SET_OF_CMC_OR_CID_NOT_SUPPORTED");
-    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_EMPTY), " WDMP_ERR_SET_OF_CMC_OR_CID_NOT_SUPPORTED");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SET_OF_CMC_OR_CID_NOT_SUPPORTED), " Set of CMC or CID Not Supported");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_EMPTY), " Value is Empty");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_NULL), " Value is Null");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DATATYPE_IS_NULL), " Datatype is Null");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CMC_TEST_FAILED), " CMC Test Failed");    
