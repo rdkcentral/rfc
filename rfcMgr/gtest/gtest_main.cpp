@@ -962,8 +962,25 @@ TEST(rfcMgrTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_PARAM), " Invalid Param");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_UNSUPPORTED_DATATYPE), " Unsupported Datatype");
     EXPECT_STREQ(getRFCErrorString(WDMP_STATUS_RESOURCES), " Resources");
-
-   
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WIFI_BUSY), " Wifi Busy");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_ATTRIBUTES), " Invalid Attributes");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WILDCARD_NOT_SUPPORTED), " Wildcard Not Supported");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_WILDCARD_NOT_SUPPORTED), " WDMP_ERR_SET_OF_CMC_OR_CID_NOT_SUPPORTED");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_EMPTY), " WDMP_ERR_SET_OF_CMC_OR_CID_NOT_SUPPORTED");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_NULL), " Value is Null");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DATATYPE_IS_NULL), " Datatype is Null");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CMC_TEST_FAILED), " CMC Test Failed");    
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NEW_CID_IS_MISSING), " New CID is Missing");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CID_TEST_FAILED), " CID Test Failed");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SETTING_CMC_OR_CID), " Setting CMC or CID"); 
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_ATTRIBUTES_IS_NULL), " Attributes is Null");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NOTIFY_IS_NULL), " Notify is Null");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_WIFI_INDEX), " Invalid Wifi Index");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_RADIO_INDEX), " Invalid Radio Index");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_ATOMIC_GET_SET_FAILED), " Atomic Get Set Failed");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED), " Method Not Supported");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INTERNAL_ERROR), " Internal Error");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DEFAULT_VALUE), " Default Value");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
