@@ -954,8 +954,9 @@ TEST(rfcMgrTest, init_rfcdefaults) {
 }
 
 TEST(rfcMgrTest, init_rfcdefaults_removed_etc_dir) {
-   int ret = rmdir(RFCDEFAULTS_ETC_DIR);
-   EXPECT_EQ(ret, 0);    
+   std::string cmd = std::string("rm -rf ") + RFCDEFAULTS_ETC_DIR;
+   int status = system(cmd.c_str());
+   EXPECT_EQ(status, 0);
    bool result = init_rfcdefaults();
    EXPECT_EQ(result, false);
 }
@@ -1006,6 +1007,16 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result, WDMP_FAILURE);
+}
+
+TEST(rfcMgrTest, getRFCParameter_rfcdefault) {
+   writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
+   const char* pcParameterName ="Device.DeviceInfo.";
+   char *pcCallerID ="rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result, WDMP_SUCCESS);
+   EXPECT_STREQ(pstParamData.value, "3.236.252.118");
 }
 
 TEST(rfcMgrTest, setRFCParameter_wildcard) {

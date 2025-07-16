@@ -254,6 +254,7 @@ static int parseargs(int argc, char * argv[])
         else if(strncasecmp(argv[i], "-n", 2) == 0)
         {
             id = argv[i+1];
+	    cout << __FUNCTION__ << " >> id " << id << endl;	
             i += 2;
         }
         else
