@@ -1010,13 +1010,13 @@ TEST(rfcMgrTest, getRFCParameter_wildcard) {
 }
 
 TEST(rfcMgrTest, getRFCParameter_rfcdefault) {
-   writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
-   const char* pcParameterName ="Device.Time.NTPServer1";
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed", "12800", "/opt/secure/RFC/bootstrap.ini", Plain);
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed";
    char *pcCallerID ="rfcdefaults";
    RFC_ParamData_t pstParamData;
    WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(result, WDMP_SUCCESS);
-   EXPECT_STREQ(pstParamData.value, "3.236.252.118");
+   EXPECT_STREQ(pstParamData.value, "12800");
 }
 
 TEST(rfcMgrTest, setRFCParameter_wildcard) {
@@ -1040,7 +1040,16 @@ TEST(rfcMgrTest, setRFCParameter) {
 
 TEST(rfcMgrTest, getTR181ErrorString) {   
    const char *err_string = getTR181ErrorString(tr181NotWritable);
-   EXPECT_STREQ(err_string , " Not writable");
+   EXPECT_STREQ(getTR181ErrorString(tr181Success) , " Success");
+   EXPECT_STREQ(getTR181ErrorString(tr181InternalError) , " Internal Error");
+   EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterName), " Invalid Parameter Name");
+   EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterValue), " Invalid Parameter Value");
+   EXPECT_STREQ(getTR181ErrorString(tr181Failure), " Failure");
+   EXPECT_STREQ(getTR181ErrorString(tr181InvalidType), " Invalid type");
+   EXPECT_STREQ(getTR181ErrorString(tr181NotWritable), " Not writable");
+   EXPECT_STREQ(getTR181ErrorString(tr181ValueIsEmpty), " Value is empty");
+   EXPECT_STREQ(getTR181ErrorString(tr181ValueIsNull), " Value is Null");
+   EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
 }
 
 /* TEST(rfcMgrTest, getErrorCode) {
