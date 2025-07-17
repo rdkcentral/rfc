@@ -35,9 +35,15 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <unistd.h>
+#include <sstream>
+#include "rdk_debug.h"
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
+#include <vector>
+#include <pwd.h>
+
 using namespace std;
 
 static char value_type = 'u';
@@ -46,6 +52,71 @@ static char * key = NULL;
 static char * id = NULL;
 static REQ_TYPE mode = GET;
 static bool silent = true;
+
+// Split a null-separated cmdline into arguments
+std::vector<std::string> splitCmdline(const std::string& cmdline) {
+    std::vector<std::string> args;
+    size_t start = 0;
+    while (start < cmdline.size()) {
+        size_t end = cmdline.find('\0', start);
+        if (end == std::string::npos) end = cmdline.size();
+        if (end > start) args.push_back(cmdline.substr(start, end - start));
+        start = end + 1;
+    }
+    return args;
+}
+
+//  Read cmdline of a process as a string
+static std::string getCmdline(pid_t pid) {
+    std::stringstream path;
+    path << "/proc/" << pid << "/cmdline";
+    std::ifstream file(path.str(), std::ios::in | std::ios::binary);
+    if (!file) return "";
+    std::string buf((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return buf;
+}
+
+
+
+
+
+// Script Name 
+static std::string detectScriptName() {
+    
+    const char* bash_source = getenv("BASH_SOURCE");
+    if (bash_source && bash_source[0] != '\0') {
+        return std::string(bash_source);
+    }
+
+    pid_t ppid = getppid();
+    std::string parent_cmdline = getCmdline(ppid);
+    std::vector<std::string> parent_args = splitCmdline(parent_cmdline);
+
+    for (size_t i = 1; i < parent_args.size(); ++i) {
+        const std::string& arg = parent_args[i];
+       
+        if ((arg.size() > 3 && (arg.substr(arg.size()-3) == ".sh" ||
+                                arg.substr(arg.size()-3) == ".py" ||
+                                arg.substr(arg.size()-3) == ".pl")) ||
+            (arg.size() > 2 && arg.substr(arg.size()-2) == ".ksh")) {
+            return arg;
+        }
+      
+        std::ifstream f(arg);
+        if (f.good()) return arg;
+    }
+
+   
+    std::string self_cmdline = getCmdline(getpid());
+    std::vector<std::string> self_args = splitCmdline(self_cmdline);
+    if (!self_args.empty()) {
+        return self_args[0];
+    }
+
+   
+    return "<unknown>";
+}
+
 
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
@@ -123,9 +194,16 @@ static int getAttribute(char * const paramName)
        }
        return status;
     }
-
+    // Extract just the script file name
+   std::string script_path = detectScriptName();
+   std::string script_file;
+   size_t last_slash = script_path.find_last_of("/\\");
+   if (last_slash != std::string::npos)
+       script_file = script_path.substr(last_slash + 1);
+   else
+       script_file = std::move(script_path);
    RFC_ParamData_t param;
-   WDMP_STATUS status = getRFCParameter(id, paramName, &param);
+   WDMP_STATUS status = getRFCParameter_ex(id, paramName, &param,script_file.c_str(), 0);
 
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
