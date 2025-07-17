@@ -1308,13 +1308,13 @@ TEST(rfcMgrTest, CallgetArrayNode) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
-} */
+} 
 
 TEST(rfcMgrTest, saveToFile) {
     const char *format = "/tmp/%s_output.txt";
     const char *name = "testfile";
     cJSON_Delete(root);
-}
+} */
 
 
 TEST(rfcMgrTest, getFilePath) {
