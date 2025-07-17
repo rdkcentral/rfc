@@ -977,7 +977,8 @@ TEST(rfcMgrTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CMC_TEST_FAILED), " CMC Test Failed");    
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NEW_CID_IS_MISSING), " New CID is Missing");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CID_TEST_FAILED), " CID Test Failed");
-    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SETTING_CMC_OR_CID), " Setting CMC or CID"); 
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SETTING_CMC_OR_CID), " Setting CMC or CID");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_INPUT_PARAMETER), " Invalid Input Parameter");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_ATTRIBUTES_IS_NULL), " Attributes is Null");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NOTIFY_IS_NULL), " Notify is Null");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INVALID_WIFI_INDEX), " Invalid Wifi Index");
@@ -1093,7 +1094,7 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
 }
 
-/*TEST(rfcMgrTest, getType) {
+TEST(rfcMgrTest, getType) {
     EXPECT_EQ(getType(WDMP_STRING), TR181_STRING);
     EXPECT_EQ(getType(WDMP_INT), TR181_INT);    
 }
@@ -1106,13 +1107,13 @@ TEST(rfcMgrTest, getErrorCode) {
    EXPECT_EQ(getErrorCode(WDMP_ERR_TIMEOUT), tr181Timeout);
    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME), tr181InvalidParameterName);
    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_VALUE), tr181InvalidParameterValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-} */
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+} 
 
 TEST(rfcMgrTest, getValue) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain); 
@@ -1121,6 +1122,15 @@ TEST(rfcMgrTest, getValue) {
    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
    EXPECT_EQ(status, tr181Success);
    EXPECT_STREQ(pstParam.value, "true");
+}
+
+TEST(rfcMgrTest, getEmptyValue) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "", TR181_LOCAL_STORE_FILE, Plain);
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+   TR181_ParamData_t pstParam;
+   tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
+   EXPECT_EQ(status, tr181ValueIsEmpty);
+   EXPECT_STREQ(pstParam.value, "");
 }
 
 
@@ -1299,6 +1309,13 @@ TEST(rfcMgrTest, CallgetArrayNode) {
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
 } */
+
+TEST(rfcMgrTest, saveToFile) {
+    const char *format = "/tmp/%s_output.txt";
+    const char *name = "testfile";
+    cJSON_Delete(root);
+}
+
 
 TEST(rfcMgrTest, getFilePath) {
     char *path = getFilePath();
