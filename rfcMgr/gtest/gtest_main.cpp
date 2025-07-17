@@ -1248,7 +1248,7 @@ TEST(rfcMgrTest, CallgetAttribute_args) {
    char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
    int argc = 3;
    int args_status = getparseargsFunc()(argc, argv);
-   int status = getGetAttributeFunc()(pcParameterName, 'b', value);
+   int status = getGetAttributeFunc()(pcParameterName);
    EXPECT_EQ(status, 0);
 }
 
