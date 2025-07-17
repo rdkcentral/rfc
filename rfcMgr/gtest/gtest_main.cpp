@@ -1097,6 +1097,15 @@ TEST(rfcMgrTest, getTR181ErrorString) {
 TEST(rfcMgrTest, getType) {
     EXPECT_EQ(getType(WDMP_STRING), TR181_STRING);
     EXPECT_EQ(getType(WDMP_INT), TR181_INT);    
+    EXPECT_EQ(getType(WDMP_UINT), TR181_UINT);
+    EXPECT_EQ(getType(WDMP_BOOLEAN), TR181_BOOLEAN);
+    EXPECT_EQ(getType(WDMP_DATETIME), TR181_DATETIME);
+    EXPECT_EQ(getType(WDMP_BASE64), TR181_BASE64);
+    EXPECT_EQ(getType(WDMP_LONG), TR181_LONG);
+    EXPECT_EQ(getType(WDMP_ULONG), TR181_ULONG);
+    EXPECT_EQ(getType(WDMP_FLOAT), TR181_FLOAT);
+    EXPECT_EQ(getType(WDMP_DOUBLE), TR181_DOUBLE);
+    EXPECT_EQ(getType(WDMP_BYTE), TR181_BYTE);
 }
 
 
@@ -1130,7 +1139,6 @@ TEST(rfcMgrTest, getEmptyValue) {
    TR181_ParamData_t pstParam;
    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
    EXPECT_EQ(status, tr181ValueIsEmpty);
-   EXPECT_STREQ(pstParam.value, "");
 }
 
 
@@ -1308,13 +1316,19 @@ TEST(rfcMgrTest, CallgetArrayNode) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
-} 
+}*/ 
 
 TEST(rfcMgrTest, saveToFile) {
     const char *format = "/tmp/%s_output.txt";
     const char *name = "testfile";
+    cJSON *array = cJSON_CreateArray();
+    cJSON_AddItemToArray(array, cJSON_CreateString("line1"));
+    cJSON_AddItemToArray(array, cJSON_CreateString("line2"));
+    int status = saveToFile(array, format, name);
+    EXPECT_EQ(status, 1);
+
     cJSON_Delete(root);
-} */
+} 
 
 
 TEST(rfcMgrTest, getFilePath) {

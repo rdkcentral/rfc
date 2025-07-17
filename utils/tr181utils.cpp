@@ -148,7 +148,6 @@ static int getAttribute(char * const paramName)
 */
 static int setAttribute(char * const paramName  ,char type, char * value)
 { 
-   cout << __FUNCTION__ << " >> Set Local Param success! id" <<id << endl;	
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
       if(status == 0)
