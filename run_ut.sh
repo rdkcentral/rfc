@@ -54,12 +54,12 @@ make clean
 find . -name "*.gcda" -delete
 find . -name "*.gcno" -delete
 
-
+make -C gtest
 echo "TOP_DIR = $TOP_DIR"
 
 echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
-make
+#make
 ./rfcMgr_gtest
 
 if [ $? -ne 0 ]; then
