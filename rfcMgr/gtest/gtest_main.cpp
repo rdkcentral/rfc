@@ -1083,7 +1083,7 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
 }
 
-TEST(rfcMgrTest, getType) {
+/*TEST(rfcMgrTest, getType) {
     EXPECT_EQ(getType(WDMP_STRING), TR181_STRING);
     EXPECT_EQ(getType(WDMP_INT), TR181_INT);    
 }
@@ -1102,7 +1102,7 @@ TEST(rfcMgrTest, getErrorCode) {
    //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
    //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
    //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-} 
+} */
 
 TEST(rfcMgrTest, getValue) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain); 

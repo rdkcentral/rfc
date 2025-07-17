@@ -68,6 +68,7 @@ typedef enum _tr181ErrorCodes
     tr181DefaultValue,
 } tr181ErrorCode_t;
 
+/*
 #if defined(GTEST_ENABLE)
 typedef enum
 {
@@ -88,8 +89,8 @@ typedef enum
 
 typedef enum
 {
-    WDMP_SUCCESS = 0,                    /**< Success. */
-    WDMP_FAILURE,                        /**< General Failure */
+    WDMP_SUCCESS = 0,                    < Success.
+    WDMP_FAILURE,                       < General Failure
     WDMP_ERR_TIMEOUT,
     WDMP_ERR_INVALID_PARAMETER_NAME,
     WDMP_ERR_INVALID_PARAMETER_TYPE,
@@ -101,6 +102,7 @@ typedef enum
 } WDMP_STATUS;
 #endif
 
+*/
 
 //NOTE: The pcCallerID is the component name. This name should match the name of the defaults ini file if the component is using a defaults ini file.
 //      For example authservice comonent uses defaults file "authservice.ini". For this case the pcCallerID should be "authservice"
@@ -121,8 +123,8 @@ tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, 
 #if defined(GTEST_ENABLE)
 tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
 tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
-TR181_PARAM_TYPE getType(DATA_TYPE type);
-tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+//TR181_PARAM_TYPE getType(DATA_TYPE type);
+//tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
 #endif
 
 #ifdef __cplusplus
