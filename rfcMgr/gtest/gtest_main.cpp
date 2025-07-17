@@ -538,6 +538,18 @@ TEST(rfcMgrTest, getDefaultValue) {
    	
 }
 
+TEST(rfcMgrTest, getDefaultValue_callerIDNULL) {
+
+  const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+  char *pcCallerID = NULL;
+  TR181_ParamData_t pstParamData;
+
+  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  EXPECT_EQ(status, tr181Failure);
+
+}
+
+
 TEST(rfcMgrTest, checkWhoamiSupport) {
     writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -939,8 +951,6 @@ TEST(rfcMgrTest, isRFCEnabled) {
 }
 
 TEST(rfcMgrTest, getRFCErrorString) {
-    const char *err_string = getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED);  
-    EXPECT_STREQ(err_string, " Method Not Supported");
     EXPECT_STREQ(getRFCErrorString(WDMP_SUCCESS), " Success");
     EXPECT_STREQ(getRFCErrorString(WDMP_FAILURE), " Request Failed");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_TIMEOUT), " Request Timeout");
@@ -976,6 +986,7 @@ TEST(rfcMgrTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED), " Method Not Supported");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INTERNAL_ERROR), " Internal Error");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DEFAULT_VALUE), " Default Value");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NULL_VALUE), " Unknown error code");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
@@ -1070,7 +1081,6 @@ TEST(rfcMgrTest, setRFCParameter) {
 
 
 TEST(rfcMgrTest, getTR181ErrorString) {   
-   const char *err_string = getTR181ErrorString(tr181NotWritable);
    EXPECT_STREQ(getTR181ErrorString(tr181Success) , " Success");
    EXPECT_STREQ(getTR181ErrorString(tr181InternalError) , " Internal Error");
    EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterName), " Invalid Parameter Name");
@@ -1081,6 +1091,7 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsEmpty), " Value is empty");
    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsNull), " Value is Null");
    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
+   EXPECT_STREQ(getTR181ErrorString(tr181DefaultNull), " Unknown error code");
 }
 
 /*TEST(rfcMgrTest, getType) {
@@ -1212,7 +1223,7 @@ TEST(rfcMgrTest, CallclearAttribute) {
 }
 
 TEST(rfcMgrTest, Callparseargs) {
-   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localonly" };
+   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
    int argc = 3;
    int status = getparseargsFunc()(argc, argv);	
    EXPECT_EQ(status, 0);
@@ -1223,12 +1234,25 @@ TEST(rfcMgrTest, CallsetAttribute_args) {
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
    char * value = const_cast<char*>("false");
-   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localonly" };
+   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
    int argc = 3;
    int args_status = getparseargsFunc()(argc, argv);
    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
    EXPECT_EQ(status, 0);
 }
+
+TEST(rfcMgrTest, CallgetAttribute_args) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
+   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
+   char *pcCallerID ="rfcdefaults";
+   char * value = const_cast<char*>("false");
+   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
+   int argc = 3;
+   int args_status = getparseargsFunc()(argc, argv);
+   int status = getGetAttributeFunc()(pcParameterName, 'b', value);
+   EXPECT_EQ(status, 0);
+}
+
 
 TEST(rfcMgrTest, CallclearParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";

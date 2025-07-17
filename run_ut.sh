@@ -69,10 +69,10 @@ echo "********************"
 
 cd $TOP_DIR
 gcov -b -f rfcapi/rfcapi.cpp
-cat rfcapi/rfcapi.cpp.gcov
+cat rfcapi.cpp.gcov
 
 gcov -b -f tr181api/tr181api.cpp
-cat tr181api/tr181api.cpp.gcov
+cat tr181api.cpp.gcov
 
 cd $TOP_DIR
 
