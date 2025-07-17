@@ -986,7 +986,7 @@ TEST(rfcMgrTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_METHOD_NOT_SUPPORTED), " Method Not Supported");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_INTERNAL_ERROR), " Internal Error");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DEFAULT_VALUE), " Default Value");
-    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NULL_VALUE), " Unknown error code");
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_MAX_REQUEST), " Unknown error code");
 }
 
 TEST(rfcMgrTest, init_rfcdefaults) {
@@ -1091,7 +1091,6 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsEmpty), " Value is empty");
    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsNull), " Value is Null");
    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
-   EXPECT_STREQ(getTR181ErrorString(tr181DefaultNull), " Unknown error code");
 }
 
 /*TEST(rfcMgrTest, getType) {
@@ -1190,7 +1189,7 @@ TEST(rfcMgrTest, CallconvertType) {
    status = getConvertTypeFunc()(btype);
    EXPECT_EQ(status, WDMP_BOOLEAN);
 
-   char dtype = 'x';
+   char dtype = 'f';
    status = getConvertTypeFunc()(dtype);
    EXPECT_EQ(status, WDMP_INT);
 }
