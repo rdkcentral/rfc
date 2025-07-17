@@ -1106,6 +1106,7 @@ TEST(rfcMgrTest, getType) {
     EXPECT_EQ(getType(WDMP_FLOAT), TR181_FLOAT);
     EXPECT_EQ(getType(WDMP_DOUBLE), TR181_DOUBLE);
     EXPECT_EQ(getType(WDMP_BYTE), TR181_BYTE);
+    EXPECT_EQ(getType(WDMP_NONE), TR181_NONE);
 }
 
 
@@ -1116,12 +1117,12 @@ TEST(rfcMgrTest, getErrorCode) {
    EXPECT_EQ(getErrorCode(WDMP_ERR_TIMEOUT), tr181Timeout);
    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME), tr181InvalidParameterName);
    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_VALUE), tr181InvalidParameterValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_TYPE), tr181InvalidType);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_NOT_WRITABLE), tr181NotWritable);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_EMPTY), tr181ValueIsEmpty);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_NULL), tr181ValueIsNull);
    EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_INTERNAL_ERROR), tr181InternalError);
 } 
 
 TEST(rfcMgrTest, getValue) {
@@ -1312,11 +1313,12 @@ TEST(rfcMgrTest, CallgetArrayNode) {
 }
 
 
-/* TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
-    const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
+TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+    
+    const char* jsonStr = R"({"featureControl":{"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
-}*/ 
+} 
 
 TEST(rfcMgrTest, saveToFile) {
     const char *format = "/tmp/%s_output.txt";
