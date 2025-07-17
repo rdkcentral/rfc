@@ -68,6 +68,40 @@ typedef enum _tr181ErrorCodes
     tr181DefaultValue,
 } tr181ErrorCode_t;
 
+#if defined(GTEST_ENABLE)
+typedef enum
+{
+    WDMP_STRING = 0,
+    WDMP_INT,
+    WDMP_UINT,
+    WDMP_BOOLEAN,
+    WDMP_DATETIME,
+    WDMP_BASE64,
+    WDMP_LONG,
+    WDMP_ULONG,
+    WDMP_FLOAT,
+    WDMP_DOUBLE,
+    WDMP_BYTE,
+    WDMP_NONE,
+    WDMP_BLOB
+} DATA_TYPE;
+
+typedef enum
+{
+    WDMP_SUCCESS = 0,                    /**< Success. */
+    WDMP_FAILURE,                        /**< General Failure */
+    WDMP_ERR_TIMEOUT,
+    WDMP_ERR_INVALID_PARAMETER_NAME,
+    WDMP_ERR_INVALID_PARAMETER_TYPE,
+    WDMP_ERR_INVALID_PARAMETER_VALUE,
+    WDMP_ERR_NOT_WRITABLE,
+    WDMP_ERR_VALUE_IS_EMPTY,
+    WDMP_ERR_DEFAULT_VALUE,
+    WDMP_ERR_INTERNAL_ERROR
+} WDMP_STATUS;
+#endif
+
+
 //NOTE: The pcCallerID is the component name. This name should match the name of the defaults ini file if the component is using a defaults ini file.
 //      For example authservice comonent uses defaults file "authservice.ini". For this case the pcCallerID should be "authservice"
 tr181ErrorCode_t getParam(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
@@ -87,8 +121,8 @@ tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, 
 #if defined(GTEST_ENABLE)
 tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
 tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
-//TR181_PARAM_TYPE getType(DATA_TYPE type);
-//tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+TR181_PARAM_TYPE getType(DATA_TYPE type);
+tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
 #endif
 
 #ifdef __cplusplus

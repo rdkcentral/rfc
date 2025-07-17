@@ -68,8 +68,11 @@ fi
 echo "********************"
 
 cd $TOP_DIR
-gcov -b rfcapi/rfcapi.cpp
-gcov -b tr181api/tr181api.cpp
+gcov -b -f rfcapi/rfcapi.cpp
+cat rfcapi/rfcapi.cpp.gcov
+
+gcov -b -f tr181api/tr181api.cpp
+cat tr181api/tr181api.cpp.gcov
 
 cd $TOP_DIR
 

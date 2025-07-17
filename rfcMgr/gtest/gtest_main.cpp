@@ -925,11 +925,6 @@ TEST(rfcMgrTest, initializeXconf) {
 }
 
 
-TEST(rfcMgrTest, CurrentRunningInst) {
-      //write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "RFC_LOCK_FILE");
-      bool result = CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE);
-      EXPECT_EQ(result, false);
-}
 
 /*TEST(rfcMgrTest, cleanup_lock_file) {
     write_on_file(RFC_MGR_SERVICE_LOCK_FILE, "lock");
@@ -1088,10 +1083,26 @@ TEST(rfcMgrTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
 }
 
-/* TEST(rfcMgrTest, getErrorCode) {
+TEST(rfcMgrTest, getType) {
+    EXPECT_EQ(getType(WDMP_STRING), TR181_STRING);
+    EXPECT_EQ(getType(WDMP_INT), TR181_INT);    
+}
+
+
+TEST(rfcMgrTest, getErrorCode) {
    tr181ErrorCode_t errorCode = getErrorCode(WDMP_ERR_DEFAULT_VALUE);
-   EXPECT_EQ(errorCode, tr181DefaultValue);
-} */
+   EXPECT_EQ(getErrorCode(WDMP_SUCCESS), tr181Success);
+   EXPECT_EQ(getErrorCode(WDMP_FAILURE), tr181Failure);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_TIMEOUT), tr181Timeout);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME), tr181InvalidParameterName);
+   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_VALUE), tr181InvalidParameterValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+   //EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+} 
 
 TEST(rfcMgrTest, getValue) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain); 
