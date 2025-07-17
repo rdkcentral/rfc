@@ -31,6 +31,7 @@
 #if defined(GTEST_ENABLE)
 char * readFromFile(char * absolutePath);
 cJSON * getArrayNode(cJSON *node);
+int saveToFile(cJSON * arrayNode, const char * format,const char * name);
 int iterateAndSaveArrayNodes(const char * absolutePath,const char * json_data);
 char * getFilePath();
 #endif
