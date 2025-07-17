@@ -1327,7 +1327,7 @@ TEST(rfcMgrTest, saveToFile) {
     int status = saveToFile(array, format, name);
     EXPECT_EQ(status, 1);
 
-    cJSON_Delete(root);
+    cJSON_Delete(array);
 } 
 
 
