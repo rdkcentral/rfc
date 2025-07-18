@@ -25,6 +25,8 @@
 #include <gmock/gmock.h>
 #include <iostream>
 #include <cstdio>
+#include <fstream>
+#include <string>
 
 #include "tr181api.h"
 
