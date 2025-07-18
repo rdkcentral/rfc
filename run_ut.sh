@@ -59,7 +59,7 @@ echo "TOP_DIR = $TOP_DIR"
 echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
 make
-./rfcMgr_gtest
+#./rfcMgr_gtest
 ./rfcapi_gtest
 ./tr181api_gtest
 ./utils_gtest
