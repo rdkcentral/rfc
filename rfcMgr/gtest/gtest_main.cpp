@@ -527,7 +527,7 @@ TEST(rfcMgrTest, cleanAllFile) {
 }
 
 
-TEST(rfcMgrTest, getDefaultValue) {
+/*TEST(rfcMgrTest, getDefaultValue) {
  
   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
   char *pcCallerID ="rfcdefaults";
@@ -547,7 +547,7 @@ TEST(rfcMgrTest, getDefaultValue_callerIDNULL) {
   tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
   EXPECT_EQ(status, tr181Failure);
 
-}
+} */
 
 
 TEST(rfcMgrTest, checkWhoamiSupport) {
@@ -665,8 +665,9 @@ TEST(rfcMgrTest, getRFCName) {
                 JSON* feature = GetJsonArrayItem(features, 1);
                 RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 
-                rfcObj->getRFCName(feature, rfccObj);
+                int result = rfcObj->getRFCName(feature, rfccObj);
                 EXPECT_EQ(rfccObj->name, "ARU");
+		EXPECT_EQ(result, SUCCESS);
 
                 delete rfccObj;
             }
@@ -690,8 +691,9 @@ TEST(rfcMgrTest, getFeatureInstance) {
                 JSON* feature = GetJsonArrayItem(features, 1);
                 RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 
-                rfcObj->getFeatureInstance(feature, rfccObj);
+                int result = rfcObj->getFeatureInstance(feature, rfccObj);
                 EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+		EXPECT_EQ(result, SUCCESS);
 
                 delete rfccObj;
             }
@@ -714,8 +716,9 @@ TEST(rfcMgrTest, getRFCEnableParam) {
                 JSON* feature = GetJsonArrayItem(features, 1);
                 RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 
-                rfcObj->getRFCEnableParam(feature, rfccObj);
+                int result = rfcObj->getRFCEnableParam(feature, rfccObj);
                 EXPECT_EQ(rfccObj->enable, true);
+		EXPECT_EQ(result, SUCCESS);
 
                 delete rfccObj;
             }
@@ -739,8 +742,9 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
                 JSON* feature = GetJsonArrayItem(features, 1);
                 RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
 
-                rfcObj->getEffectiveImmediateParam(feature, rfccObj);
+                int result = rfcObj->getEffectiveImmediateParam(feature, rfccObj);
                 EXPECT_EQ(rfccObj->effectiveImmediate, false);
+		EXPECT_EQ(result, SUCCESS);
 
                 delete rfccObj;
             }
@@ -748,6 +752,70 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
 
         delete rfcObj;
     }
+}
+
+
+TEST(rfcMgrTest, rfcStashStoreParams) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "6964630676518908063", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor(); 
+    rfcObj->rfcStashStoreParams();
+    EXPECT_EQ(rfcObj->stashAccountId, "6964630676518908063");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, rfcStashRetrieveParams) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "6964630676518908063", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->rfcStashStoreParams();
+    rfcObj->rfcStashRetrieveParams();
+    EXPECT_EQ(rfcObj->_accountId, "6964630676518908063");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, updateHashInDB) {
+    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->updateHashInDB("TestConfigSetUpdateHash");
+
+    std::string hashValue;
+    std::string valueTime;
+    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
+    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
+    EXPECT_EQ(hashValue ,"TestConfigSetUpdateHash");
+    delete rfcObj;
+
+}
+TEST(rfcMgrTest, updateTimeInDB) {
+    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string hashValue;
+    std::string valueTime;
+    std::time_t timestamp = std::time(nullptr);
+    std::string timestampString = std::to_string(timestamp);
+    rfcObj->updateHashInDB(timestampString);
+
+    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
+    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
+    EXPECT_EQ(valueTime ,timestampString);
+    delete rfcObj;
+
+} 
+
+
+TEST(rfcMgrTest, clearDB) {
+    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->clearDB();
+    delete rfcObj;
+}
+
+
+
+TEST(rfcMgrTest, clearDBEnd) {
+    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->clearDBEnd();
+    delete rfcObj;
 }
 
 

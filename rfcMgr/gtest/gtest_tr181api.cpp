@@ -128,6 +128,28 @@ TEST(rfcMgrTest, getErrorCode) {
    EXPECT_EQ(getErrorCode(WDMP_ERR_INTERNAL_ERROR), tr181InternalError);
 }
 
+TEST(rfcMgrTest, getDefaultValue) {
+
+  const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+  char *pcCallerID ="rfcdefaults";
+  TR181_ParamData_t pstParamData;
+
+  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  EXPECT_EQ(status, 0);
+
+}
+
+TEST(rfcMgrTest, getDefaultValue_callerIDNULL) {
+
+  const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+  char *pcCallerID = NULL;
+  TR181_ParamData_t pstParamData;
+
+  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  EXPECT_EQ(status, tr181Failure);
+
+}
+
 TEST(rfcMgrTest, getValue) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain);
    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";

@@ -237,12 +237,12 @@ TEST(rfcMgrTest, CallgetArrayNode) {
 }
 
 
-/* TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
     
     const char* jsonStr = R"({"featureControl":{"features":["A","B","C"]}})";
-    int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
+    int count = iterateAndSaveArrayNodes("/tmp/node.json",jsonStr);
     EXPECT_EQ(count, 3);
-} */
+}
 
 TEST(rfcMgrTest, saveToFile) {
     const char *format = "/tmp/%s_output.txt";
