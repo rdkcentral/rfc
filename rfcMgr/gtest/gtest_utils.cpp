@@ -125,7 +125,7 @@ TEST(rfcMgrTest, CallgetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
-   TR181_ParamData_t pstParamData;
+   //TR181_ParamData_t pstParamData;
    int status = getGetAttributeFunc()(pcParameterName);
    EXPECT_EQ(status, 0);
 }
