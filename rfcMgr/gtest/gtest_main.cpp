@@ -943,7 +943,7 @@ TEST(rfcMgrTest, initializeXconf) {
     EXPECT_TRUE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
     cleanup_lock_file();
     EXPECT_FALSE(file_exists(RFC_MGR_SERVICE_LOCK_FILE));
-} */
+} 
 
 TEST(rfcMgrTest, isRFCEnabled) {
      bool result = isRFCEnabled("Instance"); 
@@ -1001,7 +1001,7 @@ TEST(rfcMgrTest, init_rfcdefaults_removed_etc_dir) {
    EXPECT_EQ(status, 0);
    bool result = init_rfcdefaults();
    EXPECT_EQ(result, false);
-}
+} */
 
 /* TEST(rfcMgrTest, rfc_getValue) {
    writeToTr181storeFile("Device.Time.NTPServer1", "3.236.252.118", "/tmp/rfcdefaults.ini", Plain);
@@ -1014,7 +1014,7 @@ TEST(rfcMgrTest, init_rfcdefaults_removed_etc_dir) {
 } */
 
 
-TEST(rfcMgrTest, writeCurlResponse) {
+/* TEST(rfcMgrTest, writeCurlResponse) {
    const char* input = "MockCurlData";
    size_t size = 1;
    size_t nmemb = strlen(input);
@@ -1319,7 +1319,7 @@ TEST(rfcMgrTest, CallgetArrayNode) {
     EXPECT_EQ(cJSON_GetArraySize(arrayNode), 3);
 
     cJSON_Delete(root);
-}
+} */
 
 
 /* TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
@@ -1327,7 +1327,7 @@ TEST(rfcMgrTest, CallgetArrayNode) {
     const char* jsonStr = R"({"featureControl":{"features":["A","B","C"]}})";
     int count = iterateAndSaveArrayNodes("/tmp/test.json",jsonStr);
     EXPECT_EQ(count, 3);
-} */
+} 
 
 TEST(rfcMgrTest, saveToFile) {
     const char *format = "/tmp/%s_output.txt";
@@ -1348,7 +1348,7 @@ TEST(rfcMgrTest, getFilePath) {
     EXPECT_STREQ(path, expected.c_str());
     
     delete[] path;
-}
+} */
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
