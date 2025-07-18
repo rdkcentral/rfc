@@ -24,7 +24,7 @@ bin_PROGRAMS = rfcMgr_gtest rfcapi_gtest
 COMMON_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
 
-COMMON_LDADD =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl -lrdkloggers
+COMMON_LDADD =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
 
 
 rfcapi_gtest_SOURCES = $(TOP_DIR)/rfcMgr/gtest/gtest_rfcapi.cpp  $(TOP_DIR)/rfcapi/rfcapi.cpp $(TOP_DIR)/rfcMgr/gtest/mocks/secure_wrapper.c $(TOP_DIR)/rfcMgr/gtest/mocks/common_device_api.c $(TOP_DIR)/rfcMgr/gtest/mocks/curl_debug.c $(TOP_DIR)/rfcMgr/gtest/mocks/downloadUtil.c $(TOP_DIR)/rfcMgr/gtest/mocks/json_parse.c $(TOP_DIR)/rfcMgr/gtest/mocks/rdk_fwdl_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/system_utils.c $(TOP_DIR)/rfcMgr/gtest/mocks/urlHelper.c $(TOP_DIR)/rfcMgr/gtest/mocks/rfcMgr_stubs.cpp $(TOP_DIR)/rfcMgr/gtest/mocks/mock_curl.cpp
