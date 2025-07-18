@@ -28,6 +28,10 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include "tr181api.h"
+#include <urlHelper.h>
+#include "rfcapi.h"
+
 
 #include "jsonhandler.h"
 
@@ -44,10 +48,23 @@ extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
 
 
+
 enum ValueFormat {
     Plain,      // key=value
     Quoted      // key="value"
 };
+
+void write_on_file(const std::string& filePath, const std::string& content)
+{
+   std::ofstream outfile(filePath, std::ios::app);
+   if (outfile.is_open()) {
+        outfile << content<< "\n" ;
+        outfile.close();
+    } else {
+        std::cerr << "Could not open file for appending.\n";
+    }
+
+}
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
     // Check if the file exists and is openable in read mode
