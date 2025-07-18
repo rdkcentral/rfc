@@ -61,6 +61,8 @@ cd $TOP_DIR/rfcMgr/gtest
 make
 ./rfcMgr_gtest
 ./rfcapi_gtest
+./tr181api_gtest
+./utils_gtest
 
 if [ $? -ne 0 ]; then
     echo "Unit tests failed"
