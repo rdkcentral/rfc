@@ -33,14 +33,6 @@
 
 using namespace std;
 
-#ifdef GTEST_ENABLE
-extern bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *);
-extern DATA_TYPE (*getConvertTypeFunc())(char);
-extern int (*getClearAttributeFunc())(char * const);
-extern int (*getSetAttributeFunc())(char * const, char, char *);
-extern int (*getGetAttributeFunc())(char * const);
-extern int (*getparseargsFunc())(int argc, char * argv[]);
-#endif
 
 enum ValueFormat {
     Plain,      // key=value

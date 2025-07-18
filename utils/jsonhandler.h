@@ -28,6 +28,12 @@
 #ifndef JSONHANDLER_H
 #define JSONHANDLER_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <cJSON.h>
+#include <string.h>
+#include <errno.h>
+
 #if defined(GTEST_ENABLE)
 char * readFromFile(char * absolutePath);
 cJSON * getArrayNode(cJSON *node);
