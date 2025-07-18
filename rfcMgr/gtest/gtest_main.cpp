@@ -1186,6 +1186,15 @@ TEST(rfcMgrTest, getParam) {
    EXPECT_EQ(status, tr181Success);
 }
 
+TEST(rfcMgrTest, getParam_failure) {
+   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareDownloadProtocol";
+   char *pcCallerID ="rfcdefaults";
+   TR181_ParamData_t pstParamData;
+   tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(status, tr181Failure);
+}
+
+
 TEST(rfcMgrTest, getParamType) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");

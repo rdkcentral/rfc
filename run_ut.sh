@@ -41,14 +41,14 @@ cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
 
 export TOP_DIR=`pwd`
-cd ./rfcMgr/
+cd ./rfcMgr/gtest
 
 rm ./gtest/rfcMgr_gtest
 
 automake --add-missing
 autoreconf --install
 
-./configure CXXFLAGS="-g -O0 -fprofile-arcs -ftest-coverage -DGTEST_ENABLE"
+./configure
 
 make clean
 find . -name "*.gcda" -delete
@@ -60,6 +60,7 @@ echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
 make
 ./rfcMgr_gtest
+./rfcapi_gtest
 
 if [ $? -ne 0 ]; then
     echo "Unit tests failed"
