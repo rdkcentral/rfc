@@ -32,11 +32,6 @@
 #include "jsonhandler.h"
 
 using namespace std;
-enum ValueFormat {
-    Plain,      // key=value
-    Quoted      // key="value"
-};
-
 
 #ifdef GTEST_ENABLE
 extern bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *);
@@ -46,6 +41,11 @@ extern int (*getSetAttributeFunc())(char * const, char, char *);
 extern int (*getGetAttributeFunc())(char * const);
 extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
+
+enum ValueFormat {
+    Plain,      // key=value
+    Quoted      // key="value"
+};
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
     // Check if the file exists and is openable in read mode
