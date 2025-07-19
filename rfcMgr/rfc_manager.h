@@ -41,6 +41,11 @@
 #define ROUTE_FLAG_MAX_CHECK 5
 #define RFC_MGR_INTERNET_CHECK_TIMEOUT 2000
 
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest.h>
+#endif
+
+
 /*----------------------------------------------------------------------------*/
 /*                                   Namespace                                */
 /*----------------------------------------------------------------------------*/
@@ -64,6 +69,8 @@ enum DeviceStatus {
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
+bool isDnsResolve(const char *);
+
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
 /*----------------------------------------------------------------------------*/
@@ -77,7 +84,12 @@ class RFCManager {
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
 
-    private:
+
+    #if defined(GTEST_ENABLE)
+        public:
+    #else
+        private:
+    #endif
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);

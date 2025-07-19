@@ -74,8 +74,8 @@ size_t GetEstbMac( char *pEstbMac, size_t szBufSize )
         *pEstbMac = 0;
         if( (fp = fopen( ESTB_MAC_FILE, "r" )) != NULL )
         {
-            fgets( pEstbMac, szBufSize, fp );   // better be a valid string on first line
-            fclose( fp );
+	    fgets( pEstbMac, szBufSize, fp );   // better be a valid string on first line
+	    fclose( fp );
             i = stripinvalidchar( pEstbMac, szBufSize );
         }
     }
@@ -391,7 +391,6 @@ bool CurrentRunningInst(const char *file)
         close(fd);
         return true;
     }
-
     /* OK to proceed (lock will be released and file descriptor will be closed on exit) */
 
     return false;

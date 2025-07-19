@@ -147,7 +147,7 @@ static int getAttribute(char * const paramName)
 * @return 0 if success, 1 otherwise
 */
 static int setAttribute(char * const paramName  ,char type, char * value)
-{
+{ 
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
       if(status == 0)
@@ -194,7 +194,7 @@ static int clearAttribute(char * const paramName)
    {
       cout << __FUNCTION__ << " >> Failed to clear." << endl;
    }
-
+   
    return status;
 }
 
@@ -253,6 +253,7 @@ static int parseargs(int argc, char * argv[])
         else if(strncasecmp(argv[i], "-n", 2) == 0)
         {
             id = argv[i+1];
+	    cout << __FUNCTION__ << " >> id " << id << endl;	
             i += 2;
         }
         else
@@ -265,6 +266,7 @@ static int parseargs(int argc, char * argv[])
     return  0;
 }
 
+#ifndef GTEST_ENABLE
 int main(int argc, char *argv [])
 {
    if(legacyRfcEnabled() == true)
@@ -316,6 +318,41 @@ int main(int argc, char *argv [])
    }
    return retcode;
 }
+#endif
 /** @} */
 /** @} */
+
+// Define your write callback function
+#ifdef GTEST_ENABLE
+bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *)
+{
+    return &getParamType;
+}
+
+DATA_TYPE (*getConvertTypeFunc())(char)
+{
+    return &convertType;
+}
+
+int (*getClearAttributeFunc())(char * const)
+{
+    return &clearAttribute;
+}
+
+int (*getSetAttributeFunc())(char * const, char, char *)
+{
+    return &setAttribute;
+}
+
+int (*getGetAttributeFunc())(char * const)
+{
+    return &getAttribute;
+}
+
+int (*getparseargsFunc())(int argc, char * argv[])
+{
+    return &parseargs;
+}
+
+#endif
 

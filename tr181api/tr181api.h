@@ -23,6 +23,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if defined(GTEST_ENABLE)
+#include <wdmp-c.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -68,6 +72,7 @@ typedef enum _tr181ErrorCodes
     tr181DefaultValue,
 } tr181ErrorCode_t;
 
+
 //NOTE: The pcCallerID is the component name. This name should match the name of the defaults ini file if the component is using a defaults ini file.
 //      For example authservice comonent uses defaults file "authservice.ini". For this case the pcCallerID should be "authservice"
 tr181ErrorCode_t getParam(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
@@ -84,6 +89,12 @@ tr181ErrorCode_t setLocalParam(char *pcCallerID, const char* pcParameterName, co
 tr181ErrorCode_t clearLocalParam(char *pcCallerID, const char* pcParameterName);
 
 tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
+#if defined(GTEST_ENABLE)
+tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
+tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
+TR181_PARAM_TYPE getType(DATA_TYPE type);
+tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+#endif
 
 #ifdef __cplusplus
 }

@@ -30,24 +30,63 @@
 #include "rfc_common.h"
 #include "rfc_xconf_handler.h"
 #include "tr181api.h"
+#include "rfc_manager.h"
+#include "xconf_handler.h"
 #include <urlHelper.h>
+#include "rfcapi.h"
+#include "jsonhandler.h"
 
 using namespace std;
+using namespace rfc;
 
+#define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
+#define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
+extern bool tr69hostif_http_server_ready;
 
-void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath) {
+#ifdef GTEST_ENABLE
+extern bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *);
+extern DATA_TYPE (*getConvertTypeFunc())(char);
+extern int (*getClearAttributeFunc())(char * const);
+extern int (*getSetAttributeFunc())(char * const, char, char *);
+extern int (*getGetAttributeFunc())(char * const);
+extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
+extern int (*getparseargsFunc())(int argc, char * argv[]);
+#endif
+
+enum ValueFormat {
+    Plain,      // key=value
+    Quoted      // key="value"
+};
+
+void write_on_file(const std::string& filePath, const std::string& content)
+{
+   std::ofstream outfile(filePath, std::ios::app);
+   if (outfile.is_open()) {
+        outfile << content<< "\n" ;
+        outfile.close();
+    } else {
+        std::cerr << "Could not open file for appending.\n";
+    }
+
+}
+
+void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
     // Check if the file exists and is openable in read mode
     std::ifstream fileStream(filePath);
     bool found = false;
     std::string line;
     std::vector<std::string> lines;
 
+    std::string formattedLine = (format == Quoted)
+        ? key + "=\"" + value + "\""
+        : key + "=" + value;
+
     if (fileStream.is_open()) {
         while (getline(fileStream, line)) {
             // Check if the current line contains the key
             if (line.find(key) != std::string::npos && line.substr(0, key.length()) == key) {
                 // Replace the line with the new key-value pair
-                line = key + "=\"" + value + "\"";
+                line = formattedLine;
                 found = true;
             }
             lines.push_back(line);
@@ -59,7 +98,7 @@ void writeToTr181storeFile(const std::string& key, const std::string& value, con
 
     // If the key was not found in an existing file or the file did not exist, add it to the vector
     if (!found) {
-        lines.push_back(key + "=\"" + value + "\"");
+        lines.push_back(formattedLine);
     }
 
     // Open the file in write mode to overwrite old content or create new file
@@ -92,6 +131,13 @@ std::string readFileContent(const std::string& filePath) {
         return rtrim(content.str());
     }
     return "";  // Return empty string if file couldn't be opened
+}
+
+
+// Helper function to check file existence
+bool file_exists(const char* filename) {
+    struct stat buffer;
+    return (stat(filename, &buffer) == 0);
 }
 
 char xconfResp[] = R"({
@@ -164,7 +210,16 @@ char xconfResp[] = R"({
                     "tr181.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Version": "2.0.1"
                 },
                 "featureInstance": "Telemetry_2.0-31099"
-            }
+            },
+            {
+		"name": "PartnerId",
+		"enable": true,
+	        "effectiveImmediate": true,
+	        "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId": "comcast"
+                },
+	        "featureInstance": "PartnerId"	
+	    } 
         ]
     }
 })";
@@ -217,10 +272,8 @@ TEST(rfcMgrTest, removeSubstring) {
     EXPECT_EQ(ret, 0);
 }
 
-
-
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
-    /* Create Object for Xconf Handler */
+    /*Create Object for Xconf Handler */
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
     int reqStatus = FAILURE;
@@ -250,7 +303,6 @@ TEST(rfcMgrTest, processRuntimeFeatureControlReq) {
     }
 }
 
-
 TEST(rfcMgrTest, isNewFirmwareFirstRequest) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool ret = rfcObj->IsNewFirmwareFirstRequest();
@@ -269,7 +321,7 @@ TEST(rfcMgrTest, getLastProcessedFirmware) {
 }
 
 TEST(rfcMgrTest, getAccountID) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "TestAccount", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->GetAccountID();
     EXPECT_EQ(rfcObj->_accountId, "TestAccount");
@@ -329,7 +381,7 @@ TEST(rfcMgrTest, getServURL) {
 }
 
 TEST(rfcMgrTest, getBootstrapXconfUrl) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string boot_strap_xconf_url;
     int ret = rfcObj->GetBootstrapXconfUrl(boot_strap_xconf_url);
@@ -340,7 +392,7 @@ TEST(rfcMgrTest, getBootstrapXconfUrl) {
 }
 
 TEST(rfcMgrTest, checkBootstrap) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl", "https://mockxconf", "/opt/secure/RFC/bootstrap.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool is_Bootstrap = rfcObj->checkBootstrap(BS_STORE_FILENAME, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl");
     
@@ -349,7 +401,7 @@ TEST(rfcMgrTest, checkBootstrap) {
 }
 
 TEST(rfcMgrTest, isXconfSelectorSlotProd) {
-    writeToTr181storeFile(XCONF_SELECTOR_KEY_STR, "prod", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile(XCONF_SELECTOR_KEY_STR, "prod", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool ret = rfcObj->isXconfSelectorSlotProd();
     
@@ -359,8 +411,8 @@ TEST(rfcMgrTest, isXconfSelectorSlotProd) {
 }
 
 TEST(rfcMgrTest, getStoredHashAndTime) {
-    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
-    writeToTr181storeFile(RFC_CONFIG_SET_TIME, "TestConfigSetTime", "/opt/secure/RFC/tr181store.ini");
+    writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini", Quoted);
+    writeToTr181storeFile(RFC_CONFIG_SET_TIME, "TestConfigSetTime", "/opt/secure/RFC/tr181store.ini", Quoted);
 
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string hashValue;
@@ -401,7 +453,7 @@ TEST(rfcMgrTest, processJsonResponse) {
     std::string actualContent = readFileContent("/opt/secure/RFC/rfcFeature.list");
 
     // Check if the content of the file is equal to "TEMP_VERSION"
-    EXPECT_EQ(actualContent, "11=true,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,");
+    EXPECT_EQ(actualContent, "11=true,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,PartnerId=true,");
     
 }
 
@@ -486,6 +538,403 @@ TEST(rfcMgrTest, getDefaultValue) {
    	
 }
 
+TEST(rfcMgrTest, getDefaultValue_callerIDNULL) {
+
+  const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+  char *pcCallerID = NULL;
+  TR181_ParamData_t pstParamData;
+
+  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  EXPECT_EQ(status, tr181Failure);
+
+}
+
+
+TEST(rfcMgrTest, checkWhoamiSupport) {
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->checkWhoamiSupport();
+    delete rfcObj;
+    EXPECT_EQ(result, true);
+}
+
+TEST(rfcMgrTest, isDebugServicesEnabled) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);    
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isDebugServicesEnabled();
+    delete rfcObj;
+    EXPECT_EQ(result,true);
+}
+
+TEST(rfcMgrTest, isMaintenanceEnabled) {
+    writeToTr181storeFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties", Plain);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isMaintenanceEnabled();
+    delete rfcObj;
+    EXPECT_EQ(result, true);
+}
+
+TEST(rfcMgrTest, GetOsClass) {
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetOsClass();
+    EXPECT_EQ(rfcObj->_osclass, "TestOsClass");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, NotifyTelemetry2Value) {
+    string xconf_server_url = "https://mockxconf/featureControl/getSettings";
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", xconf_server_url.c_str());
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetValidPartnerId) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->rfc_state = Init;
+    rfcObj->_is_first_request = true;
+    rfcObj->PreProcessJsonResponse(xconfResp);
+    rfcObj->GetValidPartnerId();
+    EXPECT_EQ(rfcObj->_partner_id, "comcast");
+    delete rfcObj;
+}
+
+
+TEST(rfcMgrTest, CreateXconfHTTPUrl) {
+    writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky"; 
+    rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
+    rfcObj->PreProcessJsonResponse(xconfResp);
+    rfcObj->GetValidPartnerId();
+    rfcObj->GetOsClass();
+    rfcObj->GetAccountID();
+    rfcObj->GetXconfSelect();
+    std:stringstream url = rfcObj->CreateXconfHTTPUrl();
+    EXPECT_EQ(url.str(), "https://xconf.xdp.eu-1.xcal.tv?estbMacAddress=&firmwareVersion=&env=&model=&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=sky&osClass=TestOsClass&accountId=4123705941507160514&Experience=&version=2");  
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, isConfigValueChange) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable", "false", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string name = "rfc";
+    std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
+    std::string newValue = "true";
+    std::string currentValue = "false";
+    bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
+    EXPECT_EQ(result, true);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, CreateConfigDataValueMap) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+	if(features)
+	{
+           rfcObj->CreateConfigDataValueMap(features);
+	}
+        EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 15);
+        delete rfcObj;
+    }	
+}
+
+TEST(rfcMgrTest, IsDirectBlocked) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->IsDirectBlocked();
+    EXPECT_EQ(result, false);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, getRFCName) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if (pJson) {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
+
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getRFCName(feature, rfccObj);
+                EXPECT_EQ(rfccObj->name, "ARU");
+
+                delete rfccObj;
+            }
+        }
+
+        delete rfcObj;
+    }
+}
+
+
+TEST(rfcMgrTest, getFeatureInstance) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if (pJson) {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
+
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getFeatureInstance(feature, rfccObj);
+                EXPECT_EQ(rfccObj->featureInstance, "ARU:E_29");
+
+                delete rfccObj;
+            }
+        }
+
+        delete rfcObj;
+    }
+}
+
+TEST(rfcMgrTest, getRFCEnableParam) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if (pJson) {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
+
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getRFCEnableParam(feature, rfccObj);
+                EXPECT_EQ(rfccObj->enable, true);
+
+                delete rfccObj;
+            }
+        }
+
+        delete rfcObj;
+    }
+}
+
+
+TEST(rfcMgrTest, getEffectiveImmediateParam) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if (pJson) {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+
+        if (features) {
+            int numFeatures = GetJsonArraySize(features);
+
+            if (numFeatures) {
+                JSON* feature = GetJsonArrayItem(features, 1);
+                RuntimeFeatureControlProcessor::RuntimeFeatureControlObject *rfccObj = new RuntimeFeatureControlProcessor::RuntimeFeatureControlObject;
+
+                rfcObj->getEffectiveImmediateParam(feature, rfccObj);
+                EXPECT_EQ(rfccObj->effectiveImmediate, false);
+
+                delete rfccObj;
+            }
+        }
+
+        delete rfcObj;
+    }
+}
+
+
+TEST(rfcMgrTest, InitDownloadData) {
+    DownloadData DwnLoc;
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->InitDownloadData(&DwnLoc);
+    EXPECT_EQ(DwnLoc.pvOut, nullptr);
+    EXPECT_EQ(DwnLoc.datasize, 0);
+    EXPECT_EQ(DwnLoc.memsize, 0);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, set_RFCProperty) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string name = "rfc";
+    std::string value = "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings";
+    //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
+    std::string xconfURL = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
+    writeToTr181storeFile(xconfURL, "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings", "/opt/secure/RFC/tr181store.ini", Quoted);
+    WDMP_STATUS status = rfcObj->set_RFCProperty(name, xconfURL, value);
+    EXPECT_EQ(status, WDMP_SUCCESS);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetXconfSelect) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
+    rfcObj->_RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR] = "automation"; 
+    rfcObj->GetXconfSelect();
+    
+    EXPECT_EQ(rfcObj->rfc_state, Redo);
+    EXPECT_EQ(rfcObj->rfcSelectorSlot, "19");
+    delete rfcObj;
+    
+}
+
+TEST(rfcMgrTest, getJRPCTokenData) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    char post_data[] = "{\"jsonrpc\":\"2.0\",\"id\":\"3\",\"method\":\"org.rdk.AuthService.getExperience\", \"params\":{}}";
+    char token_str[] =  "id";
+    int result = rfcObj->getJRPCTokenData(token_str, post_data , sizeof(token_str));
+
+    EXPECT_EQ(result , 0);
+    delete rfcObj;
+
+}
+
+TEST(rfcMgrTest, isStateRedSupported) {
+    int ret = isStateRedSupported();
+    EXPECT_EQ(ret , 0); 
+}
+
+
+TEST(rfcMgrTest, isInStateRed) {
+    int ret = isInStateRed();
+    EXPECT_EQ(ret , 0);
+}
+
+TEST(rfcMgrTest, executeCommandAndGetOutput) {
+    const char *pArg;
+    std::string result; 	
+    int ret = executeCommandAndGetOutput(eWpeFrameworkSecurityUtility, pArg, result);
+    EXPECT_EQ(ret , 0);
+}
+
+TEST(rfcMgrTest, getRebootRequirement) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->getRebootRequirement();
+    EXPECT_EQ(result , false);
+    delete rfcObj;    
+}
+
+TEST(rfcMgrTest, ProcessXconfUrl) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::string xconfURL = "https://xconf.xdp.eu-1.xcal.tv";
+    int result = rfcObj->ProcessXconfUrl(xconfURL.c_str());
+    EXPECT_EQ(result , 0);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, updateTR181File) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    std::list<std::string> paramList;
+    std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+    std::string newValue = "true";
+    std::string data = "TR181: " + newKey + " " + newValue;
+    int result ;
+    paramList.push_back(data);
+    rfcObj->updateTR181File(TR181_FILE_LIST, paramList);
+    EXPECT_EQ(paramList.size() , 0);
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
+    JSON *pJson = ParseJsonStr(xconfResp);
+    if(pJson)
+    {
+        RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+        JSON *features = rfcObj->GetRuntimeFeatureControlJSON(pJson);
+	JSON *bkp_features = features;
+        if(bkp_features)
+	{
+            rfcObj->processXconfResponseConfigDataPart(bkp_features);	    
+	}
+	delete rfcObj;
+    }
+}
+
+
+TEST(rfcMgrTest, CheckDeviceIsOFFline) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+      EXPECT_EQ(status , RFCMGR_DEVICE_OFFLINE);
+      delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, CheckDeviceIsOnline) {
+      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+      EXPECT_EQ(status , RFCMGR_DEVICE_ONLINE);
+      delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, RFCManagerPostProcess) {
+      write_on_file(RFC_MGR_IPTBLE_INIT_SCRIPT, "executing the iptables init script");
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerPostProcess();
+      EXPECT_EQ(result , 0);
+}
+
+
+TEST(rfcMgrTest, CheckIProuteConnectivity) {
+      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+      EXPECT_EQ(result, true);
+      delete rfcmgrObj;
+}
+
+
+TEST(rfcMgrTest, IsIarmBusConnected) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      bool result =  rfcmgrObj->IsIarmBusConnected();
+      EXPECT_EQ(result, true);
+      delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, InitializeIARM) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      bool result = true;
+      rfcmgrObj->InitializeIARM();
+      EXPECT_EQ(result, true);
+      delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, isDnsResolve) {
+      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
+      int result = isDnsResolve(DNS_RESOLV_FILE);
+      EXPECT_EQ(result, true);
+}
+ TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
+      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+      int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
+      EXPECT_EQ(result, FAILURE);
+      delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, initializeXconf) {
+     write_on_file("/tmp/partnerId3.dat", "default-parter");	
+     write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
+     write_on_file("/tmp/version.txt", "imagename:TestImage");
+     write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
+     write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
+     write_on_file("/tmp/.manufacturer", "TestMFRname");
+     xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
+     int resutl = xconfObj->initializeXconfHandler();
+     EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
+     EXPECT_EQ(xconfObj->_partner_id, "default-parter");
+     EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
+     EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
+     EXPECT_EQ(xconfObj->_build_type_str, "dev");
+     EXPECT_EQ(xconfObj->_manufacturer, "TestMFRname");
+     delete xconfObj;
+}
 
 
 GTEST_API_ int main(int argc, char *argv[]){

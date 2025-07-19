@@ -41,17 +41,18 @@ cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
 
 export TOP_DIR=`pwd`
-cd ./rfcMgr/
+cd ./rfcMgr/gtest
 
 rm ./gtest/rfcMgr_gtest
 
 automake --add-missing
 autoreconf --install
 
-
 ./configure
 
 make clean
+find . -name "*.gcda" -delete
+find . -name "*.gcno" -delete
 
 echo "TOP_DIR = $TOP_DIR"
 
@@ -59,6 +60,9 @@ echo "**** Compiling rfcMgr gtest ****"
 cd $TOP_DIR/rfcMgr/gtest
 make
 ./rfcMgr_gtest
+./rfcapi_gtest
+./tr181api_gtest
+./utils_gtest
 
 if [ $? -ne 0 ]; then
     echo "Unit tests failed"
@@ -66,11 +70,21 @@ if [ $? -ne 0 ]; then
 fi
 echo "********************"
 
+cd $TOP_DIR
+gcov -b -f rfcapi/rfcapi.cpp
+cat rfcapi.cpp.gcov
+
+gcov -b -f tr181api/tr181api.cpp
+cat tr181api.cpp.gcov
+
+cd $TOP_DIR
+
 if [ "$ENABLE_COV" = true ]; then
     echo "Generating coverage report"
-    lcov --capture --directory . --output-file coverage.info
-    lcov --remove coverage.info '/usr/*' --output-file coverage.info
-    lcov --list coverage.info
+    lcov --capture --directory . --base-directory . --output-file coverage.info
+    lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
+    lcov --extract filtered.info '*/rfcMgr/*' '*/rfcapi/*' '*/tr181api/*' '*/utils/*' --output-file rfc_coverage.info
+    lcov --list rfc_coverage.info
 fi
 
 cd $TOP_DIR
