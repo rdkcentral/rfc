@@ -48,7 +48,7 @@ extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb
 extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
 
-TEST(rfcMgrTest, getParamType) {
+TEST(utilsTest, getParamType) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
@@ -57,7 +57,7 @@ TEST(rfcMgrTest, getParamType) {
    EXPECT_EQ(status, true);
 }
 
-TEST(rfcMgrTest, CallconvertType) {
+TEST(utilsTest, CallconvertType) {
    char itype = 'i';
    DATA_TYPE status = getConvertTypeFunc()(itype);
    EXPECT_EQ(status, WDMP_INT);
@@ -76,7 +76,7 @@ TEST(rfcMgrTest, CallconvertType) {
 }
 
 
-TEST(rfcMgrTest, CallgetAttribute) {
+TEST(utilsTest, CallgetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted); 
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
@@ -85,7 +85,7 @@ TEST(rfcMgrTest, CallgetAttribute) {
    EXPECT_EQ(status, 0);
 }
 
-TEST(rfcMgrTest, CallsetAttribute) {
+TEST(utilsTest, CallsetAttribute) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
@@ -95,21 +95,21 @@ TEST(rfcMgrTest, CallsetAttribute) {
 }
 
 
-TEST(rfcMgrTest, CallclearAttribute) {
+TEST(utilsTest, CallclearAttribute) {
    //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    int status = getClearAttributeFunc()(pcParameterName);
    EXPECT_EQ(status, 0);
 }
 
-TEST(rfcMgrTest, Callparseargs) {
+TEST(utilsTest, Callparseargs) {
    char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
    int argc = 3;
    int status = getparseargsFunc()(argc, argv);	
    EXPECT_EQ(status, 0);
 }
 
-TEST(rfcMgrTest, CallsetAttribute_args) {
+TEST(utilsTest, CallsetAttribute_args) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
@@ -121,7 +121,7 @@ TEST(rfcMgrTest, CallsetAttribute_args) {
    EXPECT_EQ(status, 0);
 }
 
-TEST(rfcMgrTest, CallgetAttribute_args) {
+TEST(utilsTest, CallgetAttribute_args) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
    char *pcCallerID ="rfcdefaults";
@@ -134,14 +134,14 @@ TEST(rfcMgrTest, CallgetAttribute_args) {
 }
 
 
-TEST(rfcMgrTest, CallclearParam) {
+TEST(utilsTest, CallclearParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID ="rfcdefaults";
    tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(rfcMgrTest, CallsetParam) {
+TEST(utilsTest, CallsetParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
    char *pcCallerID ="rfcdefaults";
    const char* pcParameterValue = "1280000";
@@ -150,7 +150,7 @@ TEST(rfcMgrTest, CallsetParam) {
 }
 
 
-TEST(rfcMgrTest, CallreadFromFile) {
+TEST(utilsTest, CallreadFromFile) {
     std::string jsonString = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true}})";
     write_on_file("/tmp/test.json", jsonString);    	
     char *result = readFromFile("/tmp/test.json");
@@ -162,7 +162,7 @@ TEST(rfcMgrTest, CallreadFromFile) {
     std::remove("/tmp/test.json");
 }
 
-TEST(rfcMgrTest, CallgetArrayNode) {
+TEST(utilsTest, CallgetArrayNode) {
     const char* jsonStr = R"({"jsonrpc":"2.0","id":3,"result":{"experience":"X1","success":true,"features":["A","B","C"]}})";
     cJSON* root = cJSON_Parse(jsonStr);
     EXPECT_NE(root, nullptr);
@@ -175,7 +175,7 @@ TEST(rfcMgrTest, CallgetArrayNode) {
 }
 
 
-TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
+TEST(utilsTest, iterateAndSaveArrayNodes) {
     
     const char* jsonStr = R"({"featureControl":{"features":[{"name":"SNMP2WL","effectiveImmediate":false,"enable":true,"configData":{},"listType":"SNMPIPv4","listSize":2,"SNMP IP4 WL":["128.82.34.17","10.0.0.32/6"]}]}})";
     const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini"
@@ -183,7 +183,7 @@ TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
     EXPECT_EQ(count, 2);
 }
 
-TEST(rfcMgrTest, saveToFile) {
+TEST(utilsTest, saveToFile) {
     const char *format = "/opt/secure/RFC/.RFC_LIST_%s.ini";
     const char *name = "SNMP2WL";
     cJSON *array = cJSON_CreateArray();
@@ -195,7 +195,7 @@ TEST(rfcMgrTest, saveToFile) {
     cJSON_Delete(array);
 }
 
-TEST(rfcMgrTest, saveIfNodeContainsLists) {
+TEST(utilsTest, saveIfNodeContainsLists) {
     const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini";
     const char *name = "SNMP2WL";
     cJSON *node = cJSON_CreateObject();
@@ -213,7 +213,7 @@ TEST(rfcMgrTest, saveIfNodeContainsLists) {
 
 
 
-TEST(rfcMgrTest, getFilePath) {
+TEST(utilsTest, getFilePath) {
     char *path = getFilePath();
     std::string expected = "/opt/secure/RFC/.RFC_LIST_%s.ini";
     EXPECT_STREQ(path, expected.c_str());

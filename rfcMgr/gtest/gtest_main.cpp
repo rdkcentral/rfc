@@ -64,13 +64,6 @@ std::string readFileContent(const std::string& filePath) {
     return "";  // Return empty string if file couldn't be opened
 }
 
-
-// Helper function to check file existence
-bool file_exists(const char* filename) {
-    struct stat buffer;
-    return (stat(filename, &buffer) == 0);
-}
-
 char xconfResp[] = R"({
     "featureControl": {
         "features": [
