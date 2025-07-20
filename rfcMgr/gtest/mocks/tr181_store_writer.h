@@ -15,7 +15,7 @@ enum ValueFormat {
  * @param value     The string value to be assigned (e.g., "true")
  * @param filePath  Path to the config file to read/update/create
  */
-void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath);
+void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format);
 
 void write_on_file(const std::string& filePath, const std::string& content);
 
