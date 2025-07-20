@@ -38,6 +38,7 @@
 char * readFromFile(char * absolutePath);
 cJSON * getArrayNode(cJSON *node);
 int saveToFile(cJSON * arrayNode, const char * format,const char * name);
+int saveIfNodeContainsLists(cJSON *node,const char * asbolutepath);
 int iterateAndSaveArrayNodes(const char * absolutePath,const char * json_data);
 char * getFilePath();
 #endif
