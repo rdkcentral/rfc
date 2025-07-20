@@ -30,7 +30,6 @@
 
 #include "tr181api.h"
 #include "tr181_store_writer.h"
-#include "system_utils.h"
 
 using namespace std;
 
@@ -83,7 +82,9 @@ TEST(tr181apiTest, getErrorCode) {
 }
 
 TEST(tr181apiTest, getDefaultValue) {
-  createDir(RFCDEFAULTS_ETC_DIR);
+  const char* dirPath = "/etc/rfcdefaults/";
+  int result = mkdir(dirPath, 0755);
+  EXPECT_EQ(result, 0);
   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
   char *pcCallerID ="rfcdefaults";
