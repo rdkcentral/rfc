@@ -27,7 +27,6 @@
 #include <gtest/gtest.h>
 #endif
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif

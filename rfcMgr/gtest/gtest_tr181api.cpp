@@ -92,7 +92,7 @@ TEST(tr181apiTest, getDefaultValue) {
 
   tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
   EXPECT_EQ(status, tr181Success);
-  EXPECT_EQ(pstParamData.value, "false"); 
+  EXPECT_STREQ(pstParamData.value, "false");
 
 }
 

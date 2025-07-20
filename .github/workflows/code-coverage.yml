@@ -21,8 +21,8 @@ jobs:
 
       - name: Caculate the code coverage summary
         run: |
-          #cd ./rfcMgr/gtest
-          lcov --list rfc_coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
+          cd ./rfcMgr/gtest
+          lcov --list coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
           cd -
         
       - name: Update the coverage report to Pull request using actions
@@ -46,8 +46,8 @@ jobs:
 
       - name: Generate the html report
         run: |
-          #cd ./rfcMgr/gtest
-          genhtml rfc_coverage.info --output-directory /tmp/coverage_report
+          cd ./rfcMgr/gtest
+          genhtml coverage.info --output-directory /tmp/coverage_report
           cd -
 
       - name: Upload the coverage report to Pull request using actions

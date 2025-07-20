@@ -69,7 +69,9 @@ enum DeviceStatus {
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
+#if defined(GTEST_ENABLE)
 bool isDnsResolve(const char *);
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
@@ -84,12 +86,11 @@ class RFCManager {
         rfc::DeviceStatus CheckDeviceIsOnline(void);
         void SendEventToMaintenanceManager(const char *, unsigned int);
 
-
-    #if defined(GTEST_ENABLE)
-        public:
-    #else
-        private:
-    #endif
+#if defined(GTEST_ENABLE)
+    public:
+#else
+    private:
+#endif
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);

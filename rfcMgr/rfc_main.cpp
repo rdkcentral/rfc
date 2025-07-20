@@ -47,7 +47,6 @@ void signal_handler(int sig)
     exit(0);
 }
 
-#ifndef GTEST_ENABLE
 int main()
 {
     pid_t pid;
@@ -104,7 +103,6 @@ int main()
 
     return 0;
 }
-#endif
 #ifdef __cplusplus
 }
 #endif
