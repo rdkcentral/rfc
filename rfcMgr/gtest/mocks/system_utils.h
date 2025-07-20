@@ -34,6 +34,11 @@
 #define RDK_APP_PATH_LEN   256
 #define RDK_MB_SIZE        (1024 * 1024)
 
+enum ValueFormat {
+    Plain,      // key=value
+    Quoted      // key="value"
+};
+
 /** Description: File present check.
  *
  *  @param file_name: The pointer to hold the file name.
@@ -91,4 +96,6 @@ void  qsString(char *arr[], unsigned int length);
 int strRmDuplicate(char **in, int len);
 int isDataInList(char **pList,char *pData,int count);
 void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* outValue);
+void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format);
+void write_on_file(const std::string& filePath, const std::string& content);
 #endif /* VIDEO_UTILS_SYSTEM_UTILS_H_ */

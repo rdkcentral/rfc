@@ -34,6 +34,7 @@
 
 
 #include "jsonhandler.h"
+#include "system_utils.h"
 
 using namespace std;
 
@@ -46,69 +47,6 @@ extern int (*getGetAttributeFunc())(char * const);
 extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
 extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
-
-
-
-enum ValueFormat {
-    Plain,      // key=value
-    Quoted      // key="value"
-};
-
-void write_on_file(const std::string& filePath, const std::string& content)
-{
-   std::ofstream outfile(filePath, std::ios::app);
-   if (outfile.is_open()) {
-        outfile << content<< "\n" ;
-        outfile.close();
-    } else {
-        std::cerr << "Could not open file for appending.\n";
-    }
-
-}
-
-void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
-    // Check if the file exists and is openable in read mode
-    std::ifstream fileStream(filePath);
-    bool found = false;
-    std::string line;
-    std::vector<std::string> lines;
-
-    std::string formattedLine = (format == Quoted)
-        ? key + "=\"" + value + "\""
-        : key + "=" + value;
-
-    if (fileStream.is_open()) {
-        while (getline(fileStream, line)) {
-            // Check if the current line contains the key
-            if (line.find(key) != std::string::npos && line.substr(0, key.length()) == key) {
-                // Replace the line with the new key-value pair
-                line = formattedLine;
-                found = true;
-            }
-            lines.push_back(line);
-        }
-        fileStream.close();
-    } else {
-        std::cout << "File does not exist or cannot be opened for reading. It will be created." << std::endl;
-    }
-
-    // If the key was not found in an existing file or the file did not exist, add it to the vector
-    if (!found) {
-        lines.push_back(formattedLine);
-    }
-
-    // Open the file in write mode to overwrite old content or create new file
-    std::ofstream outFileStream(filePath);
-    if (outFileStream.is_open()) {
-        for (const auto& outputLine : lines) {
-            outFileStream << outputLine << std::endl;
-        }
-        outFileStream.close();
-        std::cout << "Configuration updated successfully." << std::endl;
-    } else {
-        std::cout << "Error opening file for writing." << std::endl;
-    }
-}
 
 TEST(rfcMgrTest, getParamType) {
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
@@ -239,22 +177,40 @@ TEST(rfcMgrTest, CallgetArrayNode) {
 
 TEST(rfcMgrTest, iterateAndSaveArrayNodes) {
     
-    const char* jsonStr = R"({"featureControl":{"features":["A","B","C"]}})";
-    int count = iterateAndSaveArrayNodes("/tmp/node.json",jsonStr);
-    EXPECT_EQ(count, 3);
+    const char* jsonStr = R"({"featureControl":{"features":[{"name":"SNMP2WL","effectiveImmediate":false,"enable":true,"configData":{},"listType":"SNMPIPv4","listSize":2,"SNMP IP4 WL":["128.82.34.17","10.0.0.32/6"]}]}})";
+    const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini"
+    int count = iterateAndSaveArrayNodes(absolutePath, jsonStr);
+    EXPECT_EQ(count, 2);
 }
 
 TEST(rfcMgrTest, saveToFile) {
-    const char *format = "/tmp/%s_output.txt";
-    const char *name = "testfile";
+    const char *format = "/opt/secure/RFC/.RFC_LIST_%s.ini";
+    const char *name = "SNMP2WL";
     cJSON *array = cJSON_CreateArray();
-    cJSON_AddItemToArray(array, cJSON_CreateString("line1"));
-    cJSON_AddItemToArray(array, cJSON_CreateString("line2"));
+    cJSON_AddItemToArray(array, cJSON_CreateString("128.82.34.17"));
+    cJSON_AddItemToArray(array, cJSON_CreateString("10.0.0.32/6"));
     int status = saveToFile(array, format, name);
     EXPECT_EQ(status, 1);
 
     cJSON_Delete(array);
-} 
+}
+
+TEST(rfcMgrTest, saveIfNodeContainsLists) {
+    const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini";
+    const char *name = "SNMP2WL";
+    cJSON *node = cJSON_CreateObject();
+    cJSON_AddStringToObject(node, "name", "SNMP2WL");
+    cJSON_AddStringToObject(node, "listType", "SNMPIPv4");
+    cJSON *array = cJSON_CreateArray();
+    cJSON_AddItemToArray(array, cJSON_CreateString("128.82.34.17"));
+    cJSON_AddItemToArray(array, cJSON_CreateString("10.0.0.32/6"));
+    cJSON_AddItemToObject(node, "SNMP IP4 WL", array);
+    int status = saveIfNodeContainsLists(node, absolutePath);
+    EXPECT_EQ(status, 1);
+
+    cJSON_Delete(node);
+}
+
 
 
 TEST(rfcMgrTest, getFilePath) {
