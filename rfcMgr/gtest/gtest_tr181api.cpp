@@ -81,7 +81,7 @@ TEST(tr181apiTest, getErrorCode) {
 }
 
 TEST(tr181apiTest, getDefaultValue) {
-  writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", /etc/rfcdefaults/rfcdefaults.ini, Plain);
+  writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
   char *pcCallerID ="rfcdefaults";
   TR181_ParamData_t pstParamData;
