@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "tr181_store_writer.h"
 
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format) {
     // Check if the file exists and is openable in read mode
