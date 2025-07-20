@@ -35,7 +35,7 @@
 #include <urlHelper.h>
 #include "rfcapi.h"
 #include "jsonhandler.h"
-#include "system_utils.h"
+#include "tr181_store_writer.h"
 
 using namespace std;
 using namespace rfc;

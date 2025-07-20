@@ -29,7 +29,7 @@
 #include <string>
 
 #include "tr181api.h"
-#include "system_utils.h"
+#include "tr181_store_writer.h"
 
 using namespace std;
 
