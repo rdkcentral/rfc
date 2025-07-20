@@ -178,7 +178,7 @@ TEST(utilsTest, CallgetArrayNode) {
 TEST(utilsTest, iterateAndSaveArrayNodes) {
     
     const char* jsonStr = R"({"featureControl":{"features":[{"name":"SNMP2WL","effectiveImmediate":false,"enable":true,"configData":{},"listType":"SNMPIPv4","listSize":2,"SNMP IP4 WL":["128.82.34.17","10.0.0.32/6"]}]}})";
-    const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini"
+    const char *absolutePath = "/opt/secure/RFC/.RFC_LIST_%s.ini";
     int count = iterateAndSaveArrayNodes(absolutePath, jsonStr);
     EXPECT_EQ(count, 2);
 }
