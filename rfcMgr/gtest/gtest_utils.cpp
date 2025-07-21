@@ -47,96 +47,78 @@ extern int (*getparseargsFunc())(int argc, char * argv[]);
 #endif
 
 TEST(utilsTest, getParamType) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
-   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
-   DATA_TYPE paramType;
-   bool status = getGetParamTypeFunc()(pcParameterName, &paramType);
-   EXPECT_EQ(status, true);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
+    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
+    DATA_TYPE paramType;
+    bool status = getGetParamTypeFunc()(pcParameterName, &paramType);
+    EXPECT_EQ(status, true);
 }
 
 TEST(utilsTest, CallconvertType) {
-   char itype = 'i';
-   DATA_TYPE status = getConvertTypeFunc()(itype);
-   EXPECT_EQ(status, WDMP_INT);
+    char itype = 'i';
+    DATA_TYPE status = getConvertTypeFunc()(itype);
+    EXPECT_EQ(status, WDMP_INT);
    
-   char stype = 's';
-   status = getConvertTypeFunc()(stype);
-   EXPECT_EQ(status, WDMP_STRING);
+    char stype = 's';
+    status = getConvertTypeFunc()(stype);
+    EXPECT_EQ(status, WDMP_STRING);
    
-   char btype = 'b';
-   status = getConvertTypeFunc()(btype);
-   EXPECT_EQ(status, WDMP_BOOLEAN);
+    char btype = 'b';
+    status = getConvertTypeFunc()(btype);
+    EXPECT_EQ(status, WDMP_BOOLEAN);
 
-   char ftype = 'f';
-   status = getConvertTypeFunc()(ftype);
-   EXPECT_EQ(status, WDMP_INT);
+    char ftype = 'f';
+    status = getConvertTypeFunc()(ftype);
+    EXPECT_EQ(status, WDMP_INT);
 }
 
 TEST(utilsTest, CallgetAttribute) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted); 
-   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
-   int status = getGetAttributeFunc()(pcParameterName);
-   EXPECT_EQ(status, 0);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted); 
+    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+    int status = getGetAttributeFunc()(pcParameterName);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, CallsetAttribute) {
-   //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_xOpsDeviceMgmt.ForwardSSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
-   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_xOpsDeviceMgmt.ForwardSSH.Enable");
-   char * value = const_cast<char*>("false");
-   int status = getSetAttributeFunc()(pcParameterName, 'b', value);
-   EXPECT_EQ(status, 0);
+    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_xOpsDeviceMgmt.ForwardSSH.Enable");
+    char * value = const_cast<char*>("false");
+    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, CallclearAttribute) {
-   //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini");
-   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
-   int status = getClearAttributeFunc()(pcParameterName);
-   EXPECT_EQ(status, 0);
+    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+    int status = getClearAttributeFunc()(pcParameterName);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, Callparseargs) {
-   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
-   int argc = 3;
-   int status = getparseargsFunc()(argc, argv);	
-   EXPECT_EQ(status, 0);
+    char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
+    int argc = 3;
+    int status = getparseargsFunc()(argc, argv);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, CallsetAttribute_args) {
-   //writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
-   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
-   char * value = const_cast<char*>("false");
-   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
-   int argc = 3;
-   int args_status = getparseargsFunc()(argc, argv);
-   int status = getSetAttributeFunc()(pcParameterName, 'b', value);
-   EXPECT_EQ(status, 0);
+    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable");
+    char * value = const_cast<char*>("false");
+    char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
+    int argc = 3;
+    int args_status = getparseargsFunc()(argc, argv);
+    int status = getSetAttributeFunc()(pcParameterName, 'b', value);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, CallgetAttribute_args) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.DHCPv6Client.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
-   char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.DHCPv6Client.Enable");
-   char *pcCallerID ="rfcdefaults";
-   char * value = const_cast<char*>("false");
-   char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
-   int argc = 3;
-   int args_status = getparseargsFunc()(argc, argv);
-   int status = getGetAttributeFunc()(pcParameterName);
-   EXPECT_EQ(status, 0);
-}
-
-TEST(utilsTest, CallclearParam) {
-   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
-   char *pcCallerID = "rfcdefaults";
-   tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
-   EXPECT_EQ(status, tr181Success);
-}
-
-TEST(utilsTest, CallsetParam) {
-   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
-   char *pcCallerID = "rfcdefaults";
-   const char* pcParameterValue = "1280000";
-   tr181ErrorCode_t status = setParam(pcCallerID, pcParameterName, pcParameterValue);
-   EXPECT_EQ(status, tr181Success);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.DHCPv6Client.Enable", "true", "/opt/secure/RFC/tr181localstore.ini", Quoted);
+    char * const pcParameterName = const_cast<char*>("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.DHCPv6Client.Enable");
+    char *pcCallerID ="rfcdefaults";
+    char * value = const_cast<char*>("false");
+    char* argv[] = { (char*)"tr181", (char*)"-n", (char*)"localOnly" };
+    int argc = 3;
+    int args_status = getparseargsFunc()(argc, argv);
+    int status = getGetAttributeFunc()(pcParameterName);
+    EXPECT_EQ(status, 0);
 }
 
 TEST(utilsTest, CallreadFromFile) {

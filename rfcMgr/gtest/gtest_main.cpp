@@ -500,7 +500,6 @@ TEST(rfcMgrTest, GetValidPartnerId) {
     delete rfcObj;
 }
 
-
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
@@ -576,7 +575,6 @@ TEST(rfcMgrTest, getRFCName) {
         delete rfcObj;
     }
 }
-
 
 TEST(rfcMgrTest, getFeatureInstance) {
     JSON *pJson = ParseJsonStr(xconfResp);
@@ -654,7 +652,6 @@ TEST(rfcMgrTest, getEffectiveImmediateParam) {
     }
 }
 
-
 TEST(rfcMgrTest, rfcStashStoreParams) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "6964630676518908063", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor(); 
@@ -672,47 +669,13 @@ TEST(rfcMgrTest, rfcStashRetrieveParams) {
     delete rfcObj;
 }
 
-/* TEST(rfcMgrTest, updateHashInDB) {
-    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "TestConfigSetHash", "/opt/secure/RFC/tr181store.ini");
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->updateHashInDB("TestConfigSetUpdateHash");
-
-    std::string hashValue;
-    std::string valueTime;
-    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
-    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
-    EXPECT_EQ(hashValue ,"TestConfigSetUpdateHash");
-    delete rfcObj;
-
-}
-TEST(rfcMgrTest, updateTimeInDB) {
-    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    std::string hashValue;
-    std::string valueTime;
-    std::time_t timestamp = std::time(nullptr);
-    std::string timestampString = std::to_string(timestamp);
-    rfcObj->updateHashInDB(timestampString);
-
-    rfcObj->RetrieveHashAndTimeFromPreviousDataSet(hashValue, valueTime);
-    std::cout << "hashValue = " << hashValue << " valueTime = " << valueTime << std::endl;
-    EXPECT_EQ(valueTime ,timestampString);
-    delete rfcObj;
-
-}  */
-
-
 TEST(rfcMgrTest, clearDB) {
-    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->clearDB();
     delete rfcObj;
 }
 
-
-
 TEST(rfcMgrTest, clearDBEnd) {
-    //writeToTr181storeFile(RFC_CONFIG_SET_HASH, "0", "/opt/secure/RFC/tr181store.ini");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     rfcObj->clearDBEnd();
     delete rfcObj;
@@ -733,7 +696,6 @@ TEST(rfcMgrTest, set_RFCProperty) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     std::string name = "rfc";
     std::string value = "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings";
-    //std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string xconfURL = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl";
     writeToTr181storeFile(xconfURL, "https://rdkautotool.ccp.xcal.tv/featureControl/getSettings", "/opt/secure/RFC/tr181store.ini", Quoted);
     WDMP_STATUS status = rfcObj->set_RFCProperty(name, xconfURL, value);
@@ -825,7 +787,6 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
     }
 }
 
-
 TEST(rfcMgrTest, CheckDeviceIsOFFline) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
       rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
@@ -849,7 +810,6 @@ TEST(rfcMgrTest, RFCManagerPostProcess) {
       EXPECT_EQ(result , 0);
 }
 
-
 TEST(rfcMgrTest, CheckIProuteConnectivity) {
       write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
@@ -857,7 +817,6 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
       EXPECT_EQ(result, true);
       delete rfcmgrObj;
 }
-
 
 TEST(rfcMgrTest, IsIarmBusConnected) {
       rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
@@ -903,7 +862,6 @@ TEST(rfcMgrTest, initializeXconf) {
      EXPECT_EQ(xconfObj->_manufacturer, "TestMFRname");
      delete xconfObj;
 }
-
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);

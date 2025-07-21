@@ -27,7 +27,6 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
-
 #include "tr181api.h"
 #include "tr181_store_writer.h"
 
@@ -37,16 +36,16 @@ using namespace std;
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 
 TEST(tr181apiTest, getTR181ErrorString) {
-   EXPECT_STREQ(getTR181ErrorString(tr181Success) , " Success");
-   EXPECT_STREQ(getTR181ErrorString(tr181InternalError) , " Internal Error");
-   EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterName), " Invalid Parameter Name");
-   EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterValue), " Invalid Parameter Value");
-   EXPECT_STREQ(getTR181ErrorString(tr181Failure), " Failure");
-   EXPECT_STREQ(getTR181ErrorString(tr181InvalidType), " Invalid type");
-   EXPECT_STREQ(getTR181ErrorString(tr181NotWritable), " Not writable");
-   EXPECT_STREQ(getTR181ErrorString(tr181ValueIsEmpty), " Value is empty");
-   EXPECT_STREQ(getTR181ErrorString(tr181ValueIsNull), " Value is Null");
-   EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
+    EXPECT_STREQ(getTR181ErrorString(tr181Success) , " Success");
+    EXPECT_STREQ(getTR181ErrorString(tr181InternalError) , " Internal Error");
+    EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterName), " Invalid Parameter Name");
+    EXPECT_STREQ(getTR181ErrorString(tr181InvalidParameterValue), " Invalid Parameter Value");
+    EXPECT_STREQ(getTR181ErrorString(tr181Failure), " Failure");
+    EXPECT_STREQ(getTR181ErrorString(tr181InvalidType), " Invalid type");
+    EXPECT_STREQ(getTR181ErrorString(tr181NotWritable), " Not writable");
+    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsEmpty), " Value is empty");
+    EXPECT_STREQ(getTR181ErrorString(tr181ValueIsNull), " Value is Null");
+    EXPECT_STREQ(getTR181ErrorString(tr181DefaultValue), " Default Value");
 }
 
 TEST(tr181apiTest, getType) {
@@ -64,118 +63,114 @@ TEST(tr181apiTest, getType) {
     EXPECT_EQ(getType(WDMP_NONE), TR181_NONE);
 }
 
-
 TEST(tr181apiTest, getErrorCode) {
-   tr181ErrorCode_t errorCode = getErrorCode(WDMP_ERR_DEFAULT_VALUE);
-   EXPECT_EQ(getErrorCode(WDMP_SUCCESS), tr181Success);
-   EXPECT_EQ(getErrorCode(WDMP_FAILURE), tr181Failure);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_TIMEOUT), tr181Timeout);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME), tr181InvalidParameterName);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_VALUE), tr181InvalidParameterValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_TYPE), tr181InvalidType);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_NOT_WRITABLE), tr181NotWritable);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_EMPTY), tr181ValueIsEmpty);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_NULL), tr181ValueIsNull);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
-   EXPECT_EQ(getErrorCode(WDMP_ERR_INTERNAL_ERROR), tr181InternalError);
+    EXPECT_EQ(getErrorCode(WDMP_SUCCESS), tr181Success);
+    EXPECT_EQ(getErrorCode(WDMP_FAILURE), tr181Failure);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_TIMEOUT), tr181Timeout);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_NAME), tr181InvalidParameterName);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_VALUE), tr181InvalidParameterValue);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_INVALID_PARAMETER_TYPE), tr181InvalidType);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_NOT_WRITABLE), tr181NotWritable);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_EMPTY), tr181ValueIsEmpty);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_VALUE_IS_NULL), tr181ValueIsNull);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_DEFAULT_VALUE), tr181DefaultValue);
+    EXPECT_EQ(getErrorCode(WDMP_ERR_INTERNAL_ERROR), tr181InternalError);
 }
 
 TEST(tr181apiTest, getDefaultValue) {
-  const char* dirPath = "/etc/rfcdefaults/";
-  int result = mkdir(dirPath, 0755);
-  EXPECT_EQ(result, 0);
-  writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
-  const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
-  char *pcCallerID = "rfcdefaults";
-  TR181_ParamData_t pstParamData;
-
-  tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
-  EXPECT_EQ(status, tr181Success);
-  EXPECT_STREQ(pstParamData.value, "false");
-
+    const char* dirPath = "/etc/rfcdefaults/";
+    int result = mkdir(dirPath, 0755);
+    EXPECT_EQ(result, 0);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
+    const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+    char *pcCallerID = "rfcdefaults";
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+    EXPECT_EQ(status, tr181Success);
+    EXPECT_STREQ(pstParamData.value, "false");
 }
 
 TEST(tr181apiTest, getDefaultValue_callerIDNULL) {
-  const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
-  char *pcCallerID = NULL;
-  TR181_ParamData_t pstParamData;
-
-  tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
-  EXPECT_EQ(status, tr181Failure);
-
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+    char *pcCallerID = NULL;
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+    EXPECT_EQ(status, tr181Failure);
 }
 
 TEST(tr181apiTest, getValue) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain);
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
-   TR181_ParamData_t pstParam;
-   tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
-   EXPECT_EQ(status, tr181Success);
-   EXPECT_STREQ(pstParam.value, "true");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "true", TR181_LOCAL_STORE_FILE, Plain);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+    TR181_ParamData_t pstParam;
+    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
+    EXPECT_EQ(status, tr181Success);
+    EXPECT_STREQ(pstParam.value, "true");
 }
 
 TEST(tr181apiTest, getEmptyValue) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "", TR181_LOCAL_STORE_FILE, Plain);
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
-   TR181_ParamData_t pstParam;
-   tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
-   EXPECT_EQ(status, tr181ValueIsEmpty);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "", TR181_LOCAL_STORE_FILE, Plain);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+    TR181_ParamData_t pstParam;
+    tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
+    EXPECT_EQ(status, tr181ValueIsEmpty);
 }
 
-
 TEST(tr181apiTest, setValue) {
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   const char* pcParamValue = "comcast";
-   tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
-   EXPECT_EQ(status, tr181Success);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+    const char* pcParamValue = "comcast";
+    tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
+    EXPECT_EQ(status, tr181Success);
 }
 
 TEST(tr181apiTest, setLocalParam) {
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
-   char *pcCallerID = "rfcdefaults";
-   const char* pcParamValue = "Xfinity";
-   tr181ErrorCode_t status = setLocalParam(pcCallerID, pcParameterName, pcParamValue);
-   EXPECT_EQ(status, tr181Success);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+    char *pcCallerID = "rfcdefaults";
+    const char* pcParamValue = "Xfinity";
+    tr181ErrorCode_t status = setLocalParam(pcCallerID, pcParameterName, pcParamValue);
+    EXPECT_EQ(status, tr181Success);
 }
-
 
 TEST(tr181apiTest, clearLocalParam) {
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
-   char *pcCallerID = "rfcdefaults";
-   const char* pcParamValue = "Xfinity";
-   tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
-   EXPECT_EQ(status, tr181Success);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+    char *pcCallerID = "rfcdefaults";
+    const char* pcParamValue = "Xfinity";
+    tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
+    EXPECT_EQ(status, tr181Success);
 }
-
 
 TEST(tr181apiTest, getLocalParam) {
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   char *pcCallerID = "rfcdefaults";
-   TR181_ParamData_t pstParamData;
-   tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_STREQ(pstParamData.value, "comcast");
-   EXPECT_EQ(status, tr181Success);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+    char *pcCallerID = "rfcdefaults";
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
+    EXPECT_STREQ(pstParamData.value, "comcast");
+    EXPECT_EQ(status, tr181Success);
 }
-
 
 TEST(tr181apiTest, getParam) {
-//   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable", "true", "/opt/secure/RFC/tr181store.ini", Plain);
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable";
-   char *pcCallerID = "rfcdefaults";
-   TR181_ParamData_t pstParamData;
-   tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(status, tr181Success);
-   EXPECT_STREQ(pstParamData.value, "true");
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable", "true", "/opt/secure/RFC/tr181store.ini", Plain);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable";
+    char *pcCallerID = "rfcdefaults";
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
+    EXPECT_EQ(status, tr181Success);
+    EXPECT_STREQ(pstParamData.value, "true");
 }
-/*
-TEST(tr181apiTest, getParam_failure) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareDownloadProtocol";
-   char *pcCallerID ="rfcdefaults";
-   TR181_ParamData_t pstParamData;
-   tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(status, tr181Failure);
-} */
+
+TEST(utilsTest, CallclearParam) {
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
+   char *pcCallerID = "rfcdefaults";
+   tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
+   EXPECT_EQ(status, tr181Success);
+}
+
+TEST(utilsTest, CallsetParam) {
+   char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
+   char *pcCallerID = "rfcdefaults";
+   const char* pcParameterValue = "1280000";
+   tr181ErrorCode_t status = setParam(pcCallerID, pcParameterName, pcParameterValue);
+   EXPECT_EQ(status, tr181Success);
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
