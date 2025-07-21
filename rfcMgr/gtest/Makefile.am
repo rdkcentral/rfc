@@ -22,16 +22,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 bin_PROGRAMS = rfcMgr_gtest rfcapi_gtest tr181api_gtest utils_gtest
 noinst_LIBRARIES = librfc_common.a
 
-librfc_common_a_SOURCES = \
-    $(TOP_DIR)/rfcapi/rfcapi.cpp \
-    $(TOP_DIR)/tr181api/tr181api.cpp \
-    $(TOP_DIR)/utils/jsonhandler.cpp \
-    $(TOP_DIR)/utils/tr181utils.cpp \
-    $(TOP_DIR)/rfcMgr/rfc_manager.cpp \
-    $(TOP_DIR)/rfcMgr/rfc_common.cpp \
-    $(TOP_DIR)/rfcMgr/mtlsUtils.cpp \
-    $(TOP_DIR)/rfcMgr/rfc_xconf_handler.cpp \
-    $(TOP_DIR)/rfcMgr/xconf_handler.cpp
+librfc_common_a_SOURCES = $(TOP_DIR)/rfcapi/rfcapi.cpp $(TOP_DIR)/tr181api/tr181api.cpp $(TOP_DIR)/utils/jsonhandler.cpp $(TOP_DIR)/utils/tr181utils.cpp $(TOP_DIR)/rfcMgr/rfc_manager.cpp $(TOP_DIR)/rfcMgr/rfc_common.cpp $(TOP_DIR)/rfcMgr/mtlsUtils.cpp $(TOP_DIR)/rfcMgr/rfc_xconf_handler.cpp $(TOP_DIR)/rfcMgr/xconf_handler.cpp
 
 COMMON_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
