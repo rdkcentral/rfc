@@ -36,7 +36,6 @@ using namespace std;
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 
-
 TEST(tr181apiTest, getTR181ErrorString) {
    EXPECT_STREQ(getTR181ErrorString(tr181Success) , " Success");
    EXPECT_STREQ(getTR181ErrorString(tr181InternalError) , " Internal Error");
@@ -87,10 +86,10 @@ TEST(tr181apiTest, getDefaultValue) {
   EXPECT_EQ(result, 0);
   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable", "false", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
-  char *pcCallerID ="rfcdefaults";
+  char *pcCallerID = "rfcdefaults";
   TR181_ParamData_t pstParamData;
 
-  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
   EXPECT_EQ(status, tr181Success);
   EXPECT_STREQ(pstParamData.value, "false");
 
@@ -101,7 +100,7 @@ TEST(tr181apiTest, getDefaultValue_callerIDNULL) {
   char *pcCallerID = NULL;
   TR181_ParamData_t pstParamData;
 
-  tr181ErrorCode_t status =  getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
+  tr181ErrorCode_t status = getDefaultValue(pcCallerID,pcParameterName,&pstParamData);
   EXPECT_EQ(status, tr181Failure);
 
 }
@@ -125,33 +124,33 @@ TEST(tr181apiTest, getEmptyValue) {
 
 
 TEST(tr181apiTest, setValue) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   const char* pcParamValue ="comcast";
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   const char* pcParamValue = "comcast";
    tr181ErrorCode_t status = setValue(pcParameterName, pcParamValue);
    EXPECT_EQ(status, tr181Success);
 }
 
 TEST(tr181apiTest, setLocalParam) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
-   char *pcCallerID ="rfcdefaults";
-   const char* pcParamValue ="Xfinity";
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+   char *pcCallerID = "rfcdefaults";
+   const char* pcParamValue = "Xfinity";
    tr181ErrorCode_t status = setLocalParam(pcCallerID, pcParameterName, pcParamValue);
    EXPECT_EQ(status, tr181Success);
 }
 
 
 TEST(tr181apiTest, clearLocalParam) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
-   char *pcCallerID ="rfcdefaults";
-   const char* pcParamValue ="Xfinity";
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName";
+   char *pcCallerID = "rfcdefaults";
+   const char* pcParamValue = "Xfinity";
    tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
 
 TEST(tr181apiTest, getLocalParam) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   char *pcCallerID ="rfcdefaults";
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   char *pcCallerID = "rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_STREQ(pstParamData.value, "comcast");
@@ -160,11 +159,14 @@ TEST(tr181apiTest, getLocalParam) {
 
 
 TEST(tr181apiTest, getParam) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
-   char *pcCallerID ="rfcdefaults";
+//   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable", "true", "/opt/secure/RFC/tr181store.ini", Plain)
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable"
+   char *pcCallerID = "rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
    EXPECT_EQ(status, tr181Success);
+   EXPECT_STREQ(pstParamData.value, "true");
 }
 /*
 TEST(tr181apiTest, getParam_failure) {

@@ -33,14 +33,11 @@
 #include "tr181_store_writer.h"
 
 using namespace std;
-
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
-
 
 #ifdef GTEST_ENABLE
 extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
 #endif
-
 
 TEST(rfcapiTest, init_rfcdefaults) {
    bool result = init_rfcdefaults();
@@ -55,9 +52,70 @@ TEST(rfcapiTest, init_rfcdefaults_removed_etc_dir) {
    EXPECT_EQ(result, false);
 }
 
-TEST(rfcapiTest, isRFCEnabled) {
-     bool result = isRFCEnabled("Instance"); 
-     EXPECT_EQ(result, false);
+TEST(rfcapiTest, writeCurlResponse) {
+   const char* input = "MockCurlData";
+   size_t size = 1;
+   size_t nmemb = strlen(input);
+   std::string response;
+   size_t written = getWriteCurlResponse()((void*)input, size, nmemb, response);
+   EXPECT_EQ(written, nmemb);
+}
+
+TEST(rfcapiTest, getRFCParameter) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini", Plain);
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
+   char *pcCallerID = "rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
+   EXPECT_EQ(result , WDMP_SUCCESS);
+}
+
+TEST(rfcapiTest, getRFCParameter_rfcdefault) {
+   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed", "12800", "/opt/secure/RFC/bootstrap.ini", Plain);
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed";
+   char *pcCallerID = "rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result, WDMP_SUCCESS);
+   EXPECT_STREQ(pstParamData.value, "12800");
+}
+
+TEST(rfcapiTest, getRFCParameter_HTTP) {
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
+   char *pcCallerID = "rfcdefaults";
+   write_on_file("/tmp/.tr69hostif_http_server_ready", ".tr69hostif_http_server_ready");
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_STREQ(pstParamData.value, "true");
+   EXPECT_EQ(result, WDMP_SUCCESS);
+}
+
+TEST(rfcapiTest, getRFCParameter_wildcard) {
+   const char* pcParameterName = "Device.DeviceInfo.";
+   char *pcCallerID = "rfcdefaults";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
+   EXPECT_EQ(result, WDMP_FAILURE);
+}
+
+
+TEST(rfcapiTest, setRFCParameter_wildcard) {
+   const char* pcParameterName = "Device.DeviceInfo.";
+   char *pcCallerID = "rfcdefaults";
+   const char* pcParameterValue = NULL;
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
+   EXPECT_EQ(result, WDMP_FAILURE);
+}
+
+TEST(rfcapiTest, setRFCParameter) {
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.SsrUrl";
+   char *pcCallerID = "rfcdefaults";
+   const char* pcParameterValue = "https://ssr.ccp.xcal.tv";
+   RFC_ParamData_t pstParamData;
+   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
+   EXPECT_EQ(result, WDMP_SUCCESS);
 }
 
 TEST(rfcapiTest, getRFCErrorString) {
@@ -84,7 +142,7 @@ TEST(rfcapiTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_EMPTY), " Value is Empty");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_VALUE_IS_NULL), " Value is Null");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_DATATYPE_IS_NULL), " Datatype is Null");
-    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CMC_TEST_FAILED), " CMC Test Failed");    
+    EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CMC_TEST_FAILED), " CMC Test Failed");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_NEW_CID_IS_MISSING), " New CID is Missing");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_CID_TEST_FAILED), " CID Test Failed");
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_SETTING_CMC_OR_CID), " Setting CMC or CID");
@@ -100,72 +158,10 @@ TEST(rfcapiTest, getRFCErrorString) {
     EXPECT_STREQ(getRFCErrorString(WDMP_ERR_MAX_REQUEST), " Unknown error code");
 }
 
-TEST(rfcapiTest, writeCurlResponse) {
-   const char* input = "MockCurlData";
-   size_t size = 1;
-   size_t nmemb = strlen(input);
-   std::string response;
-   size_t written = getWriteCurlResponse()((void*)input, size, nmemb, response);
-   EXPECT_EQ(written, nmemb);
+TEST(rfcapiTest, isRFCEnabled) {
+     bool result = isRFCEnabled("Instance");
+     EXPECT_EQ(result, false);
 }
-
-TEST(rfcapiTest, getRFCParameter) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl", "logs.xcal.tv", "/opt/secure/RFC/tr181store.ini", Plain);
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.LogUpload.LogServerUrl";
-   char *pcCallerID ="rfcdefaults";
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
-   EXPECT_EQ(result , WDMP_SUCCESS);
-}
-
-TEST(rfcapiTest, getRFCParameter_rfcdefault) {
-   writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed", "12800", "/opt/secure/RFC/bootstrap.ini", Plain);
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.LowSpeed";
-   char *pcCallerID ="rfcdefaults";
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(result, WDMP_SUCCESS);
-   EXPECT_STREQ(pstParamData.value, "12800");
-}
-
-TEST(rfcapiTest, getRFCParameter_HTTP) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable";
-   char *pcCallerID ="rfcdefaults";
-   write_on_file("/tmp/.tr69hostif_http_server_ready", ".tr69hostif_http_server_ready");
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_STREQ(pstParamData.value, "true");
-   EXPECT_EQ(result, WDMP_SUCCESS);
-}
-
-TEST(rfcapiTest, getRFCParameter_wildcard) {
-   const char* pcParameterName ="Device.DeviceInfo.";
-   char *pcCallerID ="rfcdefaults";
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
-   EXPECT_EQ(result, WDMP_FAILURE);
-}
-
-
-TEST(rfcapiTest, setRFCParameter_wildcard) {
-   const char* pcParameterName = "Device.DeviceInfo.";
-   char *pcCallerID ="rfcdefaults";
-   const char* pcParameterValue = NULL;
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
-   EXPECT_EQ(result, WDMP_FAILURE);
-}
-
-TEST(rfcapiTest, setRFCParameter) {
-   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.SsrUrl";
-   char *pcCallerID ="rfcdefaults";
-   const char* pcParameterValue = "https://ssr.ccp.xcal.tv";
-   RFC_ParamData_t pstParamData;
-   WDMP_STATUS result = setRFCParameter(pcCallerID, pcParameterName, pcParameterValue, WDMP_STRING);
-   EXPECT_EQ(result, WDMP_SUCCESS);
-}
-
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
