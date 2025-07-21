@@ -525,7 +525,7 @@ TEST(rfcMgrTest, isConfigValueChange) {
     std::string newKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Enable";
     std::string newValue = "true";
     std::string currentValue = "false";
-    bool result = rfcObj->isConfigValueChange(name , newKey, newValue, currentValue);
+    bool result = rfcObj->isConfigValueChange(name, newKey, newValue, currentValue);
     EXPECT_EQ(result, true);
     delete rfcObj;
 }

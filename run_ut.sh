@@ -95,6 +95,7 @@ if [ "$ENABLE_COV" = true ]; then
     lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/mocks/*' --output-file filtered.info
     lcov --extract filtered.info '*/rfcMgr/*' '*/rfcapi/*' '*/tr181api/*' '*/utils/*' --output-file rfc_coverage.info
     lcov --list rfc_coverage.info
+    genhtml rfc_coverage.info --output-directory coverage_html
     cp rfc_coverage.info $TOP_DIR/rfcMgr/gtest/coverage.info
 fi
 
