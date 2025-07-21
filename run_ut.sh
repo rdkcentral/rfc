@@ -71,11 +71,21 @@ fi
 echo "********************"
 
 cd $TOP_DIR
-gcov -b -f rfcapi/rfcapi.cpp
+
+gcov -b -f ./rfcMgr/rfc_xconf_handler.cpp
+cat rfc_xconf_handler.cpp.gcov
+
+gcov -b -f ./rfcapi/rfcapi.cpp
 cat rfcapi.cpp.gcov
 
-gcov -b -f tr181api/tr181api.cpp
+gcov -b -f ./tr181api/tr181api.cpp
 cat tr181api.cpp.gcov
+
+gcov -b -f ./utils/jsonhandler.cpp
+cat jsonhandler.cpp.gcov
+
+gcov -b -f ./utils/tr181utils.cpp
+cat tr181utils.cpp.gcov
 
 cd $TOP_DIR
 
