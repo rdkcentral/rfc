@@ -48,7 +48,7 @@ rm ./gtest/rfcMgr_gtest
 automake --add-missing
 autoreconf --install
 
-./configure
+./configure CXXFLAGS="-g -O0 -fprofile-arcs -ftest-coverage"
 
 make clean
 find . -name "*.gcda" -delete
@@ -63,6 +63,9 @@ make
 ./rfcapi_gtest
 ./tr181api_gtest
 ./utils_gtest
+
+find . -name "*.gcno"
+find . -name "*.gcda"
 
 if [ $? -ne 0 ]; then
     echo "Unit tests failed"
