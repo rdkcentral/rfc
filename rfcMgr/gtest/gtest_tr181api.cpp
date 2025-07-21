@@ -161,7 +161,7 @@ TEST(tr181apiTest, getLocalParam) {
 TEST(tr181apiTest, getParam) {
 //   const char* pcParameterName ="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable", "true", "/opt/secure/RFC/tr181store.ini", Plain)
-   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable"
+   const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IncrementalCDL.Enable";
    char *pcCallerID = "rfcdefaults";
    TR181_ParamData_t pstParamData;
    tr181ErrorCode_t status = getParam(pcCallerID, pcParameterName, &pstParamData);
