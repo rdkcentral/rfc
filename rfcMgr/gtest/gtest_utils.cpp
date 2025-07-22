@@ -187,6 +187,15 @@ TEST(utilsTest, getFilePath) {
     delete[] path;
 }
 
+TEST(utilsTest, cleanAllFiles) {
+    std::remove("/opt/secure/RFC/tr181store.ini");
+    std::remove("/opt/secure/RFC/tr181localstore.ini");
+    std::remove("/opt/secure/RFC/bootstrap.ini");
+    std::remove("/etc/rfcdefaults/rfcdefaults.ini");
+    std::remove("/opt/secure/RFC/.RFC_LIST_SNMP2WL.ini");
+}
+
+
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
