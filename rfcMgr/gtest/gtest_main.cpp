@@ -167,6 +167,16 @@ TEST(rfcMgrTest, readRFCParam) {
     EXPECT_NE(ret, -1);
 }
 
+TEST(rfcMgrTest, readRFCParam_nullkey) {
+    int ret = -1;
+    char data[RFC_VALUE_BUF_SIZE];
+
+    ret = read_RFCProperty("RDKFirmwareUpgrader", "nullptr", data, 0);
+    SWLOG_ERROR("read_RFCProperty() return Status %d\n", ret);
+
+    EXPECT_EQ(ret, -1);
+}
+
 TEST(rfcMgrTest, checkSpecialChars) {
     std::string value = "hah$#aga";
     bool ret = CheckSpecialCharacters(value);
@@ -545,6 +555,7 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
 }
 
 TEST(rfcMgrTest, IsDirectBlocked) {
+    write_on_file(DIRECT_BLOCK_FILENAME, "currenttime");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->IsDirectBlocked();
     EXPECT_EQ(result, false);
@@ -737,10 +748,17 @@ TEST(rfcMgrTest, isInStateRed) {
 }
 
 TEST(rfcMgrTest, executeCommandAndGetOutput) {
-    const char *pArg;
+    const char *pArgs;
     std::string result; 	
-    int ret = executeCommandAndGetOutput(eWpeFrameworkSecurityUtility, pArg, result);
+    int ret = executeCommandAndGetOutput(eWpeFrameworkSecurityUtility, pArgs, result);
     EXPECT_EQ(ret , 0);
+}
+
+TEST(rfcMgrTest, executeCommandAndGetOutput_eRdkSsaCli) {
+    const char *pArgs = NULL;
+    std::string result;
+    int ret = executeCommandAndGetOutput(eRdkSsaCli, pArgs, result);
+    EXPECT_EQ(ret , -1);
 }
 
 TEST(rfcMgrTest, getRebootRequirement) {
@@ -817,6 +835,14 @@ TEST(rfcMgrTest, CheckIProuteConnectivity) {
     delete rfcmgrObj;
 }
 
+TEST(rfcMgrTest, removed_GatewayIPFile) {
+    std::string cmd = std::string("rm -rf ") + GATEWAYIP_FILE;
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+    EXPECT_EQ(result, true);
+    delete rfcmgrObj;
+}
+
 TEST(rfcMgrTest, IsIarmBusConnected) {
     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
     bool result =  rfcmgrObj->IsIarmBusConnected();
@@ -837,7 +863,17 @@ TEST(rfcMgrTest, isDnsResolve) {
     int result = isDnsResolve(DNS_RESOLV_FILE);
     EXPECT_EQ(result, true);
 }
- TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
+
+TEST(rfcMgrTest, removed_DnsResolveFile) {
+    std::string cmd = std::string("rm -rf ") + DNS_RESOLV_FILE;
+    int status = system(cmd.c_str());
+    EXPECT_EQ(status, 0);
+    int result = isDnsResolve(DNS_RESOLV_FILE);
+    EXPECT_EQ(result, false);
+}
+
+
+TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
     int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
     EXPECT_EQ(result, FAILURE);
