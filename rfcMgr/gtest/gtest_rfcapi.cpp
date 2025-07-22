@@ -67,7 +67,7 @@ TEST(rfcapiTest, getRFCParameter) {
     RFC_ParamData_t pstParamData;
     WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
     EXPECT_STREQ(pstParamData.value, "logs.xcal.tv");
-    EXPECT_EQ(result , WDMP_SUCCESS);
+    EXPECT_EQ(result, WDMP_SUCCESS);
 }
 
 TEST(rfcapiTest, getRFCParameter_rfcdefault) {
@@ -97,7 +97,6 @@ TEST(rfcapiTest, getRFCParameter_wildcard) {
     WDMP_STATUS result = getRFCParameter(pcCallerID, pcParameterName, &pstParamData);
     EXPECT_EQ(result, WDMP_FAILURE);
 }
-
 
 TEST(rfcapiTest, setRFCParameter_wildcard) {
     const char* pcParameterName = "Device.DeviceInfo.";

@@ -731,7 +731,6 @@ TEST(rfcMgrTest, isStateRedSupported) {
     EXPECT_EQ(ret , 0); 
 }
 
-
 TEST(rfcMgrTest, isInStateRed) {
     int ret = isInStateRed();
     EXPECT_EQ(ret , 0);
@@ -747,7 +746,7 @@ TEST(rfcMgrTest, executeCommandAndGetOutput) {
 TEST(rfcMgrTest, getRebootRequirement) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->getRebootRequirement();
-    EXPECT_EQ(result , false);
+    EXPECT_EQ(result, false);
     delete rfcObj;    
 }
 
@@ -788,79 +787,79 @@ TEST(rfcMgrTest, processXconfResponseConfigDataPart) {
 }
 
 TEST(rfcMgrTest, CheckDeviceIsOFFline) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
-      EXPECT_EQ(status , RFCMGR_DEVICE_OFFLINE);
-      delete rfcmgrObj;
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+    EXPECT_EQ(status, RFCMGR_DEVICE_OFFLINE);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, CheckDeviceIsOnline) {
-      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
-      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
-      EXPECT_EQ(status , RFCMGR_DEVICE_ONLINE);
-      delete rfcmgrObj;
+    write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+    write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    rfc::DeviceStatus status =  rfcmgrObj->CheckDeviceIsOnline();
+    EXPECT_EQ(status, RFCMGR_DEVICE_ONLINE);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, RFCManagerPostProcess) {
-      write_on_file(RFC_MGR_IPTBLE_INIT_SCRIPT, "executing the iptables init script");
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->RFCManagerPostProcess();
-      EXPECT_EQ(result , 0);
+    write_on_file(RFC_MGR_IPTBLE_INIT_SCRIPT, "executing the iptables init script");
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->RFCManagerPostProcess();
+    EXPECT_EQ(result, 0);
 }
 
 TEST(rfcMgrTest, CheckIProuteConnectivity) {
-      write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
-      EXPECT_EQ(result, true);
-      delete rfcmgrObj;
+    write_on_file(GATEWAYIP_FILE, "IPV4 8.8.4.4");
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+    EXPECT_EQ(result, true);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, IsIarmBusConnected) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      bool result =  rfcmgrObj->IsIarmBusConnected();
-      EXPECT_EQ(result, true);
-      delete rfcmgrObj;
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    bool result =  rfcmgrObj->IsIarmBusConnected();
+    EXPECT_EQ(result, true);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, InitializeIARM) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      bool result = true;
-      rfcmgrObj->InitializeIARM();
-      EXPECT_EQ(result, true);
-      delete rfcmgrObj;
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    bool result = true;
+    rfcmgrObj->InitializeIARM();
+    EXPECT_EQ(result, true);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, isDnsResolve) {
-      write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
-      int result = isDnsResolve(DNS_RESOLV_FILE);
-      EXPECT_EQ(result, true);
+    write_on_file(DNS_RESOLV_FILE, "nameserver 2.4.6.8");
+    int result = isDnsResolve(DNS_RESOLV_FILE);
+    EXPECT_EQ(result, true);
 }
  TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
-      rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
-      int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
-      EXPECT_EQ(result, FAILURE);
-      delete rfcmgrObj;
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->RFCManagerProcessXconfRequest();
+    EXPECT_EQ(result, FAILURE);
+    delete rfcmgrObj;
 }
 
 TEST(rfcMgrTest, initializeXconf) {
-     write_on_file("/tmp/partnerId3.dat", "default-parter");	
-     write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
-     write_on_file("/tmp/version.txt", "imagename:TestImage");
-     write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
-     write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
-     write_on_file("/tmp/.manufacturer", "TestMFRname");
-     xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
-     int resutl = xconfObj->initializeXconfHandler();
-     EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab"); 
-     EXPECT_EQ(xconfObj->_partner_id, "default-parter");
-     EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
-     EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
-     EXPECT_EQ(xconfObj->_build_type_str, "dev");
-     EXPECT_EQ(xconfObj->_manufacturer, "TestMFRname");
-     delete xconfObj;
+    write_on_file("/tmp/partnerId3.dat", "default-parter");
+    write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
+    write_on_file("/tmp/version.txt", "imagename:TestImage");
+    write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
+    write_on_file("/tmp/device.properties", "BUILD_TYPE=dev");
+    write_on_file("/tmp/.manufacturer", "TestMFRname");
+    xconf::XconfHandler *xconfObj = new xconf::XconfHandler();
+    int resutl = xconfObj->initializeXconfHandler();
+    EXPECT_EQ(xconfObj->_estb_mac_address, "01:23:45:67:89:ab");
+    EXPECT_EQ(xconfObj->_partner_id, "default-parter");
+    EXPECT_EQ(xconfObj->_firmware_version, "TestImage");
+    EXPECT_EQ(xconfObj->_model_number, "SKXI11ADS");
+    EXPECT_EQ(xconfObj->_build_type_str, "dev");
+    EXPECT_EQ(xconfObj->_manufacturer, "TestMFRname");
+    delete xconfObj;
 }
 
 GTEST_API_ int main(int argc, char *argv[]){

@@ -108,11 +108,18 @@ TEST(tr181apiTest, getValue) {
 }
 
 TEST(tr181apiTest, getEmptyValue) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable", "", TR181_LOCAL_STORE_FILE, Plain);
-    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.Enable";
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.WebCfgData", "", TR181_LOCAL_STORE_FILE, Plain);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.WebCfgData";
     TR181_ParamData_t pstParam;
     tr181ErrorCode_t status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, &pstParam);
     EXPECT_EQ(status, tr181ValueIsEmpty);
+}
+
+TEST(tr181apiTest, getValueInvalidFile) {
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.IssueType";
+    TR181_ParamData_t pstParam;
+    tr181ErrorCode_t status = getValue("/opt/secure/RFC/tr181LLOCALSTORE.ini", pcParameterName, &pstParam);
+    EXPECT_EQ(status, tr181Failure);
 }
 
 TEST(tr181apiTest, setValue) {
@@ -138,12 +145,29 @@ TEST(tr181apiTest, clearLocalParam) {
     EXPECT_EQ(status, tr181Success);
 }
 
+TEST(tr181apiTest, clearLocalParamNotExist) {
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.FWUpdate.Enable";
+    char *pcCallerID = "rfcdefaults";
+    tr181ErrorCode_t status = clearLocalParam(pcCallerID, pcParameterName);
+    EXPECT_EQ(status, tr181Success);
+}
+
 TEST(tr181apiTest, getLocalParam) {
     const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName";
     char *pcCallerID = "rfcdefaults";
     TR181_ParamData_t pstParamData;
     tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
     EXPECT_STREQ(pstParamData.value, "comcast");
+    EXPECT_EQ(status, tr181Success);
+}
+
+TEST(tr181apiTest, getLocalParamDefault) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable", "true", "/etc/rfcdefaults/rfcdefaults.ini", Plain);
+    const char* pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable";
+    char *pcCallerID = "rfcdefaults";
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getLocalParam(pcCallerID, pcParameterName, &pstParamData);
+    EXPECT_STREQ(pstParamData.value, "true");
     EXPECT_EQ(status, tr181Success);
 }
 
@@ -157,14 +181,14 @@ TEST(tr181apiTest, getParam) {
     EXPECT_STREQ(pstParamData.value, "true");
 }
 
-TEST(utilsTest, CallclearParam) {
+TEST(tr181apiTest, CallclearParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable";
    char *pcCallerID = "rfcdefaults";
    tr181ErrorCode_t status = clearParam(pcCallerID, pcParameterName);
    EXPECT_EQ(status, tr181Success);
 }
 
-TEST(utilsTest, CallsetParam) {
+TEST(tr181apiTest, CallsetParam) {
    char * const pcParameterName = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.SWDLSpLimit.TopSpeed";
    char *pcCallerID = "rfcdefaults";
    const char* pcParameterValue = "1280000";
