@@ -265,6 +265,7 @@ static int parseargs(int argc, char * argv[])
     return  0;
 }
 
+#ifndef GTEST_ENABLE
 int main(int argc, char *argv [])
 {
    if(legacyRfcEnabled() == true)
@@ -316,6 +317,41 @@ int main(int argc, char *argv [])
    }
    return retcode;
 }
+#endif
 /** @} */
 /** @} */
+
+// Define your write callback function
+#ifdef GTEST_ENABLE
+bool (*getGetParamTypeFunc())(char * const, DATA_TYPE *)
+{
+    return &getParamType;
+}
+
+DATA_TYPE (*getConvertTypeFunc())(char)
+{
+    return &convertType;
+}
+
+int (*getClearAttributeFunc())(char * const)
+{
+    return &clearAttribute;
+}
+
+int (*getSetAttributeFunc())(char * const, char, char *)
+{
+    return &setAttribute;
+}
+
+int (*getGetAttributeFunc())(char * const)
+{
+    return &getAttribute;
+}
+
+int (*getparseargsFunc())(int argc, char * argv[])
+{
+    return &parseargs;
+}
+
+#endif
 

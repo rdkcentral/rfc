@@ -23,6 +23,10 @@
 #include <string>
 #include "mtlsUtils.h"
 
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +43,11 @@ namespace xconf {
         XconfHandler(const XconfHandler&) = delete;
         XconfHandler& operator=(const XconfHandler&) = delete;
         
+#if defined(GTEST_ENABLE)
+        public:
+#else
 	protected :
+#endif
         std::string _estb_mac_address; /* Device Mac Address*/
         std::string _firmware_version; /* Device Frimware version */
         BUILDTYPE   _ebuild_type; /* Device Build Type */
