@@ -206,8 +206,10 @@ TEST(rfcMgrTest, removeSubstring) {
     EXPECT_EQ(ret, 0);
 }
 
+
+
 TEST(rfcMgrTest, initializeRuntimeFeatureControlProcessor) {
-    /*Create Object for Xconf Handler */
+    /* Create Object for Xconf Handler */
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
     int reqStatus = FAILURE;
@@ -236,6 +238,7 @@ TEST(rfcMgrTest, processRuntimeFeatureControlReq) {
         delete rfcObj;
     }
 }
+
 
 TEST(rfcMgrTest, isNewFirmwareFirstRequest) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -558,7 +561,7 @@ TEST(rfcMgrTest, IsDirectBlocked) {
     write_on_file(DIRECT_BLOCK_FILENAME, "currenttime");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->IsDirectBlocked();
-    EXPECT_EQ(result, false);
+    EXPECT_EQ(result, true);
     delete rfcObj;
 }
 

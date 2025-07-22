@@ -48,14 +48,17 @@ void writeToTr181storeFile(const std::string& key, const std::string& value, con
     }
 }
 
-void write_on_file(const std::string& filePath, const std::string& content)
+void write_on_file(const std::string& filePath, const std::string& data)
 {
    std::ofstream outfile(filePath, std::ios::app);
    if (outfile.is_open()) {
-        outfile << content<< "\n" ;
+        std::cout << "File Open" << std::endl
+	outfile << data<< "\n" ;
+	std::cout << "Writing in file" << std::endl
         outfile.close();
+	std::cout << "File written successfully." << std::endl;
     } else {
-        std::cerr << "Could not open file for appending.\n";
+        std::cerr << "Unable to open file." << std::endl ;
     }
 
 }

@@ -22,7 +22,10 @@
 #include <cJSON.h>
 #include <string.h>
 #include <errno.h>
+
+#if defined(GTEST_ENABLE)
 #include "jsonhandler.h"
+#endif
 
 #define JSON_ARRAY_IDENTIFIER "listType"
 #define JSON_NAME_IDENTIFIER "name"

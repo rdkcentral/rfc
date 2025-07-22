@@ -147,7 +147,7 @@ static int getAttribute(char * const paramName)
 * @return 0 if success, 1 otherwise
 */
 static int setAttribute(char * const paramName  ,char type, char * value)
-{ 
+{
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
       if(status == 0)
@@ -194,7 +194,7 @@ static int clearAttribute(char * const paramName)
    {
       cout << __FUNCTION__ << " >> Failed to clear." << endl;
    }
-   
+    
    return status;
 }
 
@@ -253,7 +253,6 @@ static int parseargs(int argc, char * argv[])
         else if(strncasecmp(argv[i], "-n", 2) == 0)
         {
             id = argv[i+1];
-	    cout << __FUNCTION__ << " >> id " << id << endl;	
             i += 2;
         }
         else

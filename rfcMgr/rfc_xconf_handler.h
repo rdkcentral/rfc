@@ -226,8 +226,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, rfcStashStoreParams);
     FRIEND_TEST(rfcMgrTest, rfcStashRetrieveParams);
     FRIEND_TEST(rfcMgrTest, clearDBEnd);
-    FRIEND_TEST(rfcMgrTest, updateHashInDB);
-    FRIEND_TEST(rfcMgrTest, updateTimeInDB);
     FRIEND_TEST(rfcMgrTest, clearDB);
 
 #endif

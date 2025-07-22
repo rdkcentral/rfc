@@ -17,6 +17,6 @@ enum ValueFormat {
  */
 void writeToTr181storeFile(const std::string& key, const std::string& value, const std::string& filePath, ValueFormat format);
 
-void write_on_file(const std::string& filePath, const std::string& content);
+void write_on_file(const std::string& filePath, const std::string& data);
 
 #endif // TR181_STORE_WRITER_H
