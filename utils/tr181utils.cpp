@@ -194,7 +194,7 @@ static int clearAttribute(char * const paramName)
    {
       cout << __FUNCTION__ << " >> Failed to clear." << endl;
    }
-    
+
    return status;
 }
 

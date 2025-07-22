@@ -44,6 +44,9 @@ export TOP_DIR=`pwd`
 cd ./rfcMgr/gtest
 
 rm ./gtest/rfcMgr_gtest
+rm ./gtest/rfcapi_gtest
+rm ./gtest/tr181api_gtest
+rm ./gtest/utils_gtest
 
 automake --add-missing
 autoreconf --install

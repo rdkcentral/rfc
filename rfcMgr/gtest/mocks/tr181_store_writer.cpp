@@ -52,9 +52,9 @@ void write_on_file(const std::string& filePath, const std::string& data)
 {
    std::ofstream outfile(filePath, std::ios::app);
    if (outfile.is_open()) {
-        std::cout << "File Open" << std::endl
+        std::cout << "File Open" << std::endl;
 	outfile << data<< "\n" ;
-	std::cout << "Writing in file" << std::endl
+	std::cout << "Writing in file" << std::endl;
         outfile.close();
 	std::cout << "File written successfully." << std::endl;
     } else {
