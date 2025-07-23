@@ -35,6 +35,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
     RFC_ParamData_t param;
     int data_len;
     int ret = READ_RFC_FAILURE;
+ 
 
     memset(&param, 0, sizeof(RFC_ParamData_t));
 
