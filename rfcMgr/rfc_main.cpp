@@ -44,8 +44,15 @@ int main()
     {
         exit(EXIT_SUCCESS);
     }
+
+    atexit(cleanup_lock_file);
+ 
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);	
     
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
+
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);	
 
 #if defined(RDKB_SUPPORT)
     waitForRfcCompletion();
@@ -55,6 +62,7 @@ int main()
     {
 #if !defined(RDKB_SUPPORT)	    
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);	    
 #endif	
         delete rfcMgr;
         return 1;
@@ -70,7 +78,7 @@ int main()
         status = rfcMgr->RFCManagerProcessXconfRequest();
         if(status == SUCCESS)
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);
         }
 
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);  
