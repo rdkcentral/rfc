@@ -210,6 +210,34 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, writeRemoteFeatureCntrlFile);
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
+    FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
+    FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
+    FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
+    FRIEND_TEST(rfcMgrTest, GetOsClass);
+    FRIEND_TEST(rfcMgrTest, set_RFCProperty);
+    FRIEND_TEST(rfcMgrTest, GetValidPartnerId);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId);
+    FRIEND_TEST(rfcMgrTest, CreateXconfHTTPUrl);
+    FRIEND_TEST(rfcMgrTest, isConfigValueChange);
+    FRIEND_TEST(rfcMgrTest, IsDirectBlocked);
+    FRIEND_TEST(rfcMgrTest, CreateConfigDataValueMap);
+    FRIEND_TEST(rfcMgrTest, GetRuntimeFeatureControlJSON);
+    FRIEND_TEST(rfcMgrTest, InitDownloadData);
+    FRIEND_TEST(rfcMgrTest, getRFCName);
+    FRIEND_TEST(rfcMgrTest, getFeatureInstance);
+    FRIEND_TEST(rfcMgrTest, getRFCEnableParam);
+    FRIEND_TEST(rfcMgrTest, getEffectiveImmediateParam);
+    FRIEND_TEST(rfcMgrTest, GetXconfSelect);
+    FRIEND_TEST(rfcMgrTest, updateHashInDB);
+    FRIEND_TEST(rfcMgrTest, updateTimeInDB);
+    FRIEND_TEST(rfcMgrTest, getJRPCTokenData);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfUrl);
+    FRIEND_TEST(rfcMgrTest, updateTR181File);
+    FRIEND_TEST(rfcMgrTest, processXconfResponseConfigDataPart);
+    FRIEND_TEST(rfcMgrTest, rfcStashStoreParams);
+    FRIEND_TEST(rfcMgrTest, rfcStashRetrieveParams);
+    FRIEND_TEST(rfcMgrTest, clearDBEnd);
+    FRIEND_TEST(rfcMgrTest, clearDB);    
 #endif
 };
 

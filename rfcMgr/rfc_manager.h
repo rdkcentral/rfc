@@ -41,6 +41,10 @@
 #define ROUTE_FLAG_MAX_CHECK 5
 #define RFC_MGR_INTERNET_CHECK_TIMEOUT 2000
 
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*                                   Namespace                                */
 /*----------------------------------------------------------------------------*/
@@ -69,6 +73,10 @@ enum DeviceStatus {
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
+#if defined(GTEST_ENABLE)
+bool isDnsResolve(const char *);
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
 /*----------------------------------------------------------------------------*/
@@ -85,7 +93,11 @@ class RFCManager {
 #endif	
 	void manageCronJob(const std::string& cron);
 
+#if defined(GTEST_ENABLE)
+    public:
+#else
     private:
+#endif
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
