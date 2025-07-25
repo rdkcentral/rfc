@@ -1,7 +1,7 @@
 name: Unit tests rfc
 
 on:
-  pull_request:
+  push:
     branches: [ feature/RDK-57736 ]
 
 env:
