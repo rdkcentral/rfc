@@ -59,6 +59,7 @@ extern "C" {
 #define RFC_LAST_VERSION                   "/opt/secure/RFC/.version"
 #define VARIABLEFILE                       "/opt/secure/RFC/rfcVariable.ini"
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
+#define TR181STOREFILE                     "/opt/secure/RFC/tr181store.ini"
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
 
 #define RFC_VIDEO_CONTROL_ID               2504
@@ -108,6 +109,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	std::string _valid_accountId; /* Valid Account ID*/
 	std::string _valid_partnerId; /* Valid Partner ID*/
 	std::string _accountId; /* Device Account ID */
+        std::string stashAccountId;
         std::string _partnerId; /* Device Partner ID */
         std::string _bkPartnerId; /* Device Partner ID */
         std::string _experience;
@@ -141,7 +143,10 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void updateTimeInDB(std::string timestampString);
         void updateHashAndTimeInDB(char *curlHeaderResp);
         bool IsDirectBlocked();
-        void clearDB();	
+        void clearDB();
+        void clearDBEnd();
+        void rfcStashStoreParams(void);
+	void rfcStashRetrieveParams(void);
         
         std::stringstream CreateXconfHTTPUrl(); 
         void GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ); 
