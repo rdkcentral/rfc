@@ -29,6 +29,7 @@ extern "C" {
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
 #endif
+#include <signal.h>
 
 int main()
 {
