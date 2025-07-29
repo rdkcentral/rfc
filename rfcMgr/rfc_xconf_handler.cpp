@@ -25,6 +25,7 @@
 #include "rfc_mgr_json.h"
 #include "mtlsUtils.h"
 #include <ctime>
+#include <iostream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -479,8 +480,9 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     // this is required as sometime key value pairs will simply
     // disappear from the config data, as mac is mostly removed
     // to disable a feature rather than having different values
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
+    std::cout << "akshay using new code" << std::endl;
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "akshay [%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "akshay [%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
 
 #ifndef RDKC
     std::string name = "rfc";
