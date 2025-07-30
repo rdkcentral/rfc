@@ -31,6 +31,21 @@ extern "C" {
 #endif
 #include <signal.h>
 
+// Cleanup function
+void cleanup_lock_file(void)
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Completed service, deleting lock\n", __FUNCTION__, __LINE__);
+    unlink(RFC_MGR_SERVICE_LOCK_FILE);
+}
+
+// Signal handler for graceful shutdown
+void signal_handler(int sig)
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
+    cleanup_lock_file();
+    exit(0);
+}
+
 int main()
 {
     pid_t pid;
