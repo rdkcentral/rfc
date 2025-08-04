@@ -76,10 +76,10 @@ int main()
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
-#if !defined(RDKB_SUPPORT)	    
+#if !defined(RDKB_SUPPORT) 
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);	    
 #endif	
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);	    
         delete rfcMgr;
         return 1;
     }
@@ -97,6 +97,7 @@ int main()
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);
         }
 
+#if defined(RDKB_SUPPORT)
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);  
 
         std::string cronConfig = getCronFromDCMSettings();
@@ -108,6 +109,7 @@ int main()
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using cron from DCM settings: %s\n",  __FUNCTION__, __LINE__, cronConfig.c_str());
         }
         rfcMgr->manageCronJob(cronConfig);
+#endif
     }
     else
     {

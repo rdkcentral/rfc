@@ -450,7 +450,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
        logofs  << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
-       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+       RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
@@ -526,6 +526,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+	 cJSON_Delete(response_json);
       }
    }
    return ret;
@@ -640,6 +641,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+	 cJSON_Delete(response_json);
       }
    }
    return ret;

@@ -97,31 +97,20 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     return SUCCESS;
 }
 
-bool RuntimeFeatureControlProcessor::checkWhoamiSupport( )
+bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
 {
-    const std::string d_file = DEVICE_PROPERTIES_FILE;
-    std::ifstream devicepropFile;
-    bool found = false;
-
-    devicepropFile.open(d_file.c_str());
-    if (!devicepropFile.is_open())
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
+    char value[8] = {0};
+    int ret = getDevicePropertyData("WHOAMI_SUPPORT", value, sizeof(value));
+    if (ret != 1) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
         return false;
-    }
-    std::string line;
-
-    while (std::getline(devicepropFile, line))
-    {
-        if (line == "WHOAMI_SUPPORT=true")
-        {
-            found = true;
-           break;
-        }
     }
     devicepropFile.close();
 
     return found;
+    bool enabled = (strcasecmp(value, "true") == 0);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Whoami support is %s\n", __FUNCTION__, __LINE__, enabled ? "ENABLED" : "DISABLED");
+    return enabled;
 }
 
 bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
@@ -170,7 +159,6 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     size_t tr181Pos = configKey.find("tr181");
 
     if (tr181Pos != std::string::npos) {
-        // Extract parameter name after tr181
         size_t dotPos = configKey.find(".", tr181Pos);
         if (dotPos != std::string::npos) {
             paramName = configKey.substr(dotPos + 1);
@@ -280,10 +268,9 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     rbusValue_t paramVal = NULL;
     rc = rbus_get(rbusHandle, paramName.c_str(), &paramVal);
     if (rc != RBUS_ERROR_SUCCESS || paramVal == NULL) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s: %s\n",
-               paramName.c_str(), rbusError_ToString(rc));
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s: %s\n", paramName.c_str(), rbusError_ToString(rc));
         rbus_close(rbusHandle);
-        return false;
+        return true; 
     }
 
     rbusValueType_t paramType = rbusValue_GetType(paramVal);
@@ -314,12 +301,29 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             paramValue = std::to_string(rbusValue_GetDouble(paramVal));
             break;
         default:
-            paramTypeStr = "string";
+            paramTypeStr = "";
             paramValue = "";
             break;
     }
 
     rbusValue_Release(paramVal);
+
+    if (paramTypeStr.empty()) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s - invalid or unsupported parameter type\n", paramName.c_str());
+        rbus_close(rbusHandle);
+        return true;
+    }
+
+    std::ofstream paramFile("/tmp/.paramRFC");
+    if (paramFile.is_open()) {
+        paramFile << "name: " <<  paramName << "\n";
+        paramFile << "type: " << paramTypeStr << "\n";
+        paramFile << "value: " << paramValue << "\n";
+        paramFile.close();
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter info written to /tmp/.paramRFC\n");
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to write to /tmp/.paramRFC\n");
+    }
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "paramType is %s\n", paramTypeStr.c_str());
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: old parameter value %s\n", paramValue.c_str());
@@ -334,29 +338,35 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
 
         // Set the value based on parameter type
         bool setSuccess = true;
-        switch (paramType) {
-            case RBUS_STRING:
-                rbusValue_SetString(newValue, configValue.c_str());
-                break;
-            case RBUS_BOOLEAN:
-                rbusValue_SetBoolean(newValue, (configValue == "true" || configValue == "1"));
-                break;
-            case RBUS_INT32:
-                rbusValue_SetInt32(newValue, std::stoi(configValue));
-                break;
-            case RBUS_UINT32:
-                rbusValue_SetUInt32(newValue, std::stoul(configValue));
-                break;
-            case RBUS_SINGLE:
-                rbusValue_SetSingle(newValue, std::stof(configValue));
-                break;
-            case RBUS_DOUBLE:
-                rbusValue_SetDouble(newValue, std::stod(configValue));
-                break;
-            default:
-                setSuccess = false;
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Unsupported parameter type: %d\n", paramType);
-                break;
+        try {
+            switch (paramType) {
+                case RBUS_STRING:
+                    rbusValue_SetString(newValue, configValue.c_str());
+                    break;
+                case RBUS_BOOLEAN:
+                    rbusValue_SetBoolean(newValue, (configValue == "true" || configValue == "1"));
+                    break;
+                case RBUS_INT32:
+                    rbusValue_SetInt32(newValue, std::stoi(configValue));
+                    break;
+                case RBUS_UINT32:
+                    rbusValue_SetUInt32(newValue, std::stoul(configValue));
+                    break;
+                case RBUS_SINGLE:
+                    rbusValue_SetSingle(newValue, std::stof(configValue));
+                    break;
+                case RBUS_DOUBLE:
+                    rbusValue_SetDouble(newValue, std::stod(configValue));
+                    break;
+                default:
+                    setSuccess = false;
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Unsupported parameter type: %d\n", paramType);
+                    break;
+            }
+        } catch (const std::exception& e) {
+            setSuccess = false;
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n",
+                    configValue.c_str(), paramName.c_str(), e.what());
         }
 
         if (setSuccess) {
@@ -364,8 +374,14 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n",
-                       paramName.c_str(), paramValue.c_str(), configValue.c_str());
+                // Different logging based on the reason for SET (like shell script)
+                if (isRfcNameSpace && paramValue == configValue) {
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n",
+                           paramName.c_str(), configValue.c_str());
+                } else {
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n",
+                           paramName.c_str(), paramValue.c_str(), configValue.c_str());
+                }
 
                 // Special handling for account ID
                 if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
@@ -381,21 +397,20 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
                     }
                 }
 
-                // Check if reboot is needed
                 if (rebootValue == 1) {
-                    rfcRebootCronNeeded = true;
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n",
-                           paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                    if (!rfcRebootCronNeeded) {
+                        rfcRebootCronNeeded = true;
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n",
+                               paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                    }
                 }
             } else {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n",
                        paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
-                rbus_close(rbusHandle);
-                return false;
             }
         } else {
-            rbus_close(rbusHandle);
-            return false;
+            rbusValue_Release(newValue);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: Failed to set value for %s due to conversion error\n", paramName.c_str());
         }
     } else {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n",
@@ -406,10 +421,6 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     return true;
 }
 
-/**
- * C++ implementation of the processJsonResponseB function
- * Uses rbus for broadband implementation without dcmjsonparser
- */
 int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 {
     std::string rfcList;
@@ -522,6 +533,16 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
         }
     }
 
+    // Set ClearDB to true
+    rbusValue_t trueVal;
+    rbusValue_Init(&trueVal);
+    rbusValue_SetBoolean(trueVal, true);
+
+    rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd", trueVal, NULL);
+    if (rc != RBUS_ERROR_SUCCESS) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ClearDBEnd: %s\n", rbusError_ToString(rc));
+    }
+
     // Process config data part
     processXconfResponseConfigDataPart(bkp_features);
 
@@ -536,6 +557,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 
     HandleScheduledReboot(rfcRebootCronNeeded);
     FreeJson(pJson);
+    rbusValue_Release(trueVal);
     rbus_close(rbusHandle);
     return SUCCESS;
 }
@@ -551,6 +573,56 @@ void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNee
         ExecuteCommand(cmd, output);
     }
 }
+
+void RuntimeFeatureControlProcessor::saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType = "string")
+{
+    std::ofstream paramFile("/tmp/.paramRFC");
+    if (paramFile.is_open()) {
+        paramFile << "name: " << paramName << ",\n";
+        paramFile << "type: " << paramType << ",\n";
+        paramFile << "value: " << accountId << "\n";
+        paramFile.close();
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "saveAccountIdToFile: Parameter info written to /tmp/.paramRFC\n");
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "saveAccountIdToFile: Failed to write to /tmp/.paramRFC\n");
+    }
+}
+
+std::string RuntimeFeatureControlProcessor::readAccountIdFromFile()
+{
+    std::string accountId;
+
+    FILE* paramFile = fopen("/tmp/.paramRFC", "r");
+    if (paramFile != nullptr)
+    {
+        char line[1024];
+        while (fgets(line, sizeof(line), paramFile) != nullptr)
+        {
+            std::string lineStr(line);
+            size_t valuePos = lineStr.find("value:");
+            if (valuePos != std::string::npos)
+            {
+                std::string valueStr = lineStr.substr(valuePos + 6); // Skip "value:"
+                size_t start = valueStr.find_first_not_of(" \t\n\r");
+                if (start != std::string::npos)
+                {
+                    size_t end = valueStr.find_last_not_of(" \t\n\r");
+                    accountId = valueStr.substr(start, end - start + 1);
+                }
+                break;
+            }
+        }
+        fclose(paramFile);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "readAccountIdFromFile: Extracted AccountId=%s from file\n", accountId.c_str());
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "readAccountIdFromFile: Failed to open /tmp/.paramRFC\n");
+    }
+
+    return accountId;
+}
+
 #endif
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
@@ -606,6 +678,15 @@ void RuntimeFeatureControlProcessor::GetAccountID()
         i = strnlen(tempbuf, szBufSize);
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
         _accountId = tempbuf;
+#ifdef RDKB_SUPPORT	
+        if (access("/tmp/.timeValue", F_OK) != 0)
+        {
+            // Time file doesn't exist, set AccountID to Unknown
+            _accountId = "Unknown";
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: .timeValue file not found, setting AccountID to Unknown\n");
+        }
+        saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
+#endif
         if((_accountId.empty()) || (_last_firmware.compare( _firmware_version) != 0))
         {
             _accountId="Unknown";
@@ -613,6 +694,58 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     }
 
     return;
+}
+
+void RuntimeFeatureControlProcessor::rfcCheckAccountId()
+{
+    int i = 0;
+    char tempbuf[1024] = {0};
+    int szBufSize = sizeof(tempbuf);
+    std::string str = "AccountID";
+    std::string paramValue;
+
+    std::string bkAccountId = readAccountIdFromFile();
+
+    i = read_RFCProperty(str.c_str(), RFC_ACCOUNT_ID_KEY_STR, tempbuf, szBufSize);
+
+    if (i == READ_RFC_FAILURE)
+    {
+        paramValue = "Unknown";
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() failed\n");
+    }
+    else
+    {
+        paramValue = tempbuf;
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() success, value=%s\n", paramValue.c_str());
+    }
+
+    saveAccountIdToFile(paramValue, RFC_ACCOUNT_ID_KEY_STR, "string");
+
+    // Compare with backup account ID
+    if (paramValue != bkAccountId)
+    {
+        std::string logMessage = "Account Id mismatch: old=" + bkAccountId + ", new=" + paramValue;
+        rfcLogging(logMessage.c_str());
+    }
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
+}
+
+void RuntimeFeatureControlProcessor::GetRFCPartnerID()
+{
+    int i = 0;
+    char tempbuf[1024] = {0};
+    int partBufSize = sizeof(tempbuf);
+    std::string str = "PartnerName";
+
+    if (checkWhoamiSupport())
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetPartnerID: WhoAmI support is Enabled\n");
+         i = read_RFCProperty(str.c_str(), RFC_PARTNERNAME_KEY_STR, tempbuf, partBufSize);
+         if (i == READ_RFC_FAILURE)
+         {
+        }
+   }
 }
 
 void RuntimeFeatureControlProcessor::GetRFCPartnerID()
@@ -992,20 +1125,113 @@ bool RuntimeFeatureControlProcessor::isXconfSelectorSlotProd()
     return result;
 }
 
-
 void RuntimeFeatureControlProcessor::clearDB(void)
 {
+
+    // Store permanent parameters before clearing (equivalent to rfcStashStoreParams)	
+    rfcStashStoreParams();	
+    // clear RFC data store before storing new values
+    // this is required as sometime key value pairs will simply
+    // disappear from the config data, as mac is mostly removed
+    // to disable a feature rather than having different value
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
+
+#ifndef RDKC
+    std::string name = "rfc";
+    const std::string clearValue = "true";
+    std::string ClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB";
+    std::string BootstrapClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB";
+    std::string ConfigChangeTimeKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime";    
+
+    std::time_t timestamp = std::time(nullptr);
+    std::string ConfigChangeTime = std::to_string(timestamp);
+
+    std::ofstream touch_file(TR181STOREFILE);
+    touch_file.close();	
+
+    set_RFCProperty(name, ClearDB, clearValue);
+    set_RFCProperty(name, BootstrapClearDB, clearValue);
+    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+
+#else
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
+    if (std::remove(TR181STOREFILE) == 0)
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s removed successfully\n",__FUNCTION__, __LINE__, TR181STOREFILE);
+    }
+#endif
+
+    // Now retrieve parameters that must persist
+    rfcStashRetrieveParams();
+}
+
+void RuntimeFeatureControlProcessor::rfcStashStoreParams(void)
+{
+    // Store parameters that should survive the DB clear
+    // Implementation depends on which parameters need to persist
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Storing permanent parameters\n", __FUNCTION__, __LINE__);
+
+    // Call existing GetAccountID() to ensure _accountId is populated
+    GetAccountID();
+
+    // Store the current AccountID before clearing DB
+    stashAccountId = _accountId;
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Stashed AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
+}
+
+void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
+{
+    // Restore the stored permanent parameters
+    // Implementation depends on which parameters need to persist
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Retrieving permanent parameters\n", __FUNCTION__, __LINE__);
+
+    if (!stashAccountId.empty() && stashAccountId != "Unknown")
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Restoring AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
+
+        std::string name = "rfc";
+
+        WDMP_STATUS status = set_RFCProperty(name, RFC_ACCOUNT_ID_KEY_STR, stashAccountId);
+        if (status != WDMP_SUCCESS)
+        {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to restore AccountID: %s\n", __FUNCTION__, __LINE__, getRFCErrorString(status));
+        }
+        else
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully restored AccountID\n", __FUNCTION__, __LINE__);
+            // Update the in-memory copy as well
+            _accountId = stashAccountId;
+        }
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No valid AccountID to restore\n", __FUNCTION__, __LINE__);
+    }
+}
+
+void RuntimeFeatureControlProcessor::clearDBEnd(void)
+{
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB End\n", __FUNCTION__,__LINE__);
 
     std::string name = "rfc";
-    std::string value = "true";
+    const std::string clearValue = "true";
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
 
-    set_RFCProperty(name, ClearDBEndKey, value);
-    set_RFCProperty(name, BootstrapClearDBEndKey, value);
-    set_RFCProperty(name, reloadCacheKey, value);
+    set_RFCProperty(name, ClearDBEndKey, clearValue);
+    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
+    set_RFCProperty(name, reloadCacheKey, clearValue);
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());    
 }
 
 
@@ -1165,7 +1391,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
         {
             if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from local override\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    	        NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
             {
@@ -1173,7 +1400,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 {
                     _xconf_server_url.clear();
                     _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL to %s from Bootstrap config XCONF_BS_URL:%s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str(), _boot_strap_xconf_url.c_str());
+		    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
+                    NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
             std::stringstream url = CreateXconfHTTPUrl();
@@ -1242,6 +1470,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                     }
 #endif		    
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
+		    NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
                     
@@ -1481,7 +1710,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
@@ -1508,6 +1737,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 	    
             switch(curl_ret_code)
             {
+                case  6:
+                case 18:
+                case 28:		    
                 case 35:
                 case 51:
                 case 53:
@@ -1532,11 +1764,14 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
             if((curl_ret_code == 0) && (httpCode == 404))
             {
-	        cleanAllFile();
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received HTTP %d Response from Xconf Server. Retry logic not needed!!!\n",__FUNCTION__, __LINE__,httpCode);
+		cleanAllFile();
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
+		NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
             }
             else if(httpCode == 304)
             {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success. Response unchanged (%d). No processing\n",__FUNCTION__, __LINE__,httpCode);
                 NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "ACTIVE");
                 ret_value= NO_RFC_UPDATE_REQUIRED;
             }
@@ -1546,6 +1781,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             else 
             {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success, Processing updated (%d) response...\n",__FUNCTION__, __LINE__,httpCode);
                 cleanAllFile();
                 if (std::remove(TR181LISTFILE) == 0)
                 {
@@ -1855,6 +2091,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2Count(std ::string markerNa
     v_secure_system("/usr/bin/telemetry2_0_client %s %d", markerName.c_str(), count);
 }
 
+void RuntimeFeatureControlProcessor::NotifyTelemetry2Value(std ::string markerName, std ::string value)
+{
+    v_secure_system("/usr/bin/telemetry2_0_client %s %s", markerName.c_str(), value.c_str());
+}
+
 void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *features)
 {
     CreateConfigDataValueMap(features);
@@ -1867,7 +2108,9 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
         return;    
     }
+#if !defined(RDKB_SUPPORT)
     clearDB();
+#endif
 
     std::string newKey;
     std::string newValue;
@@ -1939,6 +2182,9 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
+#if !defined(RDKB_SUPPORT)
+    clearDBEnd();
+#endif    
 }
 
 void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
@@ -2178,7 +2424,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Feature List is not found in the file.\n" , __FUNCTION__, __LINE__);
         return;
     }
-    v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+    if (rfcstatus == "STAGING") {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_staging_split %s", line.c_str());
+    } else {
+        v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+    }    
 
 }
 
@@ -2350,20 +2600,3 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
 	else{
 	    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf URL validation successful for url: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
 	    break;
-	}
-    }while( retries < 2);
-
-    if( DwnLoc.pvOut != NULL )
-    {
-        free( DwnLoc.pvOut );
-    }
-    if( HeaderDwnLoc.pvOut != NULL )
-    {
-        free( HeaderDwnLoc.pvOut );
-    }
-    return rc;
-}
-
-#ifdef __cplusplus
-}
-#endif
