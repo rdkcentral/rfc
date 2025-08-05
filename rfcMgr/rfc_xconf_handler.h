@@ -176,6 +176,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	bool ExecuteCommand(const std::string& command, std::string& output);
 	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
 	int ProcessJsonResponseB(char* featureXConfMsg);
+	void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
+	std::string readAccountIdFromFile();
+	void rfcCheckAccountId();
 #endif	
         void GetValidAccountId();
         void GetValidPartnerId();

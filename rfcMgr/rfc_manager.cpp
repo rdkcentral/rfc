@@ -30,7 +30,6 @@ namespace rfc {
 #if defined(USE_IARMBUS)
     void rfcMgrEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len) 
     {
-        /* This is place holder for future */
         owner = owner;
         eventId = eventId;
         data = data;
@@ -169,10 +168,8 @@ namespace rfc {
     {
         bool ip_status = false;
 
-        // Call the getErouterIPAddress function directly instead of using the shell script
         std::string ip_address = getErouterIPAddress();
 
-        // If we got an IP address (non-empty string), consider it connected
         if (!ip_address.empty()) {
             ip_status = true;
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully got eRouter IP address\n", __FUNCTION__, __LINE__);
@@ -256,16 +253,6 @@ namespace rfc {
         }
         ip_status = true;
 
-        /*if (true == checkDeviceInternetConnection(RFC_MGR_INTERNET_CHECK_TIMEOUT))
-        {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Device is online\n", __FUNCTION__,__LINE__);
-            ip_status = true;
-        } 
-        else 
-        {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Device is not online\n", __FUNCTION__,__LINE__);
-            ip_status = false;
-        }*/
         return ip_status;
     }
 

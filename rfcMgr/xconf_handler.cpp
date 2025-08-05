@@ -90,7 +90,7 @@ int XconfHandler:: initializeXconfHandler()
         std::string mac = getErouterMac();
         if (!mac.empty()) {
             strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
-            tmpbuf[sizeof(tmpbuf) - 1] = '\0'; // Ensure null termination
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
             len = strlen(tmpbuf);
         }
 #else

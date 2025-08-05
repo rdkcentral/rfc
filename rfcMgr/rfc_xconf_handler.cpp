@@ -105,9 +105,7 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get WHOAMI_SUPPORT property. Status: %d\n", __FUNCTION__, __LINE__, ret);
         return false;
     }
-    devicepropFile.close();
 
-    return found;
     bool enabled = (strcasecmp(value, "true") == 0);
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Whoami support is %s\n", __FUNCTION__, __LINE__, enabled ? "ENABLED" : "DISABLED");
     return enabled;
@@ -330,13 +328,10 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
 
     bool isRfcNameSpace = (paramName.find(".X_RDKCENTRAL-COM_RFC.") != std::string::npos);
 
-    // Check if values are different or if it's RFC namespace
     if (paramValue != configValue || isRfcNameSpace) {
-        // Create new value with the right type
         rbusValue_t newValue;
         rbusValue_Init(&newValue);
 
-        // Set the value based on parameter type
         bool setSuccess = true;
         try {
             switch (paramType) {
@@ -374,7 +369,6 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
-                // Different logging based on the reason for SET (like shell script)
                 if (isRfcNameSpace && paramValue == configValue) {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n",
                            paramName.c_str(), configValue.c_str());
@@ -449,7 +443,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ContainerSupport: %s\n", rbusError_ToString(rc));
     }
 
-    // Set ClearDB to true
+    // Set ClearDB and ClearDBEnd to true
     rbusValue_t trueVal;
     rbusValue_Init(&trueVal);
     rbusValue_SetBoolean(trueVal, true);
@@ -533,20 +527,15 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
         }
     }
 
-    // Set ClearDB to true
-    rbusValue_t trueVal;
-    rbusValue_Init(&trueVal);
-    rbusValue_SetBoolean(trueVal, true);
-
     rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd", trueVal, NULL);
     if (rc != RBUS_ERROR_SUCCESS) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to set ClearDBEnd: %s\n", rbusError_ToString(rc));
     }
 
-    // Process config data part
     processXconfResponseConfigDataPart(bkp_features);
 
-    // Write feature list file
+    rfcCheckAccountId();
+
     WriteFile(FEATURE_FILE_LIST, rfcList);
 
     // Notify telemetry about remote features
@@ -574,7 +563,7 @@ void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNee
     }
 }
 
-void RuntimeFeatureControlProcessor::saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType = "string")
+void RuntimeFeatureControlProcessor::saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType)
 {
     std::ofstream paramFile("/tmp/.paramRFC");
     if (paramFile.is_open()) {
@@ -602,7 +591,7 @@ std::string RuntimeFeatureControlProcessor::readAccountIdFromFile()
             size_t valuePos = lineStr.find("value:");
             if (valuePos != std::string::npos)
             {
-                std::string valueStr = lineStr.substr(valuePos + 6); // Skip "value:"
+                std::string valueStr = lineStr.substr(valuePos + 6);
                 size_t start = valueStr.find_first_not_of(" \t\n\r");
                 if (start != std::string::npos)
                 {
@@ -724,28 +713,10 @@ void RuntimeFeatureControlProcessor::rfcCheckAccountId()
     // Compare with backup account ID
     if (paramValue != bkAccountId)
     {
-        std::string logMessage = "Account Id mismatch: old=" + bkAccountId + ", new=" + paramValue;
-        rfcLogging(logMessage.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: Account Id mismatch: old=%s, new=%s\n", bkAccountId.c_str(), paramValue.c_str());
     }
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
-}
-
-void RuntimeFeatureControlProcessor::GetRFCPartnerID()
-{
-    int i = 0;
-    char tempbuf[1024] = {0};
-    int partBufSize = sizeof(tempbuf);
-    std::string str = "PartnerName";
-
-    if (checkWhoamiSupport())
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetPartnerID: WhoAmI support is Enabled\n");
-         i = read_RFCProperty(str.c_str(), RFC_PARTNERNAME_KEY_STR, tempbuf, partBufSize);
-         if (i == READ_RFC_FAILURE)
-         {
-        }
-   }
 }
 
 void RuntimeFeatureControlProcessor::GetRFCPartnerID()
@@ -864,7 +835,7 @@ int RuntimeFeatureControlProcessor::GetExperience( void )
             free( DwnLoc.pvOut );
         }
     }
-    if( !*tempbuf )  // we got nothing back, "X1" is default
+    if( !*tempbuf )
     {
         *tempbuf = 'X';
         *(tempbuf + 1) = '1';
@@ -899,7 +870,7 @@ int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
         }
         else if (line.find("RFC_CONFIG_SERVER_URL_EU=") == 0)
         {
-            _xconf_server_url_eu = line.substr(25); // Corrected offset to 25
+            _xconf_server_url_eu = line.substr(25);
         }
     }
     inputFile.close();
@@ -1200,12 +1171,13 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
         WDMP_STATUS status = set_RFCProperty(name, RFC_ACCOUNT_ID_KEY_STR, stashAccountId);
         if (status != WDMP_SUCCESS)
         {
+#if !defined(RDKB_SUPPORT)
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to restore AccountID: %s\n", __FUNCTION__, __LINE__, getRFCErrorString(status));
+#endif
         }
         else
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully restored AccountID\n", __FUNCTION__, __LINE__);
-            // Update the in-memory copy as well
             _accountId = stashAccountId;
         }
     }
@@ -1268,7 +1240,6 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 {
 #if !defined(RDKB_SUPPORT)
-    // Non-broadband implementation
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
     set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
@@ -1298,18 +1269,15 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     std::string key2 = "configsethash:";
     std::size_t start = httpHeader.find(key1);
     if (start == std::string::npos) {
-        // some xconf have lowercase string.
         start = httpHeader.find(key2);
     }
 
     if (start != std::string::npos) {
-        // Start position of the value
         start += key1.length();
 
-        // Find the end of the line where the value ends (handle both \r\n and \n line endings)
         std::size_t end = httpHeader.find("\r\n", start);
         if (end == std::string::npos) {
-            end = httpHeader.find("\n", start);  // Fallback to Unix line ending
+            end = httpHeader.find("\n", start);
         }
 
         // Extract the value
@@ -1552,7 +1520,6 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash, std::string &valueTime)
 {
 #if defined(RDKB_SUPPORT)
-    // For broadband, read from files
     const std::string RFC_RAM_PATH = "/tmp/RFC";
 
     // Initialize default values
@@ -1596,7 +1563,6 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std:
     }
 
 #else
-    // For non-broadband, use the original implementation
     int i = 0;
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
@@ -1902,7 +1868,7 @@ void RuntimeFeatureControlProcessor::GetValidAccountId()
 
 void RuntimeFeatureControlProcessor::GetValidPartnerId()
 {
-    /* Get Valid Account ID*/
+    /* Get Valid Partner ID*/
 
     std::string value = _RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR];
 
@@ -2269,7 +2235,6 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, std::string key, std::string value)
 {
 #if defined(RDKB_SUPPORT)
-    // Broadband implementation using rbus_set
     rbusHandle_t handle;
     rbusValue_t rbusValue;
     rbusError_t rc;
@@ -2353,7 +2318,6 @@ WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, st
 
     return status;
 #else
-    // Non-broadband implementation (original code)
     RFC_ParamData_t param;
     param.type = WDMP_NONE;
     memset(&param, 0, sizeof(RFC_ParamData_t));
@@ -2600,3 +2564,20 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
 	else{
 	    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf URL validation successful for url: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
 	    break;
+	}
+    }while( retries < 2);
+
+    if( DwnLoc.pvOut != NULL )
+    {
+        free( DwnLoc.pvOut );
+    }
+    if( HeaderDwnLoc.pvOut != NULL )
+    {
+        free( HeaderDwnLoc.pvOut );
+    }
+    return rc;
+}
+
+#ifdef __cplusplus
+}
+#endif	    
