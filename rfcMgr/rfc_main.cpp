@@ -19,6 +19,7 @@
 
 #include "rfc_common.h"
 #include "rfc_manager.h"
+#include <signal.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,24 +30,6 @@ extern "C" {
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
 #endif
-#include <signal.h>
-
-// Cleanup function
-void cleanup_lock_file(void)
-{
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Completed service, deleting lock\n", __FUNCTION__, __LINE__);
-    unlink(RFC_MGR_SERVICE_LOCK_FILE);
-}
-
-// Signal handler for graceful shutdown
-void signal_handler(int sig)
-{
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
-    cleanup_lock_file();
-    exit(0);
-}
-
-#include <signal.h>
 
 // Cleanup function
 void cleanup_lock_file(void)
