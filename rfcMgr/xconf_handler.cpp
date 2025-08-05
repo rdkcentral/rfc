@@ -47,36 +47,20 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 }
 
 std::string getErouterMac() {
-    std::string ifname;
     std::string erouterMac;
 
-    FILE* pipe = popen("sysevent get current_wan_ifname", "r");
-    if (pipe) {
-        char buffer[128] = {0};
-        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            ifname = buffer;
-            if (!ifname.empty() && ifname.back() == '\n') {
-                ifname.pop_back();
-            }
-        }
-        pclose(pipe);
-    }
-
-    if (!ifname.empty()) {
-        std::string cmd = "ifconfig " + ifname + " | grep HWaddr | cut -d \" \" -f7";
-        FILE* macPipe = popen(cmd.c_str(), "r");
-        if (macPipe) {
+        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_MAC", "r");
+        if (pipe) {
             char buffer[128] = {0};
-            if (fgets(buffer, sizeof(buffer), macPipe) != nullptr) {
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
                 erouterMac = buffer;
                 // Trim trailing newline
                 if (!erouterMac.empty() && erouterMac.back() == '\n') {
                     erouterMac.pop_back();
                 }
             }
-            pclose(macPipe);
+            pclose(pipe);
         }
-    }
 
     return erouterMac;
 }
@@ -151,3 +135,4 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
+
