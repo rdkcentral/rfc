@@ -1105,6 +1105,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     // this is required as sometime key value pairs will simply
     // disappear from the config data, as mac is mostly removed
     // to disable a feature rather than having different value
+
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
 
@@ -1196,14 +1197,15 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void)
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
-
+    
     set_RFCProperty(name, ClearDBEndKey, clearValue);
     set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
     set_RFCProperty(name, reloadCacheKey, clearValue);
 
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());    
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
+
 }
 
 
@@ -1359,8 +1361,8 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
         {
             if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
-    	        NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
             {
@@ -1368,7 +1370,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 {
                     _xconf_server_url.clear();
                     _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
-		    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
                     NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
@@ -1438,7 +1440,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                     }
 #endif		    
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
-		    NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
+       	            NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
                     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
                     
@@ -1657,8 +1659,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             std::string valueTime;
             GetStoredHashAndTime(hashValue, valueTime);
 
-	    std::string configsethashParam = (std::string("configsethash:") + hashValue.c_str());
-	    std::string configsettimeParam = (std::string("configsettime:") + valueTime.c_str());
+	          std::string configsethashParam = (std::string("configsethash:") + hashValue.c_str());
+	          std::string configsettimeParam = (std::string("configsettime:") + valueTime.c_str());
 
             hashParam->hashvalue = strdup((char *)configsethashParam.c_str());
             hashParam->hashtime = strdup((char *)configsettimeParam.c_str());
@@ -1676,7 +1678,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
-	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
+	          RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
@@ -1691,21 +1693,21 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 free(file_dwnl.hashData);
             }
 	    
-	    if (_url_validation_in_progress)
-	    {
-		_url_validation_in_progress = false;
-		if((httpCode == 304) || (httpCode == 200))
-		{
-		    return SUCCESS;
-		}
-		return FAILURE;
+	          if (_url_validation_in_progress)
+	          {
+		             _url_validation_in_progress = false;
+		             if((httpCode == 304) || (httpCode == 200))
+		             {
+		                 return SUCCESS;
+		        }
+		        return FAILURE;
 	    }
 	    
             switch(curl_ret_code)
             {
                 case  6:
                 case 18:
-                case 28:		    
+                case 28:
                 case 35:
                 case 51:
                 case 53:
@@ -1724,20 +1726,20 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 #if !defined(RDKB_SUPPORT)
                 NotifyTelemetry2ErrorCode(curl_ret_code);
 #else
-		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Skipping NotifyTelemetry2ErrorCode alert\n");
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Skipping NotifyTelemetry2ErrorCode alert\n");
 #endif		
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
             {
-	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received HTTP %d Response from Xconf Server. Retry logic not needed!!!\n",__FUNCTION__, __LINE__,httpCode);
-		cleanAllFile();
-		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
-		NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received HTTP %d Response from Xconf Server. Retry logic not needed!!!\n",__FUNCTION__, __LINE__,httpCode);
+	              cleanAllFile();
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[Features Enabled]-[NONE]:\n");
+		            NotifyTelemetry2Count("SYST_INFO_RFC_FeaturesNone");
             }
             else if(httpCode == 304)
             {
-		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success. Response unchanged (%d). No processing\n",__FUNCTION__, __LINE__,httpCode);
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success. Response unchanged (%d). No processing\n",__FUNCTION__, __LINE__,httpCode);
                 NotifyTelemetry2RemoteFeatures("/opt/secure/RFC/rfcFeature.list", "ACTIVE");
                 ret_value= NO_RFC_UPDATE_REQUIRED;
             }
@@ -1747,7 +1749,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             else 
             {
-		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success, Processing updated (%d) response...\n",__FUNCTION__, __LINE__,httpCode);
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] HTTP request success, Processing updated (%d) response...\n",__FUNCTION__, __LINE__,httpCode);
                 cleanAllFile();
                 if (std::remove(TR181LISTFILE) == 0)
                 {
@@ -2098,15 +2100,15 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         else
         {
-	    if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
-	    {
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
-	        if (ProcessXconfUrl(newValue.c_str()) != SUCCESS)
-		{
-		    continue;
-		}
-	    }
+	          if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
+	          {
+		            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
+		            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
+	              if (ProcessXconfUrl(newValue.c_str()) != SUCCESS)
+		            {
+		                continue;
+		            }
+	          }
 		
             WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
             if (status != WDMP_SUCCESS)
@@ -2148,6 +2150,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
+
 #if !defined(RDKB_SUPPORT)
     clearDBEnd();
 #endif    
@@ -2184,6 +2187,7 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
     }
     return;
 }
+
 bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std ::string key, std ::string &value, std ::string &currentValue)
 {
     int i = 0, len = 0;
@@ -2393,7 +2397,6 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
     } else {
         v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
     }    
-
 }
 
 void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, const std::string& data) 
@@ -2555,16 +2558,16 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
         rc = DownloadRuntimeFeatutres(&DwnLoc, &HeaderDwnLoc, url.str());
         if ( rc != SUCCESS)
         {
-	    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Validation failed for Xconf URL %s\n", __FUNCTION__, __LINE__, url.str().c_str());
+	          RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Validation failed for Xconf URL %s\n", __FUNCTION__, __LINE__, url.str().c_str());
             if (++retries < 2) {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Retrying Validation for Xconf URL %s\n", __FUNCTION__, __LINE__, url.str().c_str());
                 sleep(10);
             }
         }
-	else{
-	    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf URL validation successful for url: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
-	    break;
-	}
+	      else{
+	          RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf URL validation successful for url: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
+	          break;
+	      }
     }while( retries < 2);
 
     if( DwnLoc.pvOut != NULL )

@@ -51,7 +51,6 @@ extern "C" {
 #define STATE_RED_SPRT_FILE ""
 #define STATEREDFLAG ""
 
-
 #if defined(GTEST_ENABLE)
 int isStateRedSupported(void);
 int isInStateRed(void);

@@ -46,6 +46,23 @@ void signal_handler(int sig)
     exit(0);
 }
 
+#include <signal.h>
+
+// Cleanup function
+void cleanup_lock_file(void)
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Completed service, deleting lock\n", __FUNCTION__, __LINE__);
+    unlink(RFC_MGR_SERVICE_LOCK_FILE);
+}
+
+// Signal handler for graceful shutdown
+void signal_handler(int sig)
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
+    cleanup_lock_file();
+    exit(0);
+}
+
 int main()
 {
     pid_t pid;
@@ -73,13 +90,14 @@ int main()
 #if defined(RDKB_SUPPORT)
     waitForRfcCompletion();
 #endif
+
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
     {
 #if !defined(RDKB_SUPPORT) 
 	rfcMgr->SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_INPROGRESS);
 #endif	
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);	    
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: rfcMgr process in progress, New instance not allowed as file %s is locked!\n", __FUNCTION__, __LINE__, RFC_MGR_SERVICE_LOCK_FILE);
         delete rfcMgr;
         return 1;
     }
@@ -113,7 +131,7 @@ int main()
     }
     else
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
     }
 
 #ifdef INCLUDE_BREAKPAD

@@ -106,9 +106,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool getRebootRequirement();
 
         void NotifyTelemetry2Count(std ::string markerName);
-        void NotifyTelemetry2Value(std ::string markerName, std ::string value);	
+        void NotifyTelemetry2Value(std ::string markerName, std ::string value);
 
-	private:
+	      private:
 
         typedef struct RuntimeFeatureControlObject {
                std::string name;
@@ -117,21 +117,21 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
                bool effectiveImmediate;
         }RuntimeFeatureControlObject;
 		
-	std::map<std::string, std::string> _RFCKeyAndValueMap;
-	RfcState     rfc_state; /* RFC State */
-	std::string _last_firmware; /* Last Firmware Version */
-	std::string _xconf_server_url; /* Xconf server URL */
+	      std::map<std::string, std::string> _RFCKeyAndValueMap;
+	      RfcState     rfc_state; /* RFC State */
+	      std::string _last_firmware; /* Last Firmware Version */
+	      std::string _xconf_server_url; /* Xconf server URL */
         std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
-	std::string _valid_accountId; /* Valid Account ID*/
-	std::string _valid_partnerId; /* Valid Partner ID*/
-	std::string _accountId; /* Device Account ID */
-	std::string stashAccountId;
+	      std::string _valid_accountId; /* Valid Account ID*/
+	      std::string _valid_partnerId; /* Valid Partner ID*/
+	      std::string _accountId; /* Device Account ID */
+        std::string stashAccountId;
         std::string _partnerId; /* Device Partner ID */
         std::string _bkPartnerId; /* Device Partner ID */
         std::string _experience;
         std::string _osclass;
         bool isRebootRequired;
-	std::string bkup_hash;
+	      std::string bkup_hash;
         bool _is_first_request;
         bool _url_validation_in_progress = false;
         std::string  rfcSelectOpt;
@@ -161,10 +161,10 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void updateHashAndTimeInDB(char *curlHeaderResp);
         bool IsDirectBlocked();
         void clearDB();
-        void clearDBEnd();
+        void clearDBEnd();	
         void rfcStashStoreParams(void);
-	void rfcStashRetrieveParams(void);
-        
+      	void rfcStashRetrieveParams(void);
+
         std::stringstream CreateXconfHTTPUrl(); 
         void GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ); 
         void RetrieveHashAndTimeFromPreviousDataSet(std ::string &valueHash, std::string &valueTime); 
@@ -173,16 +173,16 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
 #if defined(RDKB_SUPPORT)
-	bool ExecuteCommand(const std::string& command, std::string& output);
-	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
-	int ProcessJsonResponseB(char* featureXConfMsg);
-	void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
-	std::string readAccountIdFromFile();
-	void rfcCheckAccountId();
+      	bool ExecuteCommand(const std::string& command, std::string& output);
+	      bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
+	      int ProcessJsonResponseB(char* featureXConfMsg);
+	      void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
+	      std::string readAccountIdFromFile();
+	      void rfcCheckAccountId();
+        void HandleScheduledReboot(bool rfcRebootCronNeeded);
 #endif	
         void GetValidAccountId();
         void GetValidPartnerId();
-	void HandleScheduledReboot(bool rfcRebootCronNeeded);
         void GetXconfSelect();
         int ProcessJsonResponse(char *featureXConfMsg);
         JSON* GetRuntimeFeatureControlJSON(JSON *);
@@ -191,14 +191,14 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool isConfigValueChange(std ::string name, std ::string key, std ::string &value, std ::string &paramValue);
         WDMP_STATUS set_RFCProperty(std ::string name, std ::string key, std ::string value);
         void updateTR181File(const std::string& filename, std::list<std::string>& paramList); 
-	void NotifyTelemetry2RemoteFeatures(const char *rfcFeatureList, std ::string rfcstatus);
+	      void NotifyTelemetry2RemoteFeatures(const char *rfcFeatureList, std ::string rfcstatus);
         void WriteFile(const std::string& filename, const std::string& data); 
         void writeRemoteFeatureCntrlFile(const std::string& filename, RuntimeFeatureControlObject *feature);
-	int getJsonRpc(char *, DownloadData* );
-	int getJRPCTokenData( char *, char *, unsigned int );
-	void cleanAllFile();
+	      int getJsonRpc(char *, DownloadData* );
+	      int getJRPCTokenData( char *, char *, unsigned int );
+	      void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-	bool isDebugServicesEnabled(void);
+	      bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
@@ -247,7 +247,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, rfcStashStoreParams);
     FRIEND_TEST(rfcMgrTest, rfcStashRetrieveParams);
     FRIEND_TEST(rfcMgrTest, clearDBEnd);
-    FRIEND_TEST(rfcMgrTest, clearDB);    
+    FRIEND_TEST(rfcMgrTest, clearDB);
+
 #endif
 };
 
