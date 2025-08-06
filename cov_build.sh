@@ -28,7 +28,7 @@ mkdir -p $RFC_INSTALL_DIR
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
 export CXXFLAGS="-Wno-format -Wno-unused-variable"
-./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
+./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes --enable-rdkb=yes
 
 cd $RFC_ROOT
 rm -rf common_utilities
@@ -47,7 +47,7 @@ cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
 cp /usr/local/include/wdmp-c/wdmp-c.h ./
 
-make && make install
+make CXXFLAGS="$CXXFLAGS -DRDKB_SUPPORT" && make install
 
 # tr181api/
 cd ../tr181api
@@ -60,5 +60,6 @@ make && make install
 # rfcMgr/
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
-make && make install
+make CXXFLAGS="$CXXFLAGS -I/usr/local/include/rbus -DRDKB_SUPPORT" LDFLAGS="$LDFLAGS -lrbus"
+make install
 
