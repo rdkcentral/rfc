@@ -47,7 +47,7 @@ cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
 cp /usr/local/include/wdmp-c/wdmp-c.h ./
 
-make CXXFLAGS="$CXXFLAGS -DRDKB_SUPPORT" && make install
+make CXXFLAGS="$CXXFLAGS -DUSE_IARMBUS" && make install
 
 # tr181api/
 cd ../tr181api
@@ -60,6 +60,5 @@ make && make install
 # rfcMgr/
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
-make CXXFLAGS="$CXXFLAGS -I/usr/local/include/rbus -DRDKB_SUPPORT" LDFLAGS="$LDFLAGS -lrbus"
-make install
+make && make install
 

@@ -612,6 +612,40 @@ std::string RuntimeFeatureControlProcessor::readAccountIdFromFile()
     return accountId;
 }
 
+void RuntimeFeatureControlProcessor::rfcCheckAccountId()
+{
+    int i = 0;
+    char tempbuf[1024] = {0};
+    int szBufSize = sizeof(tempbuf);
+    std::string str = "AccountID";
+    std::string paramValue;
+
+    std::string bkAccountId = readAccountIdFromFile();
+
+    i = read_RFCProperty(str.c_str(), RFC_ACCOUNT_ID_KEY_STR, tempbuf, szBufSize);
+
+    if (i == READ_RFC_FAILURE)
+    {
+        paramValue = "Unknown";
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() failed\n");
+    }
+    else
+    {
+        paramValue = tempbuf;
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() success, value=%s\n", paramValue.c_str());
+    }
+
+    saveAccountIdToFile(paramValue, RFC_ACCOUNT_ID_KEY_STR, "string");
+
+    // Compare with backup account ID
+    if (paramValue != bkAccountId)
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: Account Id mismatch: old=%s, new=%s\n", bkAccountId.c_str(), paramValue.c_str());
+    }
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
+}
+
 #endif
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
@@ -683,40 +717,6 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     }
 
     return;
-}
-
-void RuntimeFeatureControlProcessor::rfcCheckAccountId()
-{
-    int i = 0;
-    char tempbuf[1024] = {0};
-    int szBufSize = sizeof(tempbuf);
-    std::string str = "AccountID";
-    std::string paramValue;
-
-    std::string bkAccountId = readAccountIdFromFile();
-
-    i = read_RFCProperty(str.c_str(), RFC_ACCOUNT_ID_KEY_STR, tempbuf, szBufSize);
-
-    if (i == READ_RFC_FAILURE)
-    {
-        paramValue = "Unknown";
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() failed\n");
-    }
-    else
-    {
-        paramValue = tempbuf;
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: read_RFCProperty() success, value=%s\n", paramValue.c_str());
-    }
-
-    saveAccountIdToFile(paramValue, RFC_ACCOUNT_ID_KEY_STR, "string");
-
-    // Compare with backup account ID
-    if (paramValue != bkAccountId)
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: Account Id mismatch: old=%s, new=%s\n", bkAccountId.c_str(), paramValue.c_str());
-    }
-
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
 }
 
 void RuntimeFeatureControlProcessor::GetRFCPartnerID()
