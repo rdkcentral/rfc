@@ -252,6 +252,8 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 }
 
 #else
+#define FAILURE            -1
+#define SUCCESS             0
 
 WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
