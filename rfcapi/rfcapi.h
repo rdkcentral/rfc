@@ -36,8 +36,6 @@ extern "C"
 #endif
 
 #define MAX_PARAM_LEN     (2*1024)
-#define FAILURE            -1
-#define SUCCESS             0
 
 #if defined(RDKB_SUPPORT)
 typedef enum
