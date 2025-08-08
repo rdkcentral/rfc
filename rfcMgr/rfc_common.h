@@ -68,11 +68,14 @@ typedef enum {
 #define WPEFRAMEWORKSECURITYUTILITY     "/usr/bin/WPEFrameworkSecurityUtility"
 #define RDKSSACLI_CMD                   "/usr/bin/rdkssacli %s"
 #define KEY_GEN_BIN                     "/usr/bin/rdkssacli"
+    void waitForRfcCompletion();
+    std::string getSyseventValue(const std::string& key);
+    std::string getErouterIPAddress();
 
 int executeCommandAndGetOutput(SYSCMD, const char *, std::string&);
 int read_RFCProperty(const char* , const char* , char *, int );
 bool CheckSpecialCharacters(const std::string&);
 bool StringCaseCompare(const std::string& , const std::string& );
 void RemoveSubstring(std::string& str, const std::string& toRemove);
-
+std::string getCronFromDCMSettings();
 #endif

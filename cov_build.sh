@@ -47,7 +47,7 @@ cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
 cp /usr/local/include/wdmp-c/wdmp-c.h ./
 
-make && make install
+make CXXFLAGS="$CXXFLAGS -DUSE_IARMBUS" && make install
 
 # tr181api/
 cd ../tr181api

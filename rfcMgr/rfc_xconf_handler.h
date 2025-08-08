@@ -49,7 +49,11 @@ extern "C" {
 #endif
 
 #define RFC_PROPERTIES_FILE                "/etc/rfc.properties"
+#if defined(RDKB_SUPPORT)
+#define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
+#else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
+#endif	
 #define WPEFRAMEWORKSECURITYUTILITY        "/usr/bin/WPEFrameworkSecurityUtility"
 #define DIRECTORY_PATH                     "/opt/secure/RFC/"
 #define VARFILE                            "rfcVariable.ini"
@@ -59,7 +63,7 @@ extern "C" {
 #define RFC_LAST_VERSION                   "/opt/secure/RFC/.version"
 #define VARIABLEFILE                       "/opt/secure/RFC/rfcVariable.ini"
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
-#define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini" 
+#define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini"
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
 #define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
 
@@ -79,6 +83,13 @@ typedef enum
    Finish
 } RfcState;
 
+#if defined(RDKB_SUPPORT)
+typedef enum {
+    WDMP_SUCCESS = 0,
+    WDMP_FAILURE,
+} WDMP_STATUS;
+#endif
+
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
         public :
@@ -93,10 +104,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int  InitializeRuntimeFeatureControlProcessor(void);
         int ProcessRuntimeFeatureControlReq();
         bool getRebootRequirement();
+
         void NotifyTelemetry2Count(std ::string markerName);
         void NotifyTelemetry2Value(std ::string markerName, std ::string value);
 
-	private:
+	      private:
 
         typedef struct RuntimeFeatureControlObject {
                std::string name;
@@ -105,21 +117,21 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
                bool effectiveImmediate;
         }RuntimeFeatureControlObject;
 		
-	std::map<std::string, std::string> _RFCKeyAndValueMap;
-	RfcState     rfc_state; /* RFC State */
-	std::string _last_firmware; /* Last Firmware Version */
-	std::string _xconf_server_url; /* Xconf server URL */
+	      std::map<std::string, std::string> _RFCKeyAndValueMap;
+	      RfcState     rfc_state; /* RFC State */
+	      std::string _last_firmware; /* Last Firmware Version */
+	      std::string _xconf_server_url; /* Xconf server URL */
         std::string _boot_strap_xconf_url; /* Bootstrap XConf URL */
-	std::string _valid_accountId; /* Valid Account ID*/
-	std::string _valid_partnerId; /* Valid Partner ID*/
-	std::string _accountId; /* Device Account ID */
+	      std::string _valid_accountId; /* Valid Account ID*/
+	      std::string _valid_partnerId; /* Valid Partner ID*/
+	      std::string _accountId; /* Device Account ID */
         std::string stashAccountId;
         std::string _partnerId; /* Device Partner ID */
         std::string _bkPartnerId; /* Device Partner ID */
         std::string _experience;
         std::string _osclass;
         bool isRebootRequired;
-	std::string bkup_hash;
+	      std::string bkup_hash;
         bool _is_first_request;
         bool _url_validation_in_progress = false;
         std::string  rfcSelectOpt;
@@ -134,6 +146,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void GetOsClass( void );
         int GetExperience( void );
         int GetServURL(const char *rfcPropertiesFile);
+        int GetServURLB();
         int GetBootstrapXconfUrl(std ::string &XconfUrl); 
         bool checkBootstrap(const std::string& filename, const std::string& target);
         
@@ -150,8 +163,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void clearDB();
         void clearDBEnd();	
         void rfcStashStoreParams(void);
-	void rfcStashRetrieveParams(void);
-
+      	void rfcStashRetrieveParams(void);
 
         std::stringstream CreateXconfHTTPUrl(); 
         void GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ); 
@@ -160,6 +172,15 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
+#if defined(RDKB_SUPPORT)
+      	bool ExecuteCommand(const std::string& command, std::string& output);
+	      bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
+	      int ProcessJsonResponseB(char* featureXConfMsg);
+	      void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
+	      std::string readAccountIdFromFile();
+	      void rfcCheckAccountId();
+        void HandleScheduledReboot(bool rfcRebootCronNeeded);
+#endif	
         void GetValidAccountId();
         void GetValidPartnerId();
         void GetXconfSelect();
@@ -170,14 +191,14 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool isConfigValueChange(std ::string name, std ::string key, std ::string &value, std ::string &paramValue);
         WDMP_STATUS set_RFCProperty(std ::string name, std ::string key, std ::string value);
         void updateTR181File(const std::string& filename, std::list<std::string>& paramList); 
-	void NotifyTelemetry2RemoteFeatures(const char *rfcFeatureList, std ::string rfcstatus);
+	      void NotifyTelemetry2RemoteFeatures(const char *rfcFeatureList, std ::string rfcstatus);
         void WriteFile(const std::string& filename, const std::string& data); 
         void writeRemoteFeatureCntrlFile(const std::string& filename, RuntimeFeatureControlObject *feature);
-	int getJsonRpc(char *, DownloadData* );
-	int getJRPCTokenData( char *, char *, unsigned int );
-	void cleanAllFile();
+	      int getJsonRpc(char *, DownloadData* );
+	      int getJRPCTokenData( char *, char *, unsigned int );
+	      void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-	bool isDebugServicesEnabled(void);
+	      bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);

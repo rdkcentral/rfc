@@ -39,10 +39,16 @@ using namespace std;
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
 
 #define CONNECTION_TIMEOUT 5
+#if !defined(RDKB_SUPPORT)
 #define TRANSFER_TIMEOUT 10
+#else
+#define TRANSFER_TIMEOUT 30
+#endif
 
+#if defined(USE_IARMBUS)
 static const char *url = "http://127.0.0.1:11999";
 static bool tr69hostif_http_server_ready = false;
+#endif
 
 #ifdef TEMP_LOGGING
 static ofstream logofs;
@@ -93,68 +99,7 @@ bool init_rfcdefaults()
    return true;
 }
 
-#ifndef RDKC
-WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
-{
-    ifstream ifs_rfcVar(fileName);
-    if (!ifs_rfcVar.is_open())
-    {
-        RDK_LOG (RDK_LOG_ERROR, LOG_RFCAPI, "%s: Trying to open a non-existent file %s \n", __FUNCTION__, fileName);
-        if ( strcmp(fileName, RFCDEFAULTS_FILE) == 0 && init_rfcdefaults() )
-        {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Trying to open %s after newly creating\n", RFCDEFAULTS_FILE);
-            ifs_rfcVar.open(RFCDEFAULTS_FILE, ifstream::in);
-            if (!ifs_rfcVar.is_open())
-                return WDMP_FAILURE;
-        }
-        else
-            return WDMP_FAILURE;
-    }
-    {
-        string line;
-        while (getline(ifs_rfcVar, line))
-        {
-            line=line.substr(line.find_first_of(" \t")+1);//Remove any export word that maybe before the key(for rfcVariable.ini)
-            size_t splitterPos = line.find('=');
-            if (splitterPos < line.length())
-            {
-                string key = line.substr(0, splitterPos);
-                if ( !key.compare(pcParameterName) )
-                {
-                   ifs_rfcVar.close();
-                   string value = line.substr(splitterPos+1, line.length());
-                   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
-                   if(value.length() > 0)
-                   {
-                      strncpy(pstParam->name, pcParameterName, MAX_PARAM_LEN);
-                      pstParam->name[MAX_PARAM_LEN - 1] = '\0';
-
-                      pstParam->type = WDMP_NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
-
-                      strncpy(pstParam->value, value.c_str(), MAX_PARAM_LEN);
-                      pstParam->value[MAX_PARAM_LEN - 1] = '\0';
-                      return WDMP_SUCCESS;
-                   }
-                   return WDMP_ERR_VALUE_IS_EMPTY;
-                }
-            }
-        }
-        ifs_rfcVar.close();
-    }
-    return WDMP_FAILURE;
-}
-#endif
-
-static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
-{
-   size_t realsize = size * nmemb;
-   string temp(static_cast<const char*>(ptr), realsize);
-   stream.append(temp);
-   return realsize;
-}
-
-#ifdef RDKC
-
+#if defined(RDKC)
 int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     ifstream ifs_rfcVar(fileName);
@@ -213,7 +158,7 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
    RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
  }
 
- if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL) 
+ if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
  {
   return getValue(RFCVAR_FILE, pcParameterName, pstParam);
  }
@@ -229,9 +174,169 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 
  }
 }
+#endif
+
+#if defined(RDKB_SUPPORT)
+int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    ifstream ifs_rfcVar(fileName);
+    if (!ifs_rfcVar.is_open())
+    {
+        RDK_LOG (RDK_LOG_ERROR, LOG_RFCAPI, "%s: Trying to open a non-existent file %s \n", __FUNCTION__, fileName);
+        if ( strcmp(fileName, RFCDEFAULTS_FILE) == 0 && init_rfcdefaults() )
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Trying to open %s after newly creating\n", RFCDEFAULTS_FILE);
+            ifs_rfcVar.open(RFCDEFAULTS_FILE, ifstream::in);
+            if (!ifs_rfcVar.is_open())
+                return FAILURE;
+        }
+        else
+            return FAILURE;
+    }
+    {
+        string line;
+        while (getline(ifs_rfcVar, line))
+        {
+            line=line.substr(line.find_first_of(" \t")+1);//Remove any export word that maybe before the key(for rfcVariable.ini)
+            size_t splitterPos = line.find('=');
+            if (splitterPos < line.length())
+            {
+                string key = line.substr(0, splitterPos);
+                if ( !key.compare(pcParameterName) )
+                {
+                   ifs_rfcVar.close();
+                   string value = line.substr(splitterPos+1, line.length());
+                   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                   if(value.length() > 0)
+                   {
+                      strncpy(pstParam->name, pcParameterName, MAX_PARAM_LEN);
+                      pstParam->name[MAX_PARAM_LEN - 1] = '\0';
+                      pstParam->type = NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
+
+                      strncpy(pstParam->value, value.c_str(), MAX_PARAM_LEN);
+                      pstParam->value[MAX_PARAM_LEN - 1] = '\0';
+                      return SUCCESS;
+                   }
+                   return EMPTY;
+                }
+            }
+        }
+        ifs_rfcVar.close();
+    }
+    return FAILURE;
+}
+
+
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+ int ret = FAILURE;
+ if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
+ {
+   RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
+ }
+
+ if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
+ {
+    return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+ }
+ else
+ {
+    ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
+    if (SUCCESS == ret)
+      return SUCCESS;
+
+    // If the param is not found in override files, find it in rfcdefaults.
+    return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
+
+ }
+}
 
 #else
- 
+#define FAILURE            -1
+#define SUCCESS             0
+
+WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    ifstream ifs_rfcVar(fileName);
+    if (!ifs_rfcVar.is_open())
+    {
+        RDK_LOG (RDK_LOG_ERROR, LOG_RFCAPI, "%s: Trying to open a non-existent file %s \n", __FUNCTION__, fileName);
+        if ( strcmp(fileName, RFCDEFAULTS_FILE) == 0 && init_rfcdefaults() )
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Trying to open %s after newly creating\n", RFCDEFAULTS_FILE);
+            ifs_rfcVar.open(RFCDEFAULTS_FILE, ifstream::in);
+            if (!ifs_rfcVar.is_open())
+                return WDMP_FAILURE;
+        }
+        else
+            return WDMP_FAILURE;
+    }
+    {
+        string line;
+        while (getline(ifs_rfcVar, line))
+        {
+            line=line.substr(line.find_first_of(" \t")+1);//Remove any export word that maybe before the key(for rfcVariable.ini)
+            size_t splitterPos = line.find('=');
+            if (splitterPos < line.length())
+            {
+                string key = line.substr(0, splitterPos);
+                if ( !key.compare(pcParameterName) )
+                {
+                   ifs_rfcVar.close();
+                   string value = line.substr(splitterPos+1, line.length());
+                   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                   if(value.length() > 0)
+                   {
+                      strncpy(pstParam->name, pcParameterName, MAX_PARAM_LEN);
+                      pstParam->name[MAX_PARAM_LEN - 1] = '\0';
+
+                      pstParam->type = WDMP_NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
+
+                      strncpy(pstParam->value, value.c_str(), MAX_PARAM_LEN);
+                      pstParam->value[MAX_PARAM_LEN - 1] = '\0';
+                      return WDMP_SUCCESS;
+                   }
+                   return WDMP_ERR_VALUE_IS_EMPTY;
+                }
+            }
+        }
+        ifs_rfcVar.close();
+    }
+    return WDMP_FAILURE;
+}
+
+static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
+{
+   size_t realsize = size * nmemb;
+   string temp(static_cast<const char*>(ptr), realsize);
+   stream.append(temp);
+   return realsize;
+}
+
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+ int ret = FAILURE;
+ if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
+ {
+   RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
+ }
+
+ if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL) 
+ {
+    return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+ }
+ else
+ {
+    ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
+    if (SUCCESS == ret)
+      return SUCCESS;
+
+    // If the param is not found in override files, find it in rfcdefaults.
+    return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
+
+ }
+}
+
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
 #ifdef TEMP_LOGGING

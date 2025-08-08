@@ -41,14 +41,11 @@ using namespace std;
 #include "libIBus.h"
 #endif
 
-#if defined(USE_TR69HOSTIF)
-#include "hostIf_tr69ReqHandler.h"
-#endif
-
 #define IARM_APP_NAME "tr181Set"
 #define ONE_SEC_MILLIS 1000
 
 #if defined(USE_TR69HOSTIF)
+#include "hostIf_tr69ReqHandler.h"
 HostIf_ReqType_t mode = HOSTIF_GET;
 #endif
 
@@ -141,7 +138,8 @@ static string getErrorDetails(faultCode_t code)
 	return err_string;
 }
 #else
-string getErrorDetails() {
+string getErrorDetails() 
+{
 	string err_string = " Unknown error code";
 	return err_string;
 }

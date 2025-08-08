@@ -42,7 +42,7 @@ namespace xconf {
         // We do not allow this class to be copied !!
         XconfHandler(const XconfHandler&) = delete;
         XconfHandler& operator=(const XconfHandler&) = delete;
-        
+
 #if defined(GTEST_ENABLE)
         public:
 #else
