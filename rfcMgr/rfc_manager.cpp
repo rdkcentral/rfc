@@ -447,6 +447,123 @@ namespace rfc {
         return ret_status;
     }
 
+void rfc::RFCManager::manageCronJob(const std::string& cron)
+{
+    std::string tempFile = "/tmp/cron_tab_tmp_file";
+    std::string crontabPath = "/var/spool/cron/crontabs/";
+
+    std::istringstream iss(cron);
+    std::vector<std::string> cronParts;
+    std::string part;
+    while (iss >> part && cronParts.size() < 5) {
+        cronParts.push_back(part);
+    }
+
+    if (cronParts.size() < 5) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron format: not enough components\n", __FUNCTION__, __LINE__);
+        return;
+    }
+
+    // Parse cron values with validation
+    std::array<int, 5> cronValues = {0, 0, 1, 1, 0};
+    for (size_t i = 0; i < 5; i++) {
+        if (cronParts[i] != "*") {
+            try {
+                cronValues[i] = std::stoi(cronParts[i]);
+            } catch (const std::exception& e) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron component '%s', using defaults\n",
+                       __FUNCTION__, __LINE__, cronParts[i].c_str());
+                cronValues = {0, 0, 1, 1, 0}; // Reset to defaults
+                break;
+            }
+        }
+    }
+
+    // Adjust time by 3 minutes
+    if (cronValues[0] > 2) {
+        cronValues[0] -= 3;
+    } else {
+        cronValues[0] += 57;
+        cronValues[1] = (cronValues[1] == 0) ? 23 : cronValues[1] - 1;
+    }
+
+    // Build adjusted cron string
+    std::string adjustedCron;
+    for (size_t i = 0; i < 5; i++) {
+        if (i > 0) adjustedCron += " ";
+        adjustedCron += std::to_string(cronValues[i]);
+    }
+
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
+
+    std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
+
+    // Export existing crontab using popen to avoid redirection issues
+    std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";
+    FILE* pipe = popen(exportCmd.c_str(), "r");
+
+    std::ofstream tempFileOut(tempFile);
+    if (pipe && tempFileOut.is_open()) {
+        char buffer[1024];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            tempFileOut << buffer;
+        }
+        tempFileOut.close();
+        int exportResult = pclose(pipe);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Crontab export completed with result: %d\n", __FUNCTION__, __LINE__, exportResult);
+    } else {
+        if (pipe) pclose(pipe);
+        if (tempFileOut.is_open()) tempFileOut.close();
+        RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Failed to export crontab, creating empty file\n", __FUNCTION__, __LINE__);
+        // Create empty file
+        std::ofstream emptyFile(tempFile);
+        if (emptyFile.is_open()) {
+            emptyFile.close();
+        }
+    }
+
+    // Check if temp file has content and display it
+    struct stat tempStat;
+    if (stat(tempFile.c_str(), &tempStat) == 0 && tempStat.st_size > 0) {
+        // Print existing cron entries to log
+        std::ifstream cronContent(tempFile);
+        if (cronContent.is_open()) {
+            std::string line;
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
+            while (std::getline(cronContent, line)) {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
+            }
+            cronContent.close();
+        }
+    } else {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
+    }
+
+    // Clear existing RFC entries
+    v_secure_system("sed -i '/rfcMgr/d; /RFCbase\\.sh/d' %s", tempFile.c_str());
+
+    // Add new cron entry
+    std::ofstream cronFile(tempFile, std::ios::app);
+    if (cronFile.is_open()) {
+        cronFile << cronEntry << std::endl;
+        cronFile.close();
+
+        // Apply crontab
+        int applyResult = v_secure_system("crontab %s -c %s", tempFile.c_str(), crontabPath.c_str());
+        if (applyResult == 0) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully configured cron job\n", __FUNCTION__, __LINE__);
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply crontab with error code %d\n", __FUNCTION__, __LINE__, applyResult);
+        }
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temp cron file for writing\n", __FUNCTION__, __LINE__);
+    }
+
+    // Cleanup temp file
+    unlink(tempFile.c_str());
+}
+
+/*
     void rfc::RFCManager::manageCronJob(const std::string& cron)
     {
 		std::string tempFile = "/tmp/cron_tab_tmp_file";
@@ -543,6 +660,7 @@ namespace rfc {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temp cron file\n", __FUNCTION__, __LINE__);
         }
     }
+*/
 
 } // namespace RFC
 
