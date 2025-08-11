@@ -132,11 +132,11 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
 
                 if (data_len >= 2 && (strValue[0] == '"') && (strValue[data_len - 1] == '"')) {
                     int copyLen = (data_len - 2 < datasize - 1) ? data_len - 2 : datasize - 1;
-                    strncpy(out_value, strValue + 1, copyLen);
+                    memcpy(out_value, strValue + 1, copyLen);
                     out_value[copyLen] = '\0';
                 } else {
                     int copyLen = (data_len < datasize - 1) ? data_len : datasize - 1;
-                    strncpy(out_value, strValue, copyLen);
+                    memcpy(out_value, strValue + 1, copyLen);
                     out_value[copyLen] = '\0';
                 }
 
