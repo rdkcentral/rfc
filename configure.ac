@@ -128,6 +128,22 @@ AC_ARG_ENABLE([rdkc],
 
 AM_CONDITIONAL([ENABLE_RDKC], [test x$ENABLE_RDKC = xtrue])
 
+AC_ARG_ENABLE([rdkb],
+              AS_HELP_STRING([--enable-rdkb],[enable rdkb (default is no)]),
+              [
+                case "${enableval}" in
+                 yes) ENABLE_RDKB=true
+                       RDKB_FLAG=" -DRDKB_SUPPORT ";;
+                  no) ENABLE_RDKB=false
+                      AC_MSG_ERROR([RDKB is disabled]) ;;
+                   *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkb]) ;;
+                esac
+              ],
+              [echo "rdkb is disabled"])
+
+AM_CONDITIONAL([ENABLE_RDKB], [test x$ENABLE_RDKB = xtrue])
+AC_SUBST(RDKB_FLAG)
+
 # Check for breakpad
 BREAKPAD_CFLAGS=" "
 BREAKPAD_LFLAGS=" "
