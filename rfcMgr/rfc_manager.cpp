@@ -524,17 +524,21 @@ void rfc::RFCManager::manageCronJob(const std::string& cron)
 
     // Check if temp file has content and display it
     struct stat tempStat;
-    if (stat(tempFile.c_str(), &tempStat) == 0 && tempStat.st_size > 0) {
-        // Print existing cron entries to log
-        std::ifstream cronContent(tempFile);
-        if (cronContent.is_open()) {
-            std::string line;
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
-            while (std::getline(cronContent, line)) {
-                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
-            }
-            cronContent.close();
-        }
+	int fd = open(tempFile.c_str(), O_RDONLY);
+	if (fd != -1) {
+        if (fstat(tempFile.c_str(), &tempStat) == 0 && tempStat.st_size > 0) {
+            // Print existing cron entries to log
+            std::ifstream cronContent(tempFile);
+            if (cronContent.is_open()) {
+                std::string line;
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
+                while (std::getline(cronContent, line)) {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
+                }
+                cronContent.close();
+             }
+		}
+		close(fd);
     } else {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
     }
