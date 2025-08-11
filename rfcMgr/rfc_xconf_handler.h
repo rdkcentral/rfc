@@ -51,6 +51,7 @@ extern "C" {
 #define RFC_PROPERTIES_FILE                "/etc/rfc.properties"
 #if defined(RDKB_SUPPORT)
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
+#define RDKB_RETRY_DELAY                   30
 #else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
 #endif		
@@ -70,6 +71,7 @@ extern "C" {
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
 #define RFC_CHANNEL_MAP_ID                 2345
+#define RETRY_DELAY                        10
 
 #define RFC_SYNC_DONE                      "/tmp/.rfcSyncDone"
 
