@@ -526,7 +526,7 @@ void rfc::RFCManager::manageCronJob(const std::string& cron)
     struct stat tempStat;
 	int fd = open(tempFile.c_str(), O_RDONLY);
 	if (fd != -1) {
-        if (fstat(tempFile.c_str(), &tempStat) == 0 && tempStat.st_size > 0) {
+        if (stat(tempFile.c_str(), &tempStat) == 0 && tempStat.st_size > 0) {
             // Print existing cron entries to log
             std::ifstream cronContent(tempFile);
             if (cronContent.is_open()) {
