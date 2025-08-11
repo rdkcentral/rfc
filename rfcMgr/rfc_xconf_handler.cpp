@@ -1350,6 +1350,7 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
 {
     int retries = 0;
+	int sleep_time = 0;
     /* Check if New Firmware Request*/
 
     rfcSelectOpt = (rfc_state == Local) ? "local" : "prod";
@@ -1464,7 +1465,16 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 break;
             }
             retries++;
-	    sleep(10); /* RETRY DELAY */
+#ifdef RDKB_SUPPORT
+            if (retries == 1) {
+                sleep_time = RETRY_DELAY;
+            } else {
+                sleep_time = RDKB_RETRY_DELAY;
+            }
+#else
+            sleep_time = RETRY_DELAY;
+#endif
+            sleep(sleep_time);
         }
     }
     return result;
