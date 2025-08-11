@@ -49,4 +49,3 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 
 # Generate the configure script
 AC_OUTPUT
-

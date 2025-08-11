@@ -46,12 +46,40 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 	return curl_ret_code;
 }
 
+std::string getErouterMac() {
+    std::string erouterMac;
+
+        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_MAC", "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                erouterMac = buffer;
+                // Trim trailing newline
+                if (!erouterMac.empty() && erouterMac.back() == '\n') {
+                    erouterMac.pop_back();
+                }
+            }
+            pclose(pipe);
+        }
+
+    return erouterMac;
+}
+
 int XconfHandler:: initializeXconfHandler()
 {
 	char tmpbuf[200] = {0};
 	int len = 0;
-	
-	len = GetEstbMac( tmpbuf, sizeof(tmpbuf) );
+
+#if defined(RDKB_SUPPORT)
+        std::string mac = getErouterMac();
+        if (!mac.empty()) {
+            strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+            len = strlen(tmpbuf);
+        }
+#else
+        len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
+#endif
         if( len )
 	{
 	    _estb_mac_address = tmpbuf;
@@ -80,13 +108,14 @@ int XconfHandler:: initializeXconfHandler()
 	     _model_number = tmpbuf;
 	}
 	
+#if !defined(RDKB_SUPPORT)
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
         {
              _manufacturer = tmpbuf;
         }
-
+#endif
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
@@ -106,3 +135,4 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
+

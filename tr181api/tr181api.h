@@ -95,6 +95,12 @@ TR181_PARAM_TYPE getType(DATA_TYPE type);
 tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
 #endif
 
+#if defined(GTEST_ENABLE)
+tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
+tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
+TR181_PARAM_TYPE getType(DATA_TYPE type);
+tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+#endif
 #ifdef __cplusplus
 }
 #endif

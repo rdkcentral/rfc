@@ -45,7 +45,6 @@
 #include <gtest/gtest.h>
 #endif
 
-
 /*----------------------------------------------------------------------------*/
 /*                                   Namespace                                */
 /*----------------------------------------------------------------------------*/
@@ -65,7 +64,12 @@ enum DeviceStatus {
 #define MAINT_CRITICAL_UPDATE   11
 #define MAINT_REBOOT_REQUIRED   12
 
+#if !defined(RDKB_SUPPORT)
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
+#else
+#define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/RFCpostprocess.sh"
+#define RFC_LOG_FILE                    "/rdklogs/logs/dcmrfc.log.0"
+#endif
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
 
@@ -84,7 +88,10 @@ class RFCManager {
         RFCManager &operator=(const RFCManager &) = delete;
         int RFCManagerProcessXconfRequest();
         rfc::DeviceStatus CheckDeviceIsOnline(void);
+#if !defined(RDKB_SUPPORT)	
         void SendEventToMaintenanceManager(const char *, unsigned int);
+#endif	
+	void manageCronJob(const std::string& cron);
 
 #if defined(GTEST_ENABLE)
     public:
@@ -94,6 +101,8 @@ class RFCManager {
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
+	std::string getErouterIPAddress();
+        bool CheckIPConnectivity(void);
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
