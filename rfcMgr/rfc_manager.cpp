@@ -562,7 +562,7 @@ namespace rfc {
 
         int sedResult = v_secure_system("sed -i '/rfcMgr/d; /RFCbase\\.sh/d' %s", tempFile.c_str());
         if (sedResult != 0) {
-            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] No existing crontab found for RFC script \n", __FUNCTION__, __LINE__, sedResult);
+            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] No existing crontab found for RFC script \n", __FUNCTION__, __LINE__);
         }
 
         // Add new cron entry
