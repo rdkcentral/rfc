@@ -49,7 +49,11 @@ extern "C" {
 #endif
 
 #define RFC_PROPERTIES_FILE                "/etc/rfc.properties"
+#if defined(RDKB_SUPPORT)
+#define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
+#else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
+#endif		
 #define WPEFRAMEWORKSECURITYUTILITY        "/usr/bin/WPEFrameworkSecurityUtility"
 #define DIRECTORY_PATH                     "/opt/secure/RFC/"
 #define VARFILE                            "rfcVariable.ini"
@@ -78,6 +82,13 @@ typedef enum
    Redo_With_Valid_Data,
    Finish
 } RfcState;
+
+#if defined(RDKB_SUPPORT)
+typedef enum {
+    WDMP_SUCCESS = 0,
+    WDMP_FAILURE,
+} WDMP_STATUS;
+#endif
 
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
@@ -160,6 +171,15 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
+#if defined(RDKB_SUPPORT)
+        bool ExecuteCommand(const std::string& command, std::string& output);
+	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
+        int ProcessJsonResponseB(char* featureXConfMsg);
+        void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
+        std::string readAccountIdFromFile();
+        void rfcCheckAccountId();
+        void HandleScheduledReboot(bool rfcRebootCronNeeded);
+#endif	
         void GetValidAccountId();
         void GetValidPartnerId();
         void GetXconfSelect();
