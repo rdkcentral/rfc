@@ -129,6 +129,62 @@ namespace rfc {
         return 0;
     }
 
+    std::string RFCManager::getErouterIPAddress() {
+        std::string address;
+
+        // Try to get IPv6 address first
+        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IPv6", "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                address = buffer;
+                // Trim trailing newline
+                if (!address.empty() && address.back() == '\n') {
+                    address.pop_back();
+                }
+            }
+            pclose(pipe);
+        }
+
+        // If IPv6 not available, get IPv4
+        if (address.empty()) {
+            FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_IP", "r");
+            if (pipe) {
+                char buffer[128] = {0};
+                if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                    address = buffer;
+                    // Trim trailing newline
+                    if (!address.empty() && address.back() == '\n') {
+                        address.pop_back();
+                    }
+                }
+                pclose(pipe);
+            }
+        }
+
+        return address;
+    }
+
+    bool RFCManager::CheckIPConnectivity(void)
+    {
+        bool ip_status = false;
+
+        std::string ip_address = getErouterIPAddress();
+
+        if (!ip_address.empty()) {
+            ip_status = true;
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully got eRouter IP address\n", __FUNCTION__, __LINE__);
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get eRouter IP address\n", __FUNCTION__, __LINE__);
+        }
+
+        // Log the IP address and connection status
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] eRouter IP Address: '%s'\n", __FUNCTION__, __LINE__, ip_address.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] IP Connectivity Status: %s\n", __FUNCTION__, __LINE__, ip_status ? "Connected" : "Disconnected");
+
+        return ip_status;
+    }
+
     /* Description: Checking IP route address and device is online or not.
      *              Use IARM event provided by net service manager to check either
      *              device is online or not.
@@ -258,32 +314,43 @@ namespace rfc {
         return dns_status;
     }
 
-    DeviceStatus RFCManager ::CheckDeviceIsOnline() 
+    DeviceStatus RFCManager ::CheckDeviceIsOnline()
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
         rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
-        if (true == CheckIProuteConnectivity(GATEWAYIP_FILE)) 
+#if !defined(RDKB_SUPPORT)
+        if (true == CheckIProuteConnectivity(GATEWAYIP_FILE))
         {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking DNS Nameserver configuration\n", __FUNCTION__,__LINE__);
-            if (true == (isDnsResolve(DNS_RESOLV_FILE))) 
+            if (true == (isDnsResolve(DNS_RESOLV_FILE)))
             {
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] DNS Nameservers are available\n",__FUNCTION__,__LINE__);
                 result = RFCMGR_DEVICE_ONLINE;
-            } 
-            else 
+            }
+            else
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] DNS Nameservers missing..!!\n",__FUNCTION__,__LINE__);
             }
-        } 
-        else 
+        }
+        else
         {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] IP and Route configuration not found...!!\n", __FUNCTION__,__LINE__);
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
+#else
+        if (true == CheckIPConnectivity()){
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] IP configuration found...\n", __FUNCTION__,__LINE__);
+            result = RFCMGR_DEVICE_ONLINE;
+        }
+        else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] IP configuration not found!!\n", __FUNCTION__,__LINE__);
+        }
+#endif
         return result;
     }
 
+#if !defined(RDKB_SUPPORT)
     /** Description: Send event to iarm event manager
      *
      *  @param cur_event_name: event name.
@@ -295,10 +362,10 @@ namespace rfc {
         cur_event_name = cur_event_name;
         main_mgr_event = main_mgr_event;
 #ifdef EN_MAINTENANCE_MANAGER
-        if ( !(strncmp(cur_event_name,"MaintenanceMGR", 14)) ) 
-	{
+        if ( !(strncmp(cur_event_name,"MaintenanceMGR", 14)) )
+        {
             IARM_Bus_MaintMGR_EventData_t infoStatus;
-	    IARM_Result_t ret_code = IARM_RESULT_SUCCESS;
+            IARM_Result_t ret_code = IARM_RESULT_SUCCESS;
 
             memset( &infoStatus, 0, sizeof(IARM_Bus_MaintMGR_EventData_t) );
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] >>>>> Identified MaintenanceMGR with event value=%u\n", __FUNCTION__,__LINE__, main_mgr_event);
@@ -308,18 +375,26 @@ namespace rfc {
         }
 #endif
     }
+#endif
 
     int RFCManager::RFCManagerPostProcess()
     {
-        if(-1 == v_secure_system("sh %s",RFC_MGR_IPTBLE_INIT_SCRIPT))
-	{
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__,__LINE__,RFC_MGR_IPTBLE_INIT_SCRIPT);
-	    return FAILURE;
-	}
+        // Check if the script exists before executing it
+        if (access(RFC_MGR_IPTBLE_INIT_SCRIPT, F_OK) == 0) {
+            if(-1 == v_secure_system("sh %s", RFC_MGR_IPTBLE_INIT_SCRIPT))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+                return FAILURE;
+            }
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] Executed Successfully\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+        }
+
         return SUCCESS;
     }
 
-    int RFCManager::RFCManagerProcess() 
+    int RFCManager::RFCManagerProcess()
     {
         /* Create Object for Xconf Handler */
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -331,21 +406,22 @@ namespace rfc {
         if(result == FAILURE)
         {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Xconf Initialization ...!!\n", __FUNCTION__,__LINE__);
-	    delete rfcObj;
+            delete rfcObj;
             return reqStatus;
         }
 
         result = rfcObj->ProcessRuntimeFeatureControlReq();
 
+#if !defined(RDKB_SUPPORT)
         if(result == SUCCESS)
         {
-            SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_COMPLETE); 
+            SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_COMPLETE);
 
             bool isRebootRequired = rfcObj->getRebootRequirement();
             if(isRebootRequired == true)
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Posting Reboot Required Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
-		rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Reboot");
+                            rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Reboot");
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_CRITICAL_UPDATE);
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_REBOOT_REQUIRED);
             }
@@ -354,20 +430,20 @@ namespace rfc {
         else
         {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
-   	    rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
+            rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
-        
-	int post_process_result = RFCManagerPostProcess();
-	if(post_process_result == SUCCESS)
-	{
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
-   	    rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_PostProcess_Success");
-	}
-	else
-	{
+#endif
+        int post_process_result = RFCManagerPostProcess();
+        if(post_process_result == SUCCESS)
+        {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
+            rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_PostProcess_Success");
+        }
+        else
+        {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Failed\n", __FUNCTION__,__LINE__);
-	}
+        }
 
         delete rfcObj;
         return reqStatus;
@@ -381,5 +457,137 @@ namespace rfc {
 
         return ret_status;
     }
+
+    void rfc::RFCManager::manageCronJob(const std::string& cron)
+    {
+        std::string tempFile = "/tmp/cron_tab_tmp_file";
+        std::string crontabPath = "/var/spool/cron/crontabs/";
+        bool tempFileCreated = false;
+
+        std::istringstream iss(cron);
+        std::vector<std::string> cronParts;
+        std::string part;
+        while (iss >> part && cronParts.size() < 5) {
+            cronParts.push_back(part);
+        }
+
+        if (cronParts.size() < 5) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron format: not enough components\n", __FUNCTION__, __LINE__);
+            return;
+        }
+
+        // Parse cron values with validation
+        std::array<int, 5> cronValues = {0, 0, 1, 1, 0};
+        for (size_t i = 0; i < 5; i++) {
+            if (cronParts[i] != "*") {
+                try {
+                    cronValues[i] = std::stoi(cronParts[i]);
+                } catch (const std::exception& e) {
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid cron component '%s', using defaults\n", __FUNCTION__, __LINE__, cronParts[i].c_str());
+                    cronValues = {0, 0, 1, 1, 0}; // Reset to defaults
+                    break;
+                }
+            }
+        }
+
+        // Adjust time by 3 minutes
+        if (cronValues[0] > 2) {
+            cronValues[0] -= 3;
+        } else {
+            cronValues[0] += 57;
+            cronValues[1] = (cronValues[1] == 0) ? 23 : cronValues[1] - 1;
+        }
+
+        // Build adjusted cron string
+        std::string adjustedCron;
+        for (size_t i = 0; i < 5; i++) {
+            if (i > 0) adjustedCron += " ";
+            adjustedCron += std::to_string(cronValues[i]);
+        }
+
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
+
+        std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
+
+        // Export existing crontab using popen to avoid redirection issues
+        std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";
+        FILE* pipe = popen(exportCmd.c_str(), "r");
+
+        std::ofstream tempFileOut(tempFile);
+        if (pipe && tempFileOut.is_open()) {
+            tempFileCreated = true;
+            char buffer[1024];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                tempFileOut << buffer;
+            }
+            tempFileOut.close();
+            int exportResult = pclose(pipe);
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Crontab export completed with result: %d\n", __FUNCTION__, __LINE__, exportResult);
+        } else {
+            if (pipe) pclose(pipe);
+            if (tempFileOut.is_open()) tempFileOut.close();
+            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Failed to export crontab, creating empty file\n", __FUNCTION__, __LINE__);
+            // Create empty file
+            std::ofstream emptyFile(tempFile);
+            if (emptyFile.is_open()) {
+                tempFileCreated = true;
+                emptyFile.close();
+            } else {
+               RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create temp file\n", __FUNCTION__, __LINE__);
+                return;
+            }
+        }
+
+        std::ifstream cronContent(tempFile);
+        if (cronContent.is_open()) {
+            std::string line;
+            bool hasContent = false;
+
+            // Check if file has any content while reading
+            while (std::getline(cronContent, line)) {
+                if (!hasContent) {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
+                    hasContent = true;
+                }
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
+            }
+            cronContent.close();
+
+            if (!hasContent) {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
+            }
+        } else {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Existing crontab content found empty\n", __FUNCTION__, __LINE__);
+        }
+
+        int sedResult = v_secure_system("sed -i '/rfcMgr/d; /RFCbase\\.sh/d' %s", tempFile.c_str());
+        if (sedResult != 0) {
+            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] No existing crontab found for RFC script \n", __FUNCTION__, __LINE__);
+        }
+
+        // Add new cron entry
+        std::ofstream cronFile(tempFile, std::ios::app);
+        if (cronFile.is_open()) {
+            cronFile << cronEntry << std::endl;
+            cronFile.close();
+
+            // Apply crontab
+            int applyResult = v_secure_system("crontab %s -c %s", tempFile.c_str(), crontabPath.c_str());
+            if (applyResult == 0) {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully configured cron job\n", __FUNCTION__, __LINE__);
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply crontab with error code %d\n", __FUNCTION__, __LINE__, applyResult);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temp cron file for writing\n", __FUNCTION__, __LINE__);
+        }
+
+        if (tempFileCreated) {
+            if (unlink(tempFile.c_str()) != 0) {
+                RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Warning: Failed to remove temp file %s\n", __FUNCTION__, __LINE__, tempFile.c_str());
+            }
+        }
+    }
+
 } // namespace RFC
 
