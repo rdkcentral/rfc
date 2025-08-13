@@ -2517,23 +2517,34 @@ int RuntimeFeatureControlProcessor::getJRPCTokenData( char *token, char *pJsonSt
     return ret;
 }
 
-void RuntimeFeatureControlProcessor:: cleanAllFile()
+void RuntimeFeatureControlProcessor::cleanAllFile()
 {
     // Check if directory exists before trying to iterate
-    if (std::filesystem::exists("/opt/secure/RFC"))
+    struct stat info;
+    if (stat("/opt/secure/RFC", &info) == 0 && S_ISDIR(info.st_mode))
     {
-        for (const auto& entry : std::filesystem::directory_iterator("/opt/secure/RFC"))
-        {
-            if (entry.path().filename().string().compare(0, 5, ".RFC_") == 0)
-            {
-                std::filesystem::remove(entry.path());
+        DIR* dir = opendir("/opt/secure/RFC");
+        if (dir != nullptr) {
+            struct dirent* entry;
+            while ((entry = readdir(dir)) != nullptr) {
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+
+                // Check if filename starts with ".RFC_" (equivalent to compare(0, 5, ".RFC_") == 0)
+                if (strncmp(entry->d_name, ".RFC_", 5) == 0)
+                {
+                    std::string fullPath = std::string("/opt/secure/RFC/") + entry->d_name;
+                    unlink(fullPath.c_str());
+                }
             }
+            closedir(dir);
         }
     }
+
     if (std::remove(VARIABLEFILE) == 0)
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s removed successfully\n",__FUNCTION__, __LINE__, VARIABLEFILE);
-    } 
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s removed successfully\n", __FUNCTION__, __LINE__, VARIABLEFILE);
+    }
 }
 
 int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
