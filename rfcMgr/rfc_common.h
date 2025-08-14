@@ -36,7 +36,9 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include <filesystem>
+#include <dirent.h>
+#include <unistd.h>
+#include <cstring>
 #include <sys/stat.h>
 #include <secure_wrapper.h>
 /*----------------------------------------------------------------------------*/
