@@ -2519,26 +2519,20 @@ int RuntimeFeatureControlProcessor::getJRPCTokenData( char *token, char *pJsonSt
 
 void RuntimeFeatureControlProcessor::cleanAllFile()
 {
-    // Check if directory exists before trying to iterate
-    struct stat info;
-    if (stat("/opt/secure/RFC", &info) == 0 && S_ISDIR(info.st_mode))
-    {
-        DIR* dir = opendir("/opt/secure/RFC");
-        if (dir != nullptr) {
-            struct dirent* entry;
-            while ((entry = readdir(dir)) != nullptr) {
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                    continue;
-
-                // Check if filename starts with ".RFC_" (equivalent to compare(0, 5, ".RFC_") == 0)
-                if (strncmp(entry->d_name, ".RFC_", 5) == 0)
-                {
-                    std::string fullPath = std::string("/opt/secure/RFC/") + entry->d_name;
-                    unlink(fullPath.c_str());
-                }
+    DIR* dir = opendir("/opt/secure/RFC");
+    if (dir != nullptr) {
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != nullptr) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+            // Check if filename starts with ".RFC_"
+            if (strncmp(entry->d_name, ".RFC_", 5) == 0)
+            {
+                std::string fullPath = std::string("/opt/secure/RFC/") + entry->d_name;
+                unlink(fullPath.c_str());
             }
-            closedir(dir);
         }
+        closedir(dir);
     }
 
     if (std::remove(VARIABLEFILE) == 0)
