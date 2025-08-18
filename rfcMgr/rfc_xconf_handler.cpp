@@ -1643,6 +1643,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS  certification Failed\n",__FUNCTION__, __LINE__);
     }
 
+    char *engines = NULL;
+    CURLcode res = CURLE_OK;
+    res = curl_easy_getinfo(curl, CURLINFO_SSL_ENGINES, &engines);
+    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Engine Info %d \n", __FUNCTION__, __LINE__, res);
+
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Curl Initialized\n", __FUNCTION__, __LINE__);
