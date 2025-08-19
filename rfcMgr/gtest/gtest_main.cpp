@@ -515,10 +515,10 @@ TEST(rfcMgrTest, GetValidPartnerId) {
 
 TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     writeToTr181storeFile("WHOAMI_SUPPORT", "true", "/tmp/device.properties", Plain);
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOsClass", "/opt/secure/RFC/tr181store.ini", Quoted);
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass", "TestOs Class", "/opt/secure/RFC/tr181store.ini", Quoted);
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "4123705941507160514", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->_RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR] = "sky"; 
+    rfcObj->_RFCKeyAndValueMap[RFC_PARTNER_ID_KEY_STR] = "sky"; 
     rfcObj->_RFCKeyAndValueMap[XCONF_URL_KEY_STR] = "https://xconf.xdp.eu-1.xcal.tv";
     rfcObj->PreProcessJsonResponse(xconfResp);
     rfcObj->GetValidPartnerId();
@@ -526,7 +526,7 @@ TEST(rfcMgrTest, CreateXconfHTTPUrl) {
     rfcObj->GetAccountID();
     rfcObj->GetXconfSelect();
     std:stringstream url = rfcObj->CreateXconfHTTPUrl();
-    EXPECT_EQ(url.str(), "https://xconf.xdp.eu-1.xcal.tv?estbMacAddress=&firmwareVersion=&env=&model=&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=sky&osClass=TestOsClass&accountId=4123705941507160514&Experience=&version=2");  
+    EXPECT_EQ(url.str(), "https://xconf.xdp.eu-1.xcal.tv?estbMacAddress=&firmwareVersion=&env=&model=&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=sky&osClass=TestOs%20Class&accountId=4123705941507160514&Experience=&version=2");  
     delete rfcObj;
 }
 

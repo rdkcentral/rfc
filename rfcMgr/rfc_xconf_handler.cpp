@@ -1480,6 +1480,28 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     return result;
 }
 
+bool urlencodingInterface(const std::string& input, std::stringstream& output) {
+    char* temp = urlEncodeString(input.c_str());
+    if (temp) {
+        output << temp;
+        free(temp);
+        return true;
+    }
+    return false;
+}
+
+void EncodeString(const std::string& key, const std::string& value, std::stringstream& output, const std::string& appender = "") {
+    if (!key.empty()) {
+        output << key;
+        if (!value.empty()) {
+            urlencodingInterface(value, output);
+        }
+        if (!appender.empty()) {
+            output << appender;
+        }
+    }
+}
+
 std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl() 
 {
     std::stringstream url;
@@ -1497,8 +1519,34 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "accountId=" << _accountId << "&";
     url << "Experience=" << _experience << "&";
     url << "version=" << 2;
+    
+    #ifndef URLENCODING_DISABLED
+    std::stringstream encodedUrl;
+    encodedUrl << _xconf_server_url << "?";
 
-    return url;
+    // Append parameters directly without using a lambda function
+    EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
+    EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
+    EncodeString("env=", _build_type_str, encodedUrl, "&");
+    EncodeString("model=", _model_number, encodedUrl, "&");
+    EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
+
+    encodedUrl << RFC_VIDEO_CONTROL_ID << "&";
+    encodedUrl << RFC_CHANNEL_MAP_ID << "&";
+    encodedUrl << RFC_VIDEO_VOD_ID << "&";
+
+    EncodeString("partnerId=", _partner_id, encodedUrl, "&");
+    EncodeString("osClass=", _osclass, encodedUrl, "&");
+    EncodeString("accountId=", _accountId, encodedUrl, "&");
+    EncodeString("Experience=", _experience, encodedUrl, "&");
+    encodedUrl << "version=2";
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, encodedUrl.str().c_str());
+    
+    return encodedUrl; // Use encoded URL
+    #endif
+    
+    return url; // Return encoded URL by default
 }
 
 void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ) 
@@ -1873,7 +1921,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
 {
     /* Get Valid Partner ID*/
 
-    std::string value = _RFCKeyAndValueMap[RFC_PARNER_ID_KEY_STR];
+    std::string value = _RFCKeyAndValueMap[RFC_PARTNER_ID_KEY_STR];
 
     if(value.empty())
     {
