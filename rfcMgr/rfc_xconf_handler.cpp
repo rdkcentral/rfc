@@ -1543,9 +1543,9 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
     
     return encodedUrl; // Use encoded URL
-    #endif
-    
+    #else
     return url;
+    #endif
 }
 
 void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ) 
