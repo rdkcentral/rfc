@@ -184,7 +184,7 @@ def test_rfcMgr_xconf_communication() -> None:
             print(f"encoded url : {coded_url}")
             decoded_url = urllib.parse.unquote(coded_url)
             assert coded_url == decoded_url
-        except Exception as e::
+        except Exception as e:
             print(f"Exception during URL encoding check: {e}")
             assert False, f"Exception during URL encoding check: {e}"
 
