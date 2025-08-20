@@ -53,14 +53,16 @@ bool createDirectoryIfNotExists(const char* path) {
         return false;
     }
 
-    struct stat st;
-    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
-        return true;
-    }
-
     if (mkdir(path, 0755) == 0) {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Directory created: %s\n", __FUNCTION__, __LINE__, path);
         return true;
+    }
+
+    if (errno == EEXIST) {
+        struct stat st;
+        if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+            return true;
+        }
     }
 
     RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create directory: %s (%s)\n", __FUNCTION__, __LINE__, path, strerror(errno));
