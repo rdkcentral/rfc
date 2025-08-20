@@ -41,7 +41,7 @@ extern "C" {
 #include <common_device_api.h>
 #include <system_utils.h>
 #include <urlHelper.h>	
-
+    
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
@@ -1540,12 +1540,12 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("Experience=", _experience, encodedUrl, "&");
     encodedUrl << "version=2";
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
     
     return encodedUrl; // Use encoded URL
     #endif
     
-    return url; // Return encoded URL by default
+    return url;
 }
 
 void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ) 
