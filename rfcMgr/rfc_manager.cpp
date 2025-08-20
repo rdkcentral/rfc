@@ -498,11 +498,16 @@ namespace rfc {
             cronValues[1] = (cronValues[1] == 0) ? 23 : cronValues[1] - 1;
         }
 
-        // Build adjusted cron string
         std::string adjustedCron;
         for (size_t i = 0; i < 5; i++) {
             if (i > 0) adjustedCron += " ";
-            adjustedCron += std::to_string(cronValues[i]);
+            
+            // Use original cronParts if it was a wildcard, otherwise use adjusted cronValues
+            if (cronParts[i] == "*") {
+                adjustedCron += "*";
+            } else {
+                adjustedCron += std::to_string(cronValues[i]);
+            }
         }
 
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());

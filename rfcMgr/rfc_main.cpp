@@ -47,6 +47,28 @@ void signal_handler(int sig)
     exit(0);
 }
 
+bool createDirectoryIfNotExists(const char* path) {
+    if (!path || *path == '\0') {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid path\n", __FUNCTION__, __LINE__);
+        return false;
+    }
+
+    if (mkdir(path, 0755) == 0) {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Directory created: %s\n", __FUNCTION__, __LINE__, path);
+        return true;
+    }
+
+    if (errno == EEXIST) {
+        struct stat st;
+        if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+            return true;
+        }
+    }
+
+    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create directory: %s (%s)\n", __FUNCTION__, __LINE__, path, strerror(errno));
+    return false;
+}
+
 int main()
 {
     pid_t pid;
@@ -68,6 +90,11 @@ int main()
 	
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
+    if (!createDirectoryIfNotExists(SECURE_RFC_PATH)) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create RFC directory\n", __FUNCTION__, __LINE__);
+        exit(EXIT_FAILURE);
+    }
+	
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);
 
 #if defined(RDKB_SUPPORT)
