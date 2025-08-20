@@ -49,7 +49,12 @@ extern "C" {
 #endif
 
 #define RFC_PROPERTIES_FILE                "/etc/rfc.properties"
+#if defined(RDKB_SUPPORT)
+#define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
+#define RDKB_RETRY_DELAY                   30
+#else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
+#endif		
 #define WPEFRAMEWORKSECURITYUTILITY        "/usr/bin/WPEFrameworkSecurityUtility"
 #define DIRECTORY_PATH                     "/opt/secure/RFC/"
 #define VARFILE                            "rfcVariable.ini"
@@ -66,6 +71,7 @@ extern "C" {
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
 #define RFC_CHANNEL_MAP_ID                 2345
+#define RETRY_DELAY                        10
 
 #define RFC_SYNC_DONE                      "/tmp/.rfcSyncDone"
 
@@ -78,6 +84,13 @@ typedef enum
    Redo_With_Valid_Data,
    Finish
 } RfcState;
+
+#if defined(RDKB_SUPPORT)
+typedef enum {
+    WDMP_SUCCESS = 0,
+    WDMP_FAILURE,
+} WDMP_STATUS;
+#endif
 
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
@@ -160,6 +173,15 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
+#if defined(RDKB_SUPPORT)
+        bool ExecuteCommand(const std::string& command, std::string& output);
+	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
+        int ProcessJsonResponseB(char* featureXConfMsg);
+        void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
+        std::string readAccountIdFromFile();
+        void rfcCheckAccountId();
+        void HandleScheduledReboot(bool rfcRebootCronNeeded);
+#endif	
         void GetValidAccountId();
         void GetValidPartnerId();
         void GetXconfSelect();
@@ -199,6 +221,35 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, writeRemoteFeatureCntrlFile);
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
+    FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
+    FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
+    FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
+    FRIEND_TEST(rfcMgrTest, GetOsClass);
+    FRIEND_TEST(rfcMgrTest, set_RFCProperty);
+    FRIEND_TEST(rfcMgrTest, GetValidPartnerId);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId);
+    FRIEND_TEST(rfcMgrTest, CreateXconfHTTPUrl);
+    FRIEND_TEST(rfcMgrTest, isConfigValueChange);
+    FRIEND_TEST(rfcMgrTest, IsDirectBlocked);
+    FRIEND_TEST(rfcMgrTest, CreateConfigDataValueMap);
+    FRIEND_TEST(rfcMgrTest, GetRuntimeFeatureControlJSON);
+    FRIEND_TEST(rfcMgrTest, InitDownloadData);
+    FRIEND_TEST(rfcMgrTest, getRFCName);
+    FRIEND_TEST(rfcMgrTest, getFeatureInstance);
+    FRIEND_TEST(rfcMgrTest, getRFCEnableParam);
+    FRIEND_TEST(rfcMgrTest, getEffectiveImmediateParam);
+    FRIEND_TEST(rfcMgrTest, GetXconfSelect);
+    FRIEND_TEST(rfcMgrTest, updateHashInDB);
+    FRIEND_TEST(rfcMgrTest, updateTimeInDB);
+    FRIEND_TEST(rfcMgrTest, getJRPCTokenData);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfUrl);
+    FRIEND_TEST(rfcMgrTest, updateTR181File);
+    FRIEND_TEST(rfcMgrTest, processXconfResponseConfigDataPart);
+    FRIEND_TEST(rfcMgrTest, rfcStashStoreParams);
+    FRIEND_TEST(rfcMgrTest, rfcStashRetrieveParams);
+    FRIEND_TEST(rfcMgrTest, clearDBEnd);
+    FRIEND_TEST(rfcMgrTest, clearDB);
+
 #endif
 };
 

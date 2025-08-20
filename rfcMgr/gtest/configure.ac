@@ -45,7 +45,7 @@ AC_FUNC_REALLOC
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 
 # Generate the Makefile
- AC_CONFIG_FILES([gtest/Makefile])
+ AC_CONFIG_FILES([Makefile])
 
 # Generate the configure script
 AC_OUTPUT

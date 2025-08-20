@@ -36,7 +36,9 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include <filesystem>
+#include <dirent.h>
+#include <unistd.h>
+#include <cstring>
 #include <sys/stat.h>
 #include <secure_wrapper.h>
 /*----------------------------------------------------------------------------*/
@@ -74,5 +76,9 @@ int read_RFCProperty(const char* , const char* , char *, int );
 bool CheckSpecialCharacters(const std::string&);
 bool StringCaseCompare(const std::string& , const std::string& );
 void RemoveSubstring(std::string& str, const std::string& toRemove);
+void waitForRfcCompletion();
+std::string getErouterIPAddress();
+std::string getSyseventValue(const std::string& key);
+std::string getCronFromDCMSettings();
 
 #endif

@@ -149,6 +149,19 @@ def grep_log_file(log_file: str, search_string: str) -> bool:
         print(f"An error occurred while running grep: {e}")
         return False
 
+def search_log_file(log_file: str, search_string: str) -> str:
+    result = subprocess.run(
+            f'grep -r "{search_string}" {log_file}* | tail -n 1',
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    if result.returncode == 0:
+        return result.stdout
+    else :
+        return result.stderr
+
 
 def rfc_run_binary() -> None:
     """

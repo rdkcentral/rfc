@@ -19,6 +19,8 @@
 
 import os
 from rfc_test_helper import *
+import urllib.parse
+
 
 
 def get_rfc_old_FW() -> str | None:
@@ -165,11 +167,27 @@ def test_rfcMgr_xconf_communication() -> None:
         post_rfc_run_rfc_version = get_rfc_old_FW()
         rfc_key1, rfc_value1 = get_tr181_file_key_value()
         ERROR_MSG1 = f"COMPLETED RFC PASS"
-
+        
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG1), f"Expected '{ERROR_MSG1}' in log file."
         assert (post_rfc_run_tr181_File != pre_rfc_run_tr181_File), f"'{TR181_INI_FILE}' creation success on rfc run."
         assert (pre_rfc_run_rfc_version != post_rfc_run_rfc_version) and (device_fw_version == post_rfc_run_rfc_version), f"'{device_fw_version}' updated in '{TR181_INI_FILE}'"
         assert (rfc_key1 == TEST_RFC_PARAM_KEY1) and (rfc_value1 == TEST_RFC_PARAM_VAL1), f"'{TEST_RFC_PARAM_KEY1}' key is set with '{TEST_RFC_PARAM_VAL1} in {TR181_INI_FILE}'"
+
+        SEARCH_MSG = f"Encoding is enabled plain URL: "
+        plain_url = search_log_file(RFC_LOG_FILE,SEARCH_MSG)
+        SEARCH_MSG_ENCODED = f"Xconf Request : "
+        encoded_url = search_log_file(RFC_LOG_FILE,SEARCH_MSG_ENCODED)
+        try:
+            url = plain_url.split(SEARCH_MSG,1)[1].strip().strip("[]")
+            print(f"Plain url : {url}")
+            coded_url = encoded_url.split(SEARCH_MSG_ENCODED,1)[1].strip().strip("[]")
+            print(f"Encoded url : {coded_url}")
+            decoded_url = urllib.parse.unquote(coded_url)
+            print(f"Decoded url : {decoded_url}")
+            assert url == decoded_url, f"Decoded URL does not match plain URL!\nDecoded: {decoded_url}\nPlain: {url}"
+        except Exception as e:
+            print(f"Exception during URL encoding check: {e}")
+            assert False, f"Exception during URL encoding check: {e}"
 
     finally:
         if os.path.exists(RFC_OLD_FW_FILE + "_bak"):
