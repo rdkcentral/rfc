@@ -157,10 +157,10 @@ def search_log_file(log_file: str, search_string: str) -> str:
             stderr=subprocess.PIPE,
             text=True,
         )
-        if result.returncode == 0:
-            return result.stdout
-        else :
-            return result.stderr
+    if result.returncode == 0:
+        return result.stdout
+    else :
+        return result.stderr
 
 
 def rfc_run_binary() -> None:

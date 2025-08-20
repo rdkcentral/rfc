@@ -182,8 +182,9 @@ def test_rfcMgr_xconf_communication() -> None:
             coded_url = encoded_url.split(SEARCH_MSG_ENCODED,1)[1]
             decoded_url = urllib.parse.unquote(coded_url)
             assert coded_url == decoded_url
-
-
+        except:
+            print(f"Exception during URL encoding check: {e}")
+            assert False, f"Exception during URL encoding check: {e}"
 
     finally:
         if os.path.exists(RFC_OLD_FW_FILE + "_bak"):
