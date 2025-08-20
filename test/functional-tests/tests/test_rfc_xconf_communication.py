@@ -179,10 +179,12 @@ def test_rfcMgr_xconf_communication() -> None:
         encoded_url = search_log_file(RFC_LOG_FILE,SEARCH_MSG_ENCODED)
         try:
             url = plain_url.split(SEARCH_MSG,1)[1]
+            print(f"Plain url : {url}")
             coded_url = encoded_url.split(SEARCH_MSG_ENCODED,1)[1]
+            print(f"encoded url : {coded_url}")
             decoded_url = urllib.parse.unquote(coded_url)
             assert coded_url == decoded_url
-        except:
+        except Exception as e::
             print(f"Exception during URL encoding check: {e}")
             assert False, f"Exception during URL encoding check: {e}"
 

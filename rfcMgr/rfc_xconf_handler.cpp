@@ -1524,16 +1524,15 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     std::stringstream encodedUrl;
     encodedUrl << _xconf_server_url << "?";
 
-    // Append parameters directly without using a lambda function
     EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
     EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
 
-    encodedUrl << RFC_VIDEO_CONTROL_ID << "&";
-    encodedUrl << RFC_CHANNEL_MAP_ID << "&";
-    encodedUrl << RFC_VIDEO_VOD_ID << "&";
+    encodedUrl << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
+    encodedUrl << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
+    encodedUrl << "VodId=" << RFC_VIDEO_VOD_ID << "&";
 
     EncodeString("partnerId=", _partner_id, encodedUrl, "&");
     EncodeString("osClass=", _osclass, encodedUrl, "&");
@@ -1541,7 +1540,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("Experience=", _experience, encodedUrl, "&");
     encodedUrl << "version=2";
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, encodedUrl.str().c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
     
     return encodedUrl; // Use encoded URL
     #endif
