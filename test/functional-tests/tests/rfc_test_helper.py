@@ -151,7 +151,7 @@ def grep_log_file(log_file: str, search_string: str) -> bool:
 
 def search_log_file(log_file: str, search_string: str) -> str:
     result = subprocess.run(
-            f'grep -r "{search_string}" {log_file}*',
+            f'grep -r "{search_string}" {log_file} | tail -n 1',
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
