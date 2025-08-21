@@ -705,7 +705,7 @@ void RuntimeFeatureControlProcessor::GetAccountID()
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
         _accountId = tempbuf;
 #ifdef RDKB_SUPPORT	
-        if (access("/tmp/.timeValue", F_OK) != 0)
+        if (access("/tmp/RFC/.timeValue", F_OK) != 0)
         {
             // Time file doesn't exist, set AccountID to Unknown
             _accountId = "Unknown";
