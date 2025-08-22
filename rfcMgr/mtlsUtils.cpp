@@ -30,7 +30,7 @@ extern "C" {
  * return :1 = if state red support is present
  * return :0 = if state red support is not present */
 int isStateRedSupported(void) {
-    int ret = -1;
+    int ret = -1; 
     ret = filePresentCheck(STATE_RED_SPRT_FILE);
     if(ret == RDK_API_SUCCESS) {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "isStateRedSupported(): Yes file present:%s\n", STATE_RED_SPRT_FILE);
