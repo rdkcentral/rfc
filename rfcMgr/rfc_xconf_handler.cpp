@@ -709,8 +709,9 @@ void RuntimeFeatureControlProcessor::GetAccountID()
         {
             // Time file doesn't exist, set AccountID to Unknown
             _accountId = "Unknown";
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: .timeValue file not found, setting AccountID to Unknown\n");
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
         }
+		RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file found, saving AccountID\n");
         saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
 #endif	
         if((_accountId.empty()) || (_last_firmware.compare( _firmware_version) != 0))
