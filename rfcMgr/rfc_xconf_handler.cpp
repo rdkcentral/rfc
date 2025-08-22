@@ -191,22 +191,7 @@ bool RuntimeFeatureControlProcessor::ExecuteCommand(const std::string& command, 
 
 bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded)
 {
-    std::string paramName;
-    size_t tr181Pos = configKey.find("tr181");
-
-    if (tr181Pos != std::string::npos) {
-        size_t dotPos = configKey.find(".", tr181Pos);
-        if (dotPos != std::string::npos) {
-            paramName = configKey.substr(dotPos + 1);
-        }
-    }
-
-    if (paramName.empty()) {
-        return false;
-    }
-
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter name %s\n", paramName.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter value %s\n", configValue.c_str());
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Key:%s , Value:%s ImmediateReboot:%d \n", __FUNCTION__, __LINE__,configKey.c_str(), configValue.c_str(), rebootValue);
 
     // Initialize rbus connection
     rbusHandle_t rbusHandle;
@@ -230,9 +215,9 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     }
 
     if (wanFailOverSupportEnable == "true") {
-        if (paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.UPnP.Refactor.Enable" ||
-            paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Xupnp") {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter %s is not applied in WFO builds\n", paramName.c_str());
+        if (configKey == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.UPnP.Refactor.Enable" ||
+            configKey == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Xupnp") {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter %s is not applied in WFO builds\n", configKey.c_str());
             rbus_close(rbusHandle);
             return true;
         }
@@ -252,7 +237,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     }
 
     if (wanUnificationEnable == "true" &&
-        paramName == "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode") {
+        configKey == "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode") {
 
         std::string enableDocsis = "true";
         std::string enableEth = "true";
@@ -302,9 +287,9 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
 
     // Get parameter type and current value using rbus
     rbusValue_t paramVal = NULL;
-    rc = rbus_get(rbusHandle, paramName.c_str(), &paramVal);
+    rc = rbus_get(rbusHandle, configKey.c_str(), &paramVal);
     if (rc != RBUS_ERROR_SUCCESS || paramVal == NULL) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s: %s\n", paramName.c_str(), rbusError_ToString(rc));
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s: %s\n", configKey.c_str(), rbusError_ToString(rc));
         rbus_close(rbusHandle);
         return true;
     }
@@ -345,14 +330,14 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     rbusValue_Release(paramVal);
 
     if (paramTypeStr.empty()) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s - invalid or unsupported parameter type\n", paramName.c_str());
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "rbus_get failed for %s - invalid or unsupported parameter type\n", configKey.c_str());
         rbus_close(rbusHandle);
         return true;
     }
 
     std::ofstream paramFile("/tmp/.paramRFC");
     if (paramFile.is_open()) {
-        paramFile << "name: " <<  paramName << "\n";
+        paramFile << "name: " <<  configKey << "\n";
         paramFile << "type: " << paramTypeStr << "\n";
         paramFile << "value: " << paramValue << "\n";
         paramFile.close();
@@ -364,7 +349,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "paramType is %s\n", paramTypeStr.c_str());
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: old parameter value %s\n", paramValue.c_str());
 
-    bool isRfcNameSpace = (paramName.find(".X_RDKCENTRAL-COM_RFC.") != std::string::npos);
+    bool isRfcNameSpace = (configKey.find(".X_RDKCENTRAL-COM_RFC.") != std::string::npos);
 
     if (paramValue != configValue || isRfcNameSpace) {
         rbusValue_t newValue;
@@ -398,32 +383,27 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             }
         } catch (const std::exception& e) {
             setSuccess = false;
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n",
-                    configValue.c_str(), paramName.c_str(), e.what());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n", configValue.c_str(), configKey.c_str(), e.what());
         }
 
         if (setSuccess) {
-            rc = rbus_set(rbusHandle, paramName.c_str(), newValue, NULL);
+            rc = rbus_set(rbusHandle, configKey.c_str(), newValue, NULL);
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
                 if (isRfcNameSpace && paramValue == configValue) {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n",
-                           paramName.c_str(), configValue.c_str());
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n", configKey.c_str(), configValue.c_str());
                 } else {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n",
-                           paramName.c_str(), paramValue.c_str(), configValue.c_str());
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", configKey.c_str(), paramValue.c_str(), configValue.c_str());
                 }
 
                 // Special handling for account ID
-                if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
-                    std::string cmd = "t2CountNotify \"SYST_INFO_ACCID_set\"";
-                    std::string notifyOutput;
-                    ExecuteCommand(cmd, notifyOutput);
+                if (configKey == RFC_ACCOUNT_ID_KEY_STR) {
+                    NotifyTelemetry2Count("SYST_INFO_ACCID_set");
                 }
 
                 // Special handling for Syndication.PartnerId
-                if (paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId") {
+                if (configKey == "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId") {
                     if (paramValue == "unknown" || paramValue == "Unknown") {
                         rebootValue = 1;
                     }
@@ -432,21 +412,18 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
                 if (rebootValue == 1) {
                     if (!rfcRebootCronNeeded) {
                         rfcRebootCronNeeded = true;
-                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n",
-                               paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", configKey.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
                     }
                 }
             } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n",
-                       paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n", configKey.c_str(), configValue.c_str(), rbusError_ToString(rc));
             }
         } else {
             rbusValue_Release(newValue);
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: Failed to set value for %s due to conversion error\n", paramName.c_str());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: Failed to set value for %s due to conversion error\n", configKey.c_str());
         }
     } else {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n",
-               paramName.c_str(), configValue.c_str());
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n", configKey.c_str(), configValue.c_str());
     }
 
     rbus_close(rbusHandle);
@@ -544,13 +521,11 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 
                 // Special telemetry handling
                 if (rfcObj->name == "PeriodicFWCheck" && rfcObj->enable) {
-                    std::string notifyCmd = "t2CountNotify \"SYS_INFO_RFC_PeriodicFWCheck\"";
-                    std::string output;
-                    ExecuteCommand(notifyCmd, output);
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Notify Telemetry for SYS_INFO_RFC_PeriodicFWCheck\n", __FUNCTION__, __LINE__);
+                    NotifyTelemetry2Count("SYS_INFO_RFC_PeriodicFWCheck");
                 } else if (rfcObj->name == "IPv6onLnF" && rfcObj->enable) {
-                    std::string notifyCmd = "t2CountNotify \"INFO_IPv6_LNF_Support\"";
-                    std::string output;
-                    ExecuteCommand(notifyCmd, output);
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Notify Telemetry for INFO_IPv6_LNF_Support\n", __FUNCTION__, __LINE__);
+                    NotifyTelemetry2Count("INFO_IPv6_LNF_Support");
                 }
 
                 // Apply configuration if needed
@@ -558,6 +533,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
                 std::string value = rfcObj->enable ? "true" : "false";
                 int effectiveImmediate = rfcObj->effectiveImmediate ? 1 : 0;
 
+				RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ParamName:%s, ParamValue:%s, RebootValue:%d\n", __FUNCTION__, __LINE__,key.c_str(), value.c_str(), effectiveImmediate);
                 ParseConfigValue(key, value, effectiveImmediate, rfcRebootCronNeeded);
 
                 delete rfcObj;
