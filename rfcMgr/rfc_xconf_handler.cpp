@@ -941,10 +941,16 @@ int RuntimeFeatureControlProcessor::GetExperience( void )
     }
     if( !*tempbuf )  // we got nothing back, "X1" is default
     {
-        *tempbuf = 'X';
-        *(tempbuf + 1) = '1';
-        *(tempbuf + 2) = 0;
-        i=3;
+#ifdef RDKB_SUPPORT
+        *tempbuf = 0;
+        i = 0;
+#else
+        // we got nothing back, "X1" is default in video
+         *tempbuf = 'X';
+         *(tempbuf + 1) = '1';
+         *(tempbuf + 2) = 0;
+         i=3;
+#endif
     }
     _experience = tempbuf;
 
@@ -1611,14 +1617,24 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
-    url << "manufacturer=" << _manufacturer << "&";
+#if defined(RDKB_SUPPORT)
+    url << "ecmMacAddress=" << _ecm_mac_address << "&";
+#else
+     url << "manufacturer=" << _manufacturer << "&";
+#endif
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     url << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     url << "VodId=" << RFC_VIDEO_VOD_ID << "&";
     url << "partnerId=" << _partner_id << "&";
-    url << "osClass=" << _osclass << "&";
+#if !defined(RDKB_SUPPORT)
+     url << "osClass=" << _osclass << "&";
+#endif
     url << "accountId=" << _accountId << "&";
-    url << "Experience=" << _experience << "&";
+#if defined(RDKB_SUPPORT)	
+    url << "experience=" << _experience << "&";
+#else
+	url << "Experience=" << _experience << "&";
+#endif	
     url << "version=" << 2;
     
     #ifndef URLENCODING_DISABLED
@@ -1629,16 +1645,26 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
-    EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
+#if defined(RDKB_SUPPORT)
+    EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
+#else
+     EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
+#endif
 
     encodedUrl << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     encodedUrl << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     encodedUrl << "VodId=" << RFC_VIDEO_VOD_ID << "&";
 
     EncodeString("partnerId=", _partner_id, encodedUrl, "&");
-    EncodeString("osClass=", _osclass, encodedUrl, "&");
+#if !defined(RDKB_SUPPORT)
+     EncodeString("osClass=", _osclass, encodedUrl, "&");
+#endif
     EncodeString("accountId=", _accountId, encodedUrl, "&");
+#if !defined(RDKB_SUPPORT)	
     EncodeString("Experience=", _experience, encodedUrl, "&");
+#else
+	EncodeString("experience=", _experience, encodedUrl, "&");
+#endif	
     encodedUrl << "version=2";
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
