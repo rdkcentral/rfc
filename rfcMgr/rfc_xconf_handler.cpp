@@ -1736,9 +1736,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             hashParam->hashtime = strdup((char *)configsettimeParam.c_str());
 
             file_dwnl.hashData = hashParam;
-            // Prepare your MAC address
-
-	       std::string ecmMac = getEcmMacAddress();
+           #if defined(RDKB_SUPPORT)
+		   std::string ecmMac = getEcmMacAddress();
            if (!ecmMac.empty()) {
               std::string baseUrl = file_dwnl.url;
            // Check if URL already contains '?'
@@ -1750,6 +1749,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
            }
             strncpy(file_dwnl.url, baseUrl.c_str(), sizeof(file_dwnl.url)-1);
            }
+           #endif
             /* Handle MTLS failure case as well. */
             int curl_ret_code = 0;
             if (ret == MTLS_FAILURE)
