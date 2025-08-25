@@ -430,6 +430,49 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
     return true;
 }
 
+std::string getEcmMacAddress()
+{
+    std::string mac;
+    std::string boxType;
+    const char* envBoxType = getenv("BOX_TYPE");
+    if (envBoxType) boxType = envBoxType;
+
+    std::string cmd;
+    if (boxType == "XF3") {
+        cmd = "dmcli eRT retv Device.DPoE.Mac_address";
+    } else if (boxType == "XB6" || boxType == "TCCBR") {
+        cmd = "dmcli eRT retv Device.X_CISCO_COM_CableModem.MACAddress";
+    } else if (boxType == "VNTXER5" || boxType == "SCER11BEL") {
+        cmd = "dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_CM_MAC";
+    } else if (boxType == "HUB4" || boxType == "SR300" || boxType == "SR213" || boxType == "SE501" || boxType == "WNXL11BWL") {
+        const char* wanInterface = getenv("WANINTERFACE");
+        if (wanInterface) {
+            cmd = std::string("cat /sys/class/net/") + wanInterface + "/address | tr '[a-f]' '[A-F]'";
+        } else {
+            cmd = "sysevent get eth_wan_mac | tr '[a-f]' '[A-F]'";
+        }
+    } else {
+        const char* cmInterface = getenv("CMINTERFACE");
+        if (cmInterface) {
+            cmd = std::string("ifconfig ") + cmInterface + " | grep HWaddr | awk '{print $NF}'";
+        }
+    }
+
+    if (!cmd.empty()) {
+        FILE* pipe = popen(cmd.c_str(), "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                mac = buffer;
+                while (!mac.empty() && (mac.back() == '\n' || mac.back() == ' ')) mac.pop_back();
+            }
+            pclose(pipe);
+        }
+    }
+
+    return mac;
+}
+
 int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 {
     std::string rfcList;
@@ -1693,7 +1736,20 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             hashParam->hashtime = strdup((char *)configsettimeParam.c_str());
 
             file_dwnl.hashData = hashParam;
+            // Prepare your MAC address
 
+	       std::string ecmMac = getEcmMacAddress();
+           if (!ecmMac.empty()) {
+              std::string baseUrl = file_dwnl.url;
+           // Check if URL already contains '?'
+           if (baseUrl.find('?') != std::string::npos) {
+              baseUrl += "&ecmaddress=" + ecmMac;
+           } 
+		   else {
+            baseUrl += "?ecmaddress=" + ecmMac;
+           }
+            strncpy(file_dwnl.url, baseUrl.c_str(), sizeof(file_dwnl.url)-1);
+           }
             /* Handle MTLS failure case as well. */
             int curl_ret_code = 0;
             if (ret == MTLS_FAILURE)
