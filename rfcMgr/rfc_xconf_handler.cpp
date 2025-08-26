@@ -56,10 +56,13 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 	return FAILURE;
      }
     
+    GetRFCPartnerID();
+
     if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Found Persistent file %s, Updating State %d \n", __FUNCTION__, __LINE__, rfc_file.c_str(), rfc_state);
     }
     else
     {
@@ -88,7 +91,6 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     }
 
     GetAccountID();
-    GetRFCPartnerID();
     GetOsClass();
 
 #if !defined(RDKB_SUPPORT)    
