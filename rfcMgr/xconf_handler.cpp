@@ -66,6 +66,45 @@ std::string getErouterMac()
     return erouterMac;
 }
 
+std::string geteCMMac()
+{
+    std::string macAddress;
+
+    // Array of commands to try in order
+    const char* commands[] = {
+        "dmcli eRT retv Device.DPoE.Mac_address",
+        "dmcli eRT retv Device.X_CISCO_COM_CableModem.MACAddress",
+        "dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_CM_MAC",
+        "dmcli eRT retv Device.DeviceInfo.X_-COM_WAN_MAC",
+        "sysevent get eth_wan_mac"
+    };
+
+    // Try each command until we get a valid MAC address
+    for (const auto& command : commands) {
+        FILE* pipe = popen(command, "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                macAddress = buffer;
+                // Trim trailing newline
+                if (!macAddress.empty() && macAddress.back() == '\n') {
+                    macAddress.pop_back();
+                }
+                pclose(pipe);
+
+                // If we got a non-empty result, return it
+                if (!macAddress.empty()) {
+                    break;
+                }
+            } else {
+                pclose(pipe);
+            }
+        }
+    }
+
+    return macAddress;
+}
+
 int XconfHandler:: initializeXconfHandler()
 {
 	char tmpbuf[200] = {0};
@@ -109,7 +148,19 @@ int XconfHandler:: initializeXconfHandler()
 	     _model_number = tmpbuf;
 	}
 
-#if !defined(RDKB_SUPPORT)	
+#if defined(RDKB_SUPPORT)
+        memset(tmpbuf, '\0', sizeof(tmpbuf));
+        std::string cmmac = geteCMMac();
+        if (!cmmac.empty()) {
+            strncpy(tmpbuf, cmmac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+            len = strlen(tmpbuf);
+        }
+        if( len )
+        {
+             _ecm_mac_address = tmpbuf;
+        }
+#else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
@@ -136,3 +187,4 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
+
