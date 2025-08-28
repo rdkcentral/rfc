@@ -58,7 +58,7 @@ int isInStateRed(void);
 #endif
 int getMtlscert(MtlsAuth_t *sec);
 std::string getErouterMac();
-std::string getEcmMacAddress();
+std::string geteCMMac();
 
 #ifdef __cplusplus
 }
