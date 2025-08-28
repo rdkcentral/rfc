@@ -1805,6 +1805,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     MtlsAuth_t sec;
     int httpCode = -1;
 
+#ifdef LIBRDKCERTSELECTOR
+    MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
+#else
+    int ret = -1;
+#endif
     hashParam = (hashParam_t *)malloc(sizeof(hashParam_t));
     if(!hashParam)
     {
@@ -1812,12 +1817,49 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
         return ret_value;
     }
 
+#ifdef LIBRDKCERTSELECTOR
+    static rdkcertselector_h thisCertSel = NULL;
+    if (thisCertSel == NULL) {
+	    const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
+	    thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
+	    if (thisCertSel == NULL) {
+            SWLOG_ERROR("%s, %s Cert selector initialization failed\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
+            return curl_ret_code;
+        } else {
+            SWLOG_INFO("%s, %s Cert selector initialized successfully\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
+        }
+    } else {
+        SWLOG_INFO("%s, Cert selector already initialized, reusing the existing instance\n", __FUNCTION__);
+    }
+#endif
+
     memset(&sec, '\0', sizeof(MtlsAuth_t));
-    int ret = getMtlscert(&sec);
+#ifndef LIBRDKCERTSELECTOR
+    ret = getMtlscert(&sec);
     if(ret == MTLS_FAILURE)
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS  certification Failed\n",__FUNCTION__, __LINE__);
     }
+#else
+    do {
+        SWLOG_INFO("Fetching MTLS credential for SSR/XCONF\n");
+        ret = getMtlscert(&sec, &thisCertSel);
+        SWLOG_INFO("%s, getMtlscert function ret value = %d\n", __FUNCTION__, ret);
+
+        if (ret == MTLS_CERT_FETCH_FAILURE) {
+            SWLOG_ERROR("%s : ret=%d\n", __FUNCTION__, ret);
+            SWLOG_ERROR("%s : All MTLS certs are failed. Falling back to state red.\n", __FUNCTION__);
+            checkAndEnterStateRed(CURL_MTLS_LOCAL_CERTPROBLEM, disableStatsUpdate);
+            return curl_ret_code;
+        } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
+            SWLOG_ERROR("%s : State red cert failed.\n", __FUNCTION__);
+            return curl_ret_code;
+        } else {
+            SWLOG_INFO("MTLS is enabled\nMTLS creds for SSR fetched ret=%d\n", ret);
+            t2CountNotify("SYS_INFO_MTLS_enable", 1);
+	}
+    } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);
+#endif
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
