@@ -1819,22 +1819,27 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
 #ifdef LIBRDKCERTSELECTOR
     static rdkcertselector_h thisCertSel = NULL;
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : Initializing cert selector\n", __FUNCTION__, __LINE__);
     if (thisCertSel == NULL) {
 	    const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
 	    thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
 	    if (thisCertSel == NULL) {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : Cert selector Initialisation failed\n", __FUNCTION__, __LINE__);
             SWLOG_ERROR("Saranya: %s, %s Cert selector initialization failed\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
             return curl_ret_code;
         } else {
+	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : cert selector initialization sucessful\n", __FUNCTION__, __LINE__);
             SWLOG_INFO("Saranya : %s, %s Cert selector initialized successfully\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
         }
     } else {
+	 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : reusing existing instance\n", __FUNCTION__, __LINE__);
         SWLOG_INFO("Saranya : %s, Cert selector already initialized, reusing the existing instance\n", __FUNCTION__);
     }
 #endif
 
     memset(&sec, '\0', sizeof(MtlsAuth_t));
 #ifndef LIBRDKCERTSELECTOR
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] LIBRDKCERTSELECTOR not defined... calling getMTlscert\n", __FUNCTION__, __LINE__);
     ret = getMtlscert(&sec);
     if(ret == MTLS_FAILURE)
     {
@@ -1842,19 +1847,24 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     }
 #else
     do {
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : Fetching MTLS credential\n", __FUNCTION__, __LINE__);
         SWLOG_INFO("Saranya : Fetching MTLS credential for SSR/XCONF\n");
         ret = getMtlscert(&sec, &thisCertSel);
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : getMTLS ret = %d\n", __FUNCTION__, __LINE__, ret);
         SWLOG_INFO("Saranya : %s, getMtlscert function ret value = %d\n", __FUNCTION__, ret);
 
         if (ret == MTLS_CERT_FETCH_FAILURE) {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : MTLS cert failed\n", __FUNCTION__, __LINE__);
             SWLOG_ERROR("Saranya %s : ret=%d\n", __FUNCTION__, ret);
             SWLOG_ERROR("Saranya %s : All MTLS certs are failed. Falling back to state red.\n", __FUNCTION__);
             checkAndEnterStateRed(CURL_MTLS_LOCAL_CERTPROBLEM, disableStatsUpdate);
             return curl_ret_code;
         } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : State red failed\n", __FUNCTION__, __LINE__);
             SWLOG_ERROR("Saranya %s : State red cert failed.\n", __FUNCTION__);
             return curl_ret_code;
         } else {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Saranya RFC : MTLS Enabled\n", __FUNCTION__, __LINE__);
             SWLOG_INFO("Saranya : MTLS is enabled\nMTLS creds for SSR fetched ret=%d\n", ret);
             t2CountNotify("SYS_INFO_MTLS_enable", 1);
 	}
