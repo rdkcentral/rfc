@@ -1823,13 +1823,13 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 	    const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
 	    thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
 	    if (thisCertSel == NULL) {
-            SWLOG_ERROR("%s, %s Cert selector initialization failed\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
+            SWLOG_ERROR("Saranya: %s, %s Cert selector initialization failed\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
             return curl_ret_code;
         } else {
-            SWLOG_INFO("%s, %s Cert selector initialized successfully\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
+            SWLOG_INFO("Saranya : %s, %s Cert selector initialized successfully\n", __FUNCTION__, (state_red == 1) ? "State red" : "normal state");
         }
     } else {
-        SWLOG_INFO("%s, Cert selector already initialized, reusing the existing instance\n", __FUNCTION__);
+        SWLOG_INFO("Saranya : %s, Cert selector already initialized, reusing the existing instance\n", __FUNCTION__);
     }
 #endif
 
@@ -1842,20 +1842,20 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     }
 #else
     do {
-        SWLOG_INFO("Fetching MTLS credential for SSR/XCONF\n");
+        SWLOG_INFO("Saranya : Fetching MTLS credential for SSR/XCONF\n");
         ret = getMtlscert(&sec, &thisCertSel);
-        SWLOG_INFO("%s, getMtlscert function ret value = %d\n", __FUNCTION__, ret);
+        SWLOG_INFO("Saranya : %s, getMtlscert function ret value = %d\n", __FUNCTION__, ret);
 
         if (ret == MTLS_CERT_FETCH_FAILURE) {
-            SWLOG_ERROR("%s : ret=%d\n", __FUNCTION__, ret);
-            SWLOG_ERROR("%s : All MTLS certs are failed. Falling back to state red.\n", __FUNCTION__);
+            SWLOG_ERROR("Saranya %s : ret=%d\n", __FUNCTION__, ret);
+            SWLOG_ERROR("Saranya %s : All MTLS certs are failed. Falling back to state red.\n", __FUNCTION__);
             checkAndEnterStateRed(CURL_MTLS_LOCAL_CERTPROBLEM, disableStatsUpdate);
             return curl_ret_code;
         } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
-            SWLOG_ERROR("%s : State red cert failed.\n", __FUNCTION__);
+            SWLOG_ERROR("Saranya %s : State red cert failed.\n", __FUNCTION__);
             return curl_ret_code;
         } else {
-            SWLOG_INFO("MTLS is enabled\nMTLS creds for SSR fetched ret=%d\n", ret);
+            SWLOG_INFO("Saranya : MTLS is enabled\nMTLS creds for SSR fetched ret=%d\n", ret);
             t2CountNotify("SYS_INFO_MTLS_enable", 1);
 	}
     } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);

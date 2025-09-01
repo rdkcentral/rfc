@@ -69,7 +69,7 @@ int isInStateRed(void) {
 int getMtlscert(MtlsAuth_t *sec) 
 {
     if (NULL == sec) {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"getMtlscert(): the sec buffer is empty or null.");
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"Saranya : getMtlscert(): the sec buffer is empty or null.");
         return MTLS_FAILURE;
     }
     return MTLS_FAILURE;
