@@ -93,9 +93,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     GetAccountID();
     GetOsClass();
 
-#if !defined(RDKB_SUPPORT)    
     _is_first_request = IsNewFirmwareFirstRequest();
-#endif
 
     return SUCCESS;
 }
@@ -138,6 +136,13 @@ bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
 {
     bool result = false;
+#ifdef RDKB_SUPPORT
+    if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "IsNewFirmwareFirstRequest=true since /tmp/RFC/.timeValue file not found \n");
+        result = true;
+    }
+#endif
     /* Get Firmware Version */
     if((_last_firmware.empty()) || (!_firmware_version.empty()  && ( _last_firmware.compare( _firmware_version) != 0)))
     {
@@ -812,7 +817,7 @@ void RuntimeFeatureControlProcessor::GetAccountID()
         {
             // Time file doesn't exist, set AccountID to Unknown
             _accountId = "Unknown";
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: .timeValue file not found, setting AccountID to Unknown\n");
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
         }
         saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
 #endif	
@@ -1964,10 +1969,12 @@ void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
             if(features)
             {
                 CreateConfigDataValueMap(features);
+		RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] First Xconf Request after reboot=%d\n", __FUNCTION__, __LINE__,_is_first_request);
                 if( _is_first_request == true)
                 {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidAccountId\n", __FUNCTION__, __LINE__);
                     GetValidAccountId();
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidPartnerId\n", __FUNCTION__, __LINE__);
                     GetValidPartnerId();
                     _is_first_request = false;
                 }
@@ -2053,7 +2060,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
 
     if(value.empty())
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Parner ID\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Partner ID\n", __FUNCTION__, __LINE__);
         _valid_partnerId = "Unknown";
     }
     else
