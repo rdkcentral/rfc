@@ -1868,7 +1868,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             SWLOG_INFO("Saranya : MTLS is enabled\nMTLS creds for SSR fetched ret=%d\n", ret);
             t2CountNotify("SYS_INFO_MTLS_enable", 1);
 	}
-    } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);
+    } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, url_str.c_str()) == TRY_ANOTHER);
 #endif
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
