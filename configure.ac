@@ -33,6 +33,7 @@ AC_PROG_CXX
 AC_PROG_CC
 
 GTEST_ENABLE_FLAG = ""
+IS_LIBRDKCERTSEL_ENABLED=" "
 
 AC_ARG_ENABLE([gtestapp],
              AS_HELP_STRING([--enable-gtestapp],[enable Gtest support (default is no)]),
