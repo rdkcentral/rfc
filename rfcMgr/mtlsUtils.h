@@ -31,10 +31,16 @@ extern "C" {
 #endif
 #include <system_utils.h>
 #include <urlHelper.h>
+#include "rdkcertselector.h"
 
+// Below macro is invoked if the getMtlscert API fails to retrieve all MTLS certificates.
+#define CURL_MTLS_LOCAL_CERTPROBLEM 58
 
-#define MTLS_SUCCESS 1
-#define MTLS_FAILURE -1
+typedef enum {
+    STATE_RED_CERT_FETCH_FAILURE = -2,     // Indicates failure in state red recovery
+    MTLS_CERT_FETCH_FAILURE = -1,          // Indicates general MTLS failure
+    MTLS_CERT_FETCH_SUCCESS = 0            // Indicates success
+} MtlsAuthStatus;
 #define CERT_DYNAMIC "/opt/certs/devicecert_1.pk12"
 #define CERT_STATIC  "/etc/ssl/certs/staticXpkiCrt.pk12"
 
@@ -56,11 +62,12 @@ extern "C" {
 int isStateRedSupported(void);
 int isInStateRed(void);
 #endif
-int getMtlscert(MtlsAuth_t *sec);
+MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
 #if defined(RDKB_SUPPORT)
 std::string getErouterMac();
 std::string geteCMMac();
 #endif
+
 #ifdef __cplusplus
 }
 #endif
