@@ -93,7 +93,20 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     GetAccountID();
     GetOsClass();
 
-    _is_first_request = IsNewFirmwareFirstRequest();
+	#if !defined(RDKB_SUPPORT)
+        _is_first_request = IsNewFirmwareFirstRequest();
+	#else
+        if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Consider as First RFC Request since /tmp/RFC/.timeValue file not found \n");
+            _is_first_request = true;
+        }
+        else
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting _is_first_request=false as /tmp/RFC/.timeValue file found \n");
+            _is_first_request = false;
+        }
+    #endif
 
     return SUCCESS;
 }
