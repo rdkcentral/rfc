@@ -1817,6 +1817,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     int ret_value = FAILURE;
     void *curl = nullptr;
     hashParam_t *hashParam = nullptr;
+    int state_red = -1;
+    int cert_ret_code = -1;
     MtlsAuth_t sec;
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
     int httpCode = -1;
@@ -1830,12 +1832,13 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
     static rdkcertselector_h thisCertSel = NULL;
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
-    if (thisCertSel == NULL) {
-	    const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
-	    thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
-	    if (thisCertSel == NULL) {
+    if (thisCertSel == NULL) 
+    {
+        const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
+        thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
+        if (thisCertSel == NULL) {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector Initialisation failed\n", __FUNCTION__, __LINE__);
-            return curl_ret_code;
+            return cert_ret_code;
         } else {
 	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization sucessful\n", __FUNCTION__, __LINE__);
         }
@@ -1851,17 +1854,15 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
         if (ret == MTLS_CERT_FETCH_FAILURE) {
 	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] All MTLS certs are failed. Falling back to state red.\n", __FUNCTION__, __LINE__, ret);
-            checkAndEnterStateRed(CURL_MTLS_LOCAL_CERTPROBLEM, disableStatsUpdate);
-            return curl_ret_code;
+            return cert_ret_code;
         } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
-            return curl_ret_code;
+            return cert_ret_code;
         } else {
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
-            t2CountNotify("SYS_INFO_MTLS_enable", 1);
+	    NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
 	}
-    } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, url_str.c_str()) == TRY_ANOTHER);
+    } while (rdkcertselector_setCurlStatus(thisCertSel, cert_ret_code, url_str.c_str()) == TRY_ANOTHER);
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
@@ -1892,7 +1893,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
             /* Handle MTLS failure case as well. */
             int curl_ret_code = 0;
-            if (ret == MTLS_FAILURE)
+            if (ret == MTLS_CERT_FETCH_FAILURE)
             {
                 /* RDKE-419: No valid data in 'sec' buffer, pass NULL */
                 curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
