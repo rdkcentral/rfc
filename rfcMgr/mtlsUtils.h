@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,7 +57,10 @@ int isStateRedSupported(void);
 int isInStateRed(void);
 #endif
 int getMtlscert(MtlsAuth_t *sec);
-
+#if defined(RDKB_SUPPORT)
+std::string getErouterMac();
+std::string geteCMMac();
+#endif
 #ifdef __cplusplus
 }
 #endif
