@@ -34,6 +34,7 @@ AC_PROG_CC
 
 GTEST_ENABLE_FLAG = ""
 IS_LIBRDKCERTSEL_ENABLED=""
+IS_LIBRDKCONFIG_ENABLED=""
 
 AC_ARG_ENABLE([gtestapp],
              AS_HELP_STRING([--enable-gtestapp],[enable Gtest support (default is no)]),
@@ -86,6 +87,20 @@ AC_ARG_ENABLE([rdkcertselector],
         [echo "rdkcertselector is disabled"])
 AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
 AC_SUBST(LIBRDKCERTSEL_FLAG)
+
+AC_ARG_ENABLE([mountutils],
+        AS_HELP_STRING([--enable-mountutils],[enables mountutils replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCONFIG_ENABLED=true
+                LIBRDKCONFIG_FLAG=" -DLIBRDKCONFIG_BUILD ";;
+           no)  IS_LIBRDKCONFIG_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-mountutils]) ;;
+           esac
+           ],
+        [echo "mountutils is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCONFIG_ENABLED], [test x$IS_LIBRDKCONFIG_ENABLED = xtrue])
+AC_SUBST(LIBRDKCONFIG_FLAG)
 
 AC_ARG_ENABLE([tr181set],
               AS_HELP_STRING([--enable-tr181set],[enable tr181 client app (default is no)]),
