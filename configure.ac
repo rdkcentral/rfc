@@ -33,6 +33,7 @@ AC_PROG_CXX
 AC_PROG_CC
 
 GTEST_ENABLE_FLAG = ""
+IS_LIBRDKCERTSEL_ENABLED=""
 
 AC_ARG_ENABLE([gtestapp],
              AS_HELP_STRING([--enable-gtestapp],[enable Gtest support (default is no)]),
@@ -71,6 +72,20 @@ AC_ARG_ENABLE([rfctool],
               ],
               [echo "rfctool app is disabled"])
 AM_CONDITIONAL([ENABLE_RFCTOOL_APP], [test x$ENABLE_RFCTOOL_APP = xtrue])
+
+AC_ARG_ENABLE([rdkcertselector],
+        AS_HELP_STRING([--enable-rdkcertselector],[enables rdkcertselector replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCERTSEL_ENABLED=true
+                LIBRDKCERTSEL_FLAG=" -DLIBRDKCERTSELECTOR ";;
+           no)  IS_LIBRDKCERTSEL_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkcertselector]) ;;
+           esac
+           ],
+        [echo "rdkcertselector is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
+AC_SUBST(LIBRDKCERTSEL_FLAG)
 
 AC_ARG_ENABLE([tr181set],
               AS_HELP_STRING([--enable-tr181set],[enable tr181 client app (default is no)]),
