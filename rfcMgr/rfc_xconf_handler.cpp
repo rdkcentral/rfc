@@ -149,13 +149,6 @@ bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
 {
     bool result = false;
-#ifdef RDKB_SUPPORT
-    if (access("/tmp/RFC/.timeValue", F_OK) != 0)
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "IsNewFirmwareFirstRequest=true since /tmp/RFC/.timeValue file not found \n");
-        result = true;
-    }
-#endif
     /* Get Firmware Version */
     if((_last_firmware.empty()) || (!_firmware_version.empty()  && ( _last_firmware.compare( _firmware_version) != 0)))
     {
