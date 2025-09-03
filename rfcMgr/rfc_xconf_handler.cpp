@@ -414,7 +414,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", paramName.c_str(), paramValue.c_str(), configValue.c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", paramName.c_str(), paramValue.c_str(), configValue.c_str());
 
                 // Special handling for account ID
                 if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
@@ -432,7 +432,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
                 if (rebootValue == 1) {
                     if (!rfcRebootCronNeeded) {
                         rfcRebootCronNeeded = true;
-                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
                     }
                 }
             } else {
