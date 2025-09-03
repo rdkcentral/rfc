@@ -35,6 +35,11 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define DEBUG_INI_FILE "/etc/debug.ini"
+#if !defined(RDKB_SUPPORT)
+#define OVERIDE_DEBUG_INI_FILE "/opt/debug.ini"
+#else
+#define OVERIDE_DEBUG_INI_FILE "/nvram/debug.ini"
+#endif
 #define DNS_RESOLV_FILE "/etc/resolv.dnsmasq"
 #define IP_ROUTE_FLAG "/tmp/route_available"
 #define GATEWAYIP_FILE "/tmp/.GatewayIP_dfltroute"

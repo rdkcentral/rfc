@@ -40,7 +40,7 @@ namespace rfc {
 #endif
     RFCManager ::RFCManager() {
         /* Initialize RDK Logger */
-        rdk_logger_init(0 == access("/opt/debug.ini", R_OK) ? "/opt/debug.ini" : "/etc/debug.ini");
+        rdk_logger_init(0 == access(OVERIDE_DEBUG_INI_FILE, R_OK) ? OVERIDE_DEBUG_INI_FILE : DEBUG_INI_FILE);	    
 
         /* Initialize IARM Bus */
         InitializeIARM();
