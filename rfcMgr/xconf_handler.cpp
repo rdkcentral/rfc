@@ -27,7 +27,6 @@ extern "C" {
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
 #include <common_device_api.h>
-#include "mtlsUtils.h"
 
 namespace xconf {	
 
@@ -45,6 +44,65 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 	}
 	
 	return curl_ret_code;
+}
+
+std::string getErouterMac() 
+{
+    std::string erouterMac;
+
+        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_MAC", "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                erouterMac = buffer;
+                // Trim trailing newline
+                if (!erouterMac.empty() && erouterMac.back() == '\n') {
+                    erouterMac.pop_back();
+                }
+            }
+            pclose(pipe);
+        }
+
+    return erouterMac;
+}
+
+std::string geteCMMac()
+{
+    std::string macAddress;
+
+    // Array of commands to try in order
+    const char* commands[] = {
+        "dmcli eRT retv Device.DPoE.Mac_address",
+        "dmcli eRT retv Device.X_CISCO_COM_CableModem.MACAddress",
+        "dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_CM_MAC",
+        "dmcli eRT retv Device.DeviceInfo.X_-COM_WAN_MAC",
+        "sysevent get eth_wan_mac"
+    };
+
+    // Try each command until we get a valid MAC address
+    for (const auto& command : commands) {
+        FILE* pipe = popen(command, "r");
+        if (pipe) {
+            char buffer[128] = {0};
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                macAddress = buffer;
+                // Trim trailing newline
+                if (!macAddress.empty() && macAddress.back() == '\n') {
+                    macAddress.pop_back();
+                }
+                pclose(pipe);
+
+                // If we got a non-empty result, return it
+                if (!macAddress.empty()) {
+                    break;
+                }
+            } else {
+                pclose(pipe);
+            }
+        }
+    }
+
+    return macAddress;
 }
 
 int XconfHandler:: initializeXconfHandler()
@@ -129,5 +187,4 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
-
 
