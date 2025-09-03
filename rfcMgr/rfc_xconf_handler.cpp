@@ -414,7 +414,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", paramName.c_str(), paramValue.c_str(), configValue.c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", paramName.c_str(), paramValue.c_str(), configValue.c_str());
 
                 // Special handling for account ID
                 if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
@@ -432,7 +432,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
                 if (rebootValue == 1) {
                     if (!rfcRebootCronNeeded) {
                         rfcRebootCronNeeded = true;
-                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
                     }
                 }
             } else {
@@ -1692,9 +1692,11 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 {
     if(!_last_firmware.compare( _firmware_version ))
     {
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         /*Both the input strings are equal.*/
-        if((rfc_state == Init) && (isXconfSelectorSlotProd() == true))
+        if((rfc_state == Init) && (isXconfSelectorSlotProd() == false))
         {
+	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received XconfSelector as Non Prod for RFC state as INIT \n", __FUNCTION__, __LINE__);
             valueTime = "0";
             valueHash = "OVERRIDE_HASH";
         }
@@ -1705,13 +1707,15 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
     }
     else
     {
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are different \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         valueTime = "0";
         valueHash = "UPGRADE_HASH";
     }
 
-    std::string InvalidStr = "Unkown";
+    std::string InvalidStr = "Unknown";
     if ((!_partner_id.compare(InvalidStr)) || (!_accountId.compare(InvalidStr)))
     {
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]  Invalid partner or account as Unknown, Passing OVERRIDE_HASH \n", __FUNCTION__, __LINE__);
         valueHash="OVERRIDE_HASH";
     }
 
