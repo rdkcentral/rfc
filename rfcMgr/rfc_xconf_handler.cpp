@@ -1899,6 +1899,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             int curl_ret_code = 0;
 #ifdef LIBRDKCERTSELECTOR    
             if (ret == MTLS_CERT_FETCH_FAILURE)
+#else
+			if (ret == MTLS_FAILURE)	
 #endif		    
             {
                 /* RDKE-419: No valid data in 'sec' buffer, pass NULL */
