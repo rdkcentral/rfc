@@ -1831,7 +1831,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     }
 
     static rdkcertselector_h thisCertSel = NULL;
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
     if (thisCertSel == NULL) 
     {
         const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
@@ -1840,28 +1840,28 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector Initialisation failed\n", __FUNCTION__, __LINE__);
             return cert_ret_code;
         } else {
-	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization sucessful\n", __FUNCTION__, __LINE__);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Cert selector initialization successful\n", __FUNCTION__, __LINE__);
         }
     } else {
-	 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector already initialized, reusing existing instance\n", __FUNCTION__, __LINE__);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Cert selector already initialized, reusing existing instance\n", __FUNCTION__, __LINE__);
     }
 
     memset(&sec, '\0', sizeof(MtlsAuth_t));
     do {
-	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Fetching MTLS credential for SSR/XCONF\n", __FUNCTION__, __LINE__);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Fetching MTLS credential for SSR/XCONF\n", __FUNCTION__, __LINE__);
         ret = getMtlscert(&sec, &thisCertSel);
-	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] getMtlscert function ret value = %d\n", __FUNCTION__, __LINE__, ret);
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] getMtlscert function ret value = %d\n", __FUNCTION__, __LINE__, ret);
 
         if (ret == MTLS_CERT_FETCH_FAILURE) {
-	    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
+	        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
             return cert_ret_code;
         } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
             return cert_ret_code;
         } else {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
-	    NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
-	}
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
+	        NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
+	    }
     } while (rdkcertselector_setCurlStatus(thisCertSel, cert_ret_code, url_str.c_str()) == TRY_ANOTHER);
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
@@ -1883,8 +1883,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             std::string valueTime;
             GetStoredHashAndTime(hashValue, valueTime);
 
-	    std::string configsethashParam = (std::string("configsethash:") + hashValue.c_str());
-	    std::string configsettimeParam = (std::string("configsettime:") + valueTime.c_str());
+	        std::string configsethashParam = (std::string("configsethash:") + hashValue.c_str());
+	        std::string configsettimeParam = (std::string("configsettime:") + valueTime.c_str());
 
             hashParam->hashvalue = strdup((char *)configsethashParam.c_str());
             hashParam->hashtime = strdup((char *)configsettimeParam.c_str());
@@ -1902,7 +1902,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             {
                 curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
             }
-	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
