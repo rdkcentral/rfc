@@ -1822,6 +1822,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     MtlsAuth_t sec;
 #ifdef LIBRDKCERTSELECTOR    
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
+#else
+	int ret = MTLS_FAILURE;
 #endif    
     int httpCode = -1;
 
