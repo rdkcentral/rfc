@@ -111,9 +111,9 @@ int main()
         delete rfcMgr;
         return 1;
     }
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Waiting for IP Acquistion\n", __FUNCTION__, __LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Waiting for IP Acquistion\n", __FUNCTION__, __LINE__);
     rfc::DeviceStatus isDeviceOnline = rfcMgr->CheckDeviceIsOnline();
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Starting execution of RFCManager\n", __FUNCTION__, __LINE__);    
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Starting execution of RFCManager\n", __FUNCTION__, __LINE__);    
     if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE) 
     {
         int status = FAILURE;
@@ -124,7 +124,7 @@ int main()
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
         }
 #if defined(RDKB_SUPPORT)
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);
 
         std::string cronConfig = getCronFromDCMSettings();
 
