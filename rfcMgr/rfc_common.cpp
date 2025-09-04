@@ -70,23 +70,23 @@ void waitForRfcCompletion()
         int retry = 1;
 
         while (loop) {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Waiting rfc_blob_processing \n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Waiting rfc_blob_processing \n", __FUNCTION__,__LINE__);
             std::string rfcStatus = getSyseventValue("rfc_blob_processing");
 
             if (rfcStatus == "Completed") {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Webconfig rfc processing completed, breaking the loop \n", __FUNCTION__,__LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Webconfig rfc processing completed, breaking the loop \n", __FUNCTION__,__LINE__);
                 break;
             } else if (retry > 6) {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] webconfig rfc processing not completed after 10 min , breaking the loop \n", __FUNCTION__,__LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] webconfig rfc processing not completed after 10 min , breaking the loop \n", __FUNCTION__,__LINE__);
                 break;
             } else {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Webconfig rfc processing not completed.. Retry: %s \n", __FUNCTION__, __LINE__, std::to_string(retry).c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Webconfig rfc processing not completed.. Retry: %s \n", __FUNCTION__, __LINE__, std::to_string(retry).c_str());
                 retry++;
                 sleep(100);
             }
         }
     } else {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] rfc-agent process not running or rfc_blob_processing is empty. Not waiting rfc_blob_processing \n", __FUNCTION__,__LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] rfc-agent process not running or rfc_blob_processing is empty. Not waiting rfc_blob_processing \n", __FUNCTION__,__LINE__);
     }
 }
 
@@ -102,7 +102,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
 
     if(key == nullptr || out_value == nullptr || datasize == 0)
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] read_RFCProperty() one or more input values are invalid\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received one or more input values are invalid\n", __FUNCTION__, __LINE__);
         return ret;
     }
 
@@ -114,7 +114,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
     const char* paramName = key;
     (void)type;
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Looking up parameter: %s\n", __FUNCTION__, __LINE__, paramName);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Looking up parameter: %s\n", __FUNCTION__, __LINE__, paramName);
 
     rc = rbus_open(&handle, "RFC_Manager");
     if (rc != RBUS_ERROR_SUCCESS) {
@@ -140,7 +140,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
                     out_value[copyLen] = '\0';
                 }
 
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] read_RFCProperty() param=%s, value=%s\n",  __FUNCTION__, __LINE__, paramName, out_value);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC param=%s, value=%s\n",  __FUNCTION__, __LINE__, paramName, out_value);
                 ret = READ_RFC_SUCCESS;
             } else {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Null string value for param=%s\n",  __FUNCTION__, __LINE__, paramName);
@@ -150,13 +150,13 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
             bool boolValue = rbusValue_GetBoolean(value);
             snprintf(out_value, datasize, "%s", boolValue ? "true" : "false");
 
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] read_RFCProperty() param=%s, value=%s (boolean)\n", __FUNCTION__, __LINE__, paramName, out_value);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC param=%s, value=%s (boolean)\n", __FUNCTION__, __LINE__, paramName, out_value);
             ret = READ_RFC_SUCCESS;
         } else if (rbusValue_GetType(value) == RBUS_INT32) {
             int32_t intValue = rbusValue_GetInt32(value);
             snprintf(out_value, datasize, "%d", intValue);
 
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] read_RFCProperty() param=%s, value=%s (int)\n", __FUNCTION__, __LINE__, paramName, out_value);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC param=%s, value=%s (int)\n", __FUNCTION__, __LINE__, paramName, out_value);
             ret = READ_RFC_SUCCESS;
         } else {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Unsupported value type for param=%s\n", __FUNCTION__, __LINE__, paramName);
@@ -188,12 +188,12 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
         {
             snprintf(out_value, datasize, "%s", param.value);
         }
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] read_RFCProperty() name=%s,type=%d,value=%s,status=%d\n", __FUNCTION__, __LINE__, param.name, param.type, param.value, status);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC name=%s,type=%d,value=%s,status=%d\n", __FUNCTION__, __LINE__, param.name, param.type, param.value, status);
         ret = READ_RFC_SUCCESS;
     }
     else
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] error:read_RFCProperty(): status= %d\n", __FUNCTION__, __LINE__, status);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Read status= %d\n", __FUNCTION__, __LINE__, status);
         *out_value = 0;
     }
 #endif

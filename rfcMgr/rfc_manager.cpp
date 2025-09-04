@@ -203,7 +203,7 @@ namespace rfc {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Incorrect File Name", __FUNCTION__,__LINE__);
             return ip_status;
         }
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] CheckIPRoute Waiting for Route Config %s file\n", __FUNCTION__,__LINE__, IP_ROUTE_FLAG);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Waiting for Route Config %s file\n", __FUNCTION__,__LINE__, IP_ROUTE_FLAG);
         while (IpRouteCnt--) 
         {
             if (RDK_API_SUCCESS == (filePresentCheck(IP_ROUTE_FLAG))) {
@@ -212,10 +212,10 @@ namespace rfc {
             sleep(15);
         }
         if (IpRouteCnt == 0 && (RDK_API_SUCCESS == (filePresentCheck(IP_ROUTE_FLAG)))) {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] route flag=%s not present\n", __FUNCTION__,__LINE__, IP_ROUTE_FLAG);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] route flag=%s not present\n", __FUNCTION__,__LINE__, IP_ROUTE_FLAG);
             return ip_status;
         }
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] CheckIPRoute Received Route Config file\n", __FUNCTION__,__LINE__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received Route Config file\n", __FUNCTION__,__LINE__);
         fp = fopen(file_name, "r");
         if (fp != NULL) 
         {
@@ -228,7 +228,7 @@ namespace rfc {
             }
             if (string_check == true) {
                 tmp = strstr(tbuff, "IPV");
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ip address=%s\n", __FUNCTION__,__LINE__, tbuff);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ip address=%s\n", __FUNCTION__,__LINE__, tbuff);
                 if (tmp != NULL && (NULL != strstr(tmp, "IPV4"))) 
                 {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] default router Link Local IPV4 address present=%s\n", __FUNCTION__,__LINE__, tmp);
@@ -279,7 +279,7 @@ namespace rfc {
         char tbuff[80] = {0};
         char *tmp;
         if (dns_file_name == NULL) {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] isDnsResolve(): parameter is NULL\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Input parameter is NULL\n", __FUNCTION__,__LINE__);
             return dns_status;
         }
         fp = fopen(dns_file_name , "r");
@@ -309,23 +309,23 @@ namespace rfc {
         }
         else 
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] dns resolve file:%s not present\n", __FUNCTION__,__LINE__, dns_file_name);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] dns resolve file:%s not present\n", __FUNCTION__,__LINE__, dns_file_name);
         }
         return dns_status;
     }
 
     DeviceStatus RFCManager ::CheckDeviceIsOnline()
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
         rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
 #if !defined(RDKB_SUPPORT)
         if (true == CheckIProuteConnectivity(GATEWAYIP_FILE))
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] Checking DNS Nameserver configuration\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking DNS Nameserver configuration\n", __FUNCTION__,__LINE__);
             if (true == (isDnsResolve(DNS_RESOLV_FILE)))
             {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] DNS Nameservers are available\n",__FUNCTION__,__LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] DNS Nameservers are available\n",__FUNCTION__,__LINE__);
                 result = RFCMGR_DEVICE_ONLINE;
             }
             else
@@ -340,7 +340,7 @@ namespace rfc {
         }
 #else
         if (true == CheckIPConnectivity()){
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] IP configuration found...\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] IP configuration found...\n", __FUNCTION__,__LINE__);
             result = RFCMGR_DEVICE_ONLINE;
         }
         else {
@@ -405,7 +405,7 @@ namespace rfc {
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();
         if(result == FAILURE)
         {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Xconf Initialization ...!!\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Xconf Initialization Failed...!!\n", __FUNCTION__,__LINE__);
             delete rfcObj;
             return reqStatus;
         }
@@ -429,7 +429,7 @@ namespace rfc {
         }
         else
         {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
             rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
         }
@@ -437,7 +437,7 @@ namespace rfc {
         int post_process_result = RFCManagerPostProcess();
         if(post_process_result == SUCCESS)
         {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC:Post Processing Successfully Completed\n", __FUNCTION__,__LINE__);
             rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_PostProcess_Success");
         }
         else
@@ -538,7 +538,7 @@ namespace rfc {
                 tempFileCreated = true;
                 emptyFile.close();
             } else {
-               RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create temp file\n", __FUNCTION__, __LINE__);
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create temp file\n", __FUNCTION__, __LINE__);
                 return;
             }
         }
@@ -559,7 +559,7 @@ namespace rfc {
             cronContent.close();
 
             if (!hasContent) {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
             }
         } else {
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Existing crontab content found empty\n", __FUNCTION__, __LINE__);
