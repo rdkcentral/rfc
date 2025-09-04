@@ -1822,8 +1822,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     MtlsAuth_t sec;
 #ifdef LIBRDKCERTSELECTOR    
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
-#else
-    int ret = -1 ;
 #endif    
     int httpCode = -1;
 
@@ -1901,8 +1899,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             int curl_ret_code = 0;
 #ifdef LIBRDKCERTSELECTOR    
             if (ret == MTLS_CERT_FETCH_FAILURE)
-#else		    
-            if (ret == -1)
 #endif		    
             {
                 /* RDKE-419: No valid data in 'sec' buffer, pass NULL */
