@@ -57,10 +57,10 @@ int isInStateRed(void) {
     }
     ret = filePresentCheck(STATEREDFLAG);
     if(ret == RDK_API_SUCCESS) {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "isInStateRed(): Yes Flag prsent:%s. Device is in statered\n", STATEREDFLAG);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "isInStateRed(): Yes Flag prsent:%s. Device is in statered\n", STATEREDFLAG);
         stateRed = 1;
     } else {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "isInStateRed(): No Flag Not prsent:%s. Device is not in statered\n", STATEREDFLAG);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "isInStateRed(): No Flag Not prsent:%s. Device is not in statered\n", STATEREDFLAG);
     }
     return stateRed;
 }
