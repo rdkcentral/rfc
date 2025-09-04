@@ -150,11 +150,12 @@ char xconfResp[] = R"({
 
 TEST(rfcMgrTest, getMtlscert) {
     MtlsAuth_t sec;
+	static rdkcertselector_h thisCertSel = NULL;
     memset(&sec, '\0', sizeof(MtlsAuth_t));
-    int ret = getMtlscert(&sec);
-    if(ret == MTLS_FAILURE)
+    int ret = getMtlscert(&sec, &thisCertSel);
+    if(ret == MTLS_CERT_FETCH_FAILURE)
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS  certification Failed\n",__FUNCTION__, __LINE__);
-    EXPECT_EQ(ret, MTLS_FAILURE);
+    EXPECT_EQ(ret, MTLS_CERT_FETCH_FAILURE);
 }
 
 TEST(rfcMgrTest, readRFCParam) {
