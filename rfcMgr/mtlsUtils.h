@@ -44,9 +44,12 @@ typedef enum {
 } MtlsAuthStatus;
 
 MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
-#endif
+#else
 #define MTLS_SUCCESS 1
 #define MTLS_FAILURE -1
+int getMtlscert(MtlsAuth_t *sec);
+#endif
+
 #define CERT_DYNAMIC "/opt/certs/devicecert_1.pk12"
 #define CERT_STATIC  "/etc/ssl/certs/staticXpkiCrt.pk12"
 
