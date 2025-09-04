@@ -27,6 +27,7 @@ extern "C" {
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
 #include <common_device_api.h>
+#include "mtlsUtils.h"
 
 namespace xconf {	
 
@@ -44,26 +45,6 @@ int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, in
 	}
 	
 	return curl_ret_code;
-}
-
-std::string getErouterMac() 
-{
-    std::string erouterMac;
-
-        FILE* pipe = popen("dmcli eRT retv Device.DeviceInfo.X_COMCAST-COM_WAN_MAC", "r");
-        if (pipe) {
-            char buffer[128] = {0};
-            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                erouterMac = buffer;
-                // Trim trailing newline
-                if (!erouterMac.empty() && erouterMac.back() == '\n') {
-                    erouterMac.pop_back();
-                }
-            }
-            pclose(pipe);
-        }
-
-    return erouterMac;
 }
 
 int XconfHandler:: initializeXconfHandler()
@@ -109,7 +90,19 @@ int XconfHandler:: initializeXconfHandler()
 	     _model_number = tmpbuf;
 	}
 
-#if !defined(RDKB_SUPPORT)	
+#if defined(RDKB_SUPPORT)
+        memset(tmpbuf, '\0', sizeof(tmpbuf));
+        std::string cmmac = geteCMMac();
+        if (!cmmac.empty()) {
+            strncpy(tmpbuf, cmmac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+            len = strlen(tmpbuf);
+        }
+        if( len )
+        {
+             _ecm_mac_address = tmpbuf;
+        }
+#else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
@@ -136,3 +129,5 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
+
+

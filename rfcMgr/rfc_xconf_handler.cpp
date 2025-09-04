@@ -56,10 +56,13 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 	return FAILURE;
      }
     
+    GetRFCPartnerID();
+
     if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Found Persistent file %s, Updating State %d \n", __FUNCTION__, __LINE__, rfc_file.c_str(), rfc_state);
     }
     else
     {
@@ -88,11 +91,21 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     }
 
     GetAccountID();
-    GetRFCPartnerID();
     GetOsClass();
 
-#if !defined(RDKB_SUPPORT)    
+#if !defined(RDKB_SUPPORT)
     _is_first_request = IsNewFirmwareFirstRequest();
+#else
+    if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+    {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Consider as First RFC Request since /tmp/RFC/.timeValue file not found \n");
+        _is_first_request = true;
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Setting _is_first_request=false as /tmp/RFC/.timeValue file found \n");
+        _is_first_request = false;
+    }
 #endif
 
     return SUCCESS;
@@ -122,9 +135,9 @@ bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
     *rfc_data = 0;
     ret = read_RFCProperty("DEBUGSRV", RFC_DEBUGSRV, rfc_data, sizeof(rfc_data));
     if (ret == -1) {
-        SWLOG_ERROR("%s: rfc Debug services =%s failed Status %d\n", __FUNCTION__, RFC_DEBUGSRV, ret);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] rfc Debug services =%s failed Status %d\n", __FUNCTION__, __LINE__, RFC_DEBUGSRV, ret);
     } else {
-        SWLOG_INFO("%s: rfc Debug services = %s\n", __FUNCTION__, rfc_data);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] rfc Debug services = %s\n", __FUNCTION__, __LINE__, rfc_data);
         if (strncmp(rfc_data, "true", sizeof(rfc_data)+1 ) == 0) {
             result = true;
         }
@@ -160,7 +173,7 @@ int RuntimeFeatureControlProcessor::GetLastProcessedFirmware(const char *lastVes
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Last Firmware not found in the file.\n" );
         return FAILURE;
     }
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetLastProcessedFirmware: [%s]\n", __FUNCTION__, __LINE__, _last_firmware.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] GetLastProcessedFirmware: [%s]\n", __FUNCTION__, __LINE__, _last_firmware.c_str());
 
     inputFile.close();
 
@@ -191,22 +204,7 @@ bool RuntimeFeatureControlProcessor::ExecuteCommand(const std::string& command, 
 
 bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded)
 {
-    std::string paramName;
-    size_t tr181Pos = configKey.find("tr181");
-
-    if (tr181Pos != std::string::npos) {
-        size_t dotPos = configKey.find(".", tr181Pos);
-        if (dotPos != std::string::npos) {
-            paramName = configKey.substr(dotPos + 1);
-        }
-    }
-
-    if (paramName.empty()) {
-        return false;
-    }
-
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter name %s\n", paramName.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter value %s\n", configValue.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Key:%s , Value:%s ImmediateReboot:%d \n", __FUNCTION__, __LINE__, configKey.c_str(), configValue.c_str(), rebootValue);
 
     // Initialize rbus connection
     rbusHandle_t rbusHandle;
@@ -215,6 +213,15 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to open rbus handle: %s\n", rbusError_ToString(rc));
         return false;
     }
+
+    // Remove tr181 prefix from configKey if present (do this FIRST)
+    std::string paramName = configKey;
+    if (paramName.find("tr181.") == 0) {
+        paramName = paramName.substr(6); // Remove "tr181." prefix
+    }
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter name (after tr181 removal): %s\n", paramName.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter value: %s\n", configValue.c_str());
 
     // Check for WanFailOverSupportEnable
     std::string wanFailOverSupportEnable;
@@ -229,10 +236,11 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
         rbusValue_Release(wfoValue);
     }
 
+    // Use paramName consistently for all special case checks
     if (wanFailOverSupportEnable == "true") {
         if (paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.UPnP.Refactor.Enable" ||
             paramName == "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Xupnp") {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Parameter %s is not applied in WFO builds\n", paramName.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Parameter %s is not applied in WFO builds\n", paramName.c_str());
             rbus_close(rbusHandle);
             return true;
         }
@@ -291,16 +299,16 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
         std::string output;
         ExecuteCommand(psmcliCmd, output);
 
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "WanUnification Enabled Setting WanManager DML instead of Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode to %s\n", configValue.c_str());
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[DOCSIS].Selection.Enable to %s\n", enableDocsis.c_str());
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[WANOE].Selection.Enable %s\n", enableEth.c_str());
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Setting dmsb.wanmanager.group.1.PersistSelectedInterface %s\n", persistSelectedInterface.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "WanUnification Enabled Setting WanManager DML instead of Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode to %s\n", configValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[DOCSIS].Selection.Enable to %s\n", enableDocsis.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Setting Device.X_RDK_WanManager.Interface.[WANOE].Selection.Enable %s\n", enableEth.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Setting dmsb.wanmanager.group.1.PersistSelectedInterface %s\n", persistSelectedInterface.c_str());
 
         rbus_close(rbusHandle);
         return true;
     }
 
-    // Get parameter type and current value using rbus
+    // Get parameter type and current value using rbus (with correct parameter name)
     rbusValue_t paramVal = NULL;
     rc = rbus_get(rbusHandle, paramName.c_str(), &paramVal);
     if (rc != RBUS_ERROR_SUCCESS || paramVal == NULL) {
@@ -352,7 +360,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
 
     std::ofstream paramFile("/tmp/.paramRFC");
     if (paramFile.is_open()) {
-        paramFile << "name: " <<  paramName << "\n";
+        paramFile << "name: " << paramName << "\n";
         paramFile << "type: " << paramTypeStr << "\n";
         paramFile << "value: " << paramValue << "\n";
         paramFile.close();
@@ -361,12 +369,12 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to write to /tmp/.paramRFC\n");
     }
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "paramType is %s\n", paramTypeStr.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: old parameter value %s\n", paramValue.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "paramType is %s\n", paramTypeStr.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: old parameter value %s\n", paramValue.c_str());
 
     bool isRfcNameSpace = (paramName.find(".X_RDKCENTRAL-COM_RFC.") != std::string::npos);
 
-    if (paramValue != configValue || isRfcNameSpace) {
+    if (paramValue != configValue) {
         rbusValue_t newValue;
         rbusValue_Init(&newValue);
 
@@ -398,8 +406,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             }
         } catch (const std::exception& e) {
             setSuccess = false;
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n",
-                    configValue.c_str(), paramName.c_str(), e.what());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n", configValue.c_str(), paramName.c_str(), e.what());
         }
 
         if (setSuccess) {
@@ -407,19 +414,11 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
             rbusValue_Release(newValue);
 
             if (rc == RBUS_ERROR_SUCCESS) {
-                if (isRfcNameSpace && paramValue == configValue) {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n",
-                           paramName.c_str(), configValue.c_str());
-                } else {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n",
-                           paramName.c_str(), paramValue.c_str(), configValue.c_str());
-                }
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: updated for %s from value old=%s, to new=%s\n", paramName.c_str(), paramValue.c_str(), configValue.c_str());
 
                 // Special handling for account ID
                 if (paramName == RFC_ACCOUNT_ID_KEY_STR) {
-                    std::string cmd = "t2CountNotify \"SYST_INFO_ACCID_set\"";
-                    std::string notifyOutput;
-                    ExecuteCommand(cmd, notifyOutput);
+                    NotifyTelemetry2Count("SYST_INFO_ACCID_set");
                 }
 
                 // Special handling for Syndication.PartnerId
@@ -429,24 +428,72 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
                     }
                 }
 
+                // Only schedule reboot if values actually changed
                 if (rebootValue == 1) {
                     if (!rfcRebootCronNeeded) {
                         rfcRebootCronNeeded = true;
-                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n",
-                               paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Enabling RfcRebootCronNeeded since %s old value=%s, new value=%s, RebootValue=%d\n", paramName.c_str(), paramValue.c_str(), configValue.c_str(), rebootValue);
                     }
                 }
             } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n",
-                       paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n", paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
             }
         } else {
             rbusValue_Release(newValue);
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: Failed to set value for %s due to conversion error\n", paramName.c_str());
         }
+    } else if (isRfcNameSpace) {
+        // For RFC namespace parameters, always perform rbus_set even if values are same
+        rbusValue_t newValue;
+        rbusValue_Init(&newValue);
+
+        bool setSuccess = true;
+        try {
+            switch (paramType) {
+                case RBUS_STRING:
+                    rbusValue_SetString(newValue, configValue.c_str());
+                    break;
+                case RBUS_BOOLEAN:
+                    rbusValue_SetBoolean(newValue, (configValue == "true" || configValue == "1"));
+                    break;
+                case RBUS_INT32:
+                    rbusValue_SetInt32(newValue, std::stoi(configValue));
+                    break;
+                case RBUS_UINT32:
+                    rbusValue_SetUInt32(newValue, std::stoul(configValue));
+                    break;
+                case RBUS_SINGLE:
+                    rbusValue_SetSingle(newValue, std::stof(configValue));
+                    break;
+                case RBUS_DOUBLE:
+                    rbusValue_SetDouble(newValue, std::stod(configValue));
+                    break;
+                default:
+                    setSuccess = false;
+                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Unsupported parameter type: %d\n", paramType);
+                    break;
+            }
+        } catch (const std::exception& e) {
+            setSuccess = false;
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "Failed to convert value %s for parameter %s: %s\n", configValue.c_str(), paramName.c_str(), e.what());
+        }
+
+        if (setSuccess) {
+            rc = rbus_set(rbusHandle, paramName.c_str(), newValue, NULL);
+            rbusValue_Release(newValue);
+
+            if (rc == RBUS_ERROR_SUCCESS) {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: rbus SET called for RFC namespace param: %s value=%s\n", paramName.c_str(), configValue.c_str());
+            } else {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: rbus SET failed for %s with value %s: %s\n", paramName.c_str(), configValue.c_str(), rbusError_ToString(rc));
+            }
+        } else {
+            rbusValue_Release(newValue);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "RFC: Failed to set value for %s due to conversion error\n", paramName.c_str());
+        }
+        // Note: No reboot logic for RFC namespace parameters when values are same
     } else {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n",
-               paramName.c_str(), configValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: For param %s new and old values are same value %s\n", paramName.c_str(), configValue.c_str());
     }
 
     rbus_close(rbusHandle);
@@ -456,7 +503,7 @@ bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configK
 int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 {
     std::string rfcList;
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
 
     // Initialize rbus connection
     rbusHandle_t rbusHandle;
@@ -509,60 +556,121 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 
     if (features) {
         int numFeatures = GetJsonArraySize(features);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Number of features to process: %d\n", __FUNCTION__, __LINE__, numFeatures);
+
         for (int index = 0; index < numFeatures; index++) {
             JSON* feature = GetJsonArrayItem(features, index);
-            if (feature) {
-                RuntimeFeatureControlObject *rfcObj = new RuntimeFeatureControlObject;
-
-                if (SUCCESS != getRFCName(feature, rfcObj)) {
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Name\n", __FUNCTION__, __LINE__);
-                    delete rfcObj;
-                    continue;
-                }
-
-                if (SUCCESS != getRFCEnableParam(feature, rfcObj)) {
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Enable Param\n", __FUNCTION__, __LINE__);
-                    delete rfcObj;
-                    continue;
-                }
-
-                if (SUCCESS != getEffectiveImmediateParam(feature, rfcObj)) {
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Effective Immediate\n", __FUNCTION__, __LINE__);
-                    delete rfcObj;
-                    continue;
-                }
-
-                if (SUCCESS != getFeatureInstance(feature, rfcObj)) {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured\n", __FUNCTION__, __LINE__);
-                } else {
-                    std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                    rfcList += rfcObj->featureInstance + "=true,";
-                    writeRemoteFeatureCntrlFile(filename, rfcObj);
-                }
-
-                writeRemoteFeatureCntrlFile(VARFILE, rfcObj);
-
-                // Special telemetry handling
-                if (rfcObj->name == "PeriodicFWCheck" && rfcObj->enable) {
-                    std::string notifyCmd = "t2CountNotify \"SYS_INFO_RFC_PeriodicFWCheck\"";
-                    std::string output;
-                    ExecuteCommand(notifyCmd, output);
-                } else if (rfcObj->name == "IPv6onLnF" && rfcObj->enable) {
-                    std::string notifyCmd = "t2CountNotify \"INFO_IPv6_LNF_Support\"";
-                    std::string output;
-                    ExecuteCommand(notifyCmd, output);
-                }
-
-                // Apply configuration if needed
-                std::string key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature." + rfcObj->name + ".Enable";
-                std::string value = rfcObj->enable ? "true" : "false";
-                int effectiveImmediate = rfcObj->effectiveImmediate ? 1 : 0;
-
-                ParseConfigValue(key, value, effectiveImmediate, rfcRebootCronNeeded);
-
-                delete rfcObj;
+            if (!feature) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get feature at index %d\n", __FUNCTION__, __LINE__, index);
+                continue;
             }
+
+            RuntimeFeatureControlObject *rfcObj = new RuntimeFeatureControlObject;
+            if (!rfcObj) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to allocate memory for RuntimeFeatureControlObject\n", __FUNCTION__, __LINE__);
+                continue;
+            }
+
+            if (SUCCESS != getRFCName(feature, rfcObj)) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Name\n", __FUNCTION__, __LINE__);
+                delete rfcObj;
+                continue;
+            }
+
+            if (SUCCESS != getRFCEnableParam(feature, rfcObj)) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Enable Param\n", __FUNCTION__, __LINE__);
+                delete rfcObj;
+                continue;
+            }
+
+            if (SUCCESS != getEffectiveImmediateParam(feature, rfcObj)) {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] JSON Parsing Failed for Feature Effective Immediate\n", __FUNCTION__, __LINE__);
+                delete rfcObj;
+                continue;
+            }
+
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing feature: %s, enabled: %s, effectiveImmediate: %s\n",
+                   __FUNCTION__, __LINE__, rfcObj->name.c_str(),
+                   rfcObj->enable ? "true" : "false",
+                   rfcObj->effectiveImmediate ? "true" : "false");
+
+            if (SUCCESS != getFeatureInstance(feature, rfcObj)) {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured for %s\n", __FUNCTION__, __LINE__, rfcObj->name.c_str());
+            } else {
+                std::string filename = ".RFC_" + rfcObj->name + ".ini";
+                rfcList += rfcObj->featureInstance + "=true,";
+                writeRemoteFeatureCntrlFile(filename, rfcObj);
+            }
+
+            writeRemoteFeatureCntrlFile(VARFILE, rfcObj);
+
+            // Process configData entries
+            int effectiveImmediate = rfcObj->effectiveImmediate ? 1 : 0;
+            char configDataStr[] = "configData";
+            JSON *configData = GetJsonItem(feature, configDataStr);
+            if (configData) {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Processing configData for feature: %s\n",
+                       __FUNCTION__, __LINE__, rfcObj->name.c_str());
+
+                // Iterate through configData child nodes (following your CreateConfigDataValueMap pattern)
+                JSON *child = configData->child;
+                int configEntryCount = 0;
+                while (child) {
+                    configEntryCount++;
+                    if (child->string && child->valuestring) {
+                        const char* configKey = child->string;
+                        const char* configValue = child->valuestring;
+
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing config entry %d: %s = %s (effectiveImmediate=%d)\n",
+                               __FUNCTION__, __LINE__, configEntryCount, configKey, configValue, effectiveImmediate);
+
+                        // Extract feature name from key (6th field when split by '.') - matching shell script logic
+                        std::string keyStr = configKey;
+                        std::string featureName;
+                        size_t pos = 0;
+                        int fieldCount = 0;
+                        while ((pos = keyStr.find('.')) != std::string::npos && fieldCount < 5) {
+                            keyStr = keyStr.substr(pos + 1);
+                            fieldCount++;
+                        }
+                        if ((pos = keyStr.find('.')) != std::string::npos) {
+                            featureName = keyStr.substr(0, pos);
+                        } else {
+                            featureName = keyStr;
+                        }
+
+                        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Extracted feature name: %s from key: %s\n",
+                               __FUNCTION__, __LINE__, featureName.c_str(), configKey);
+
+                        // Special telemetry handling for individual configData entries (matching shell script)
+                        if (featureName == "PeriodicFWCheck" && strcmp(configValue, "true") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Notify Telemetry for SYS_INFO_RFC_PeriodicFWCheck\n", __FUNCTION__, __LINE__);
+                            NotifyTelemetry2Count("SYS_INFO_RFC_PeriodicFWCheck");
+                        } else if (featureName == "IPv6onLnF" && strcmp(configValue, "true") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Notify Telemetry for INFO_IPv6_LNF_Support\n", __FUNCTION__, __LINE__);
+                            NotifyTelemetry2Count("INFO_IPv6_LNF_Support");
+                        }
+
+                        // Use the key exactly as it appears in JSON
+                        ParseConfigValue(std::string(configKey), std::string(configValue), effectiveImmediate, rfcRebootCronNeeded);
+                    } else {
+                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid config key or value in configData for feature: %s (entry %d)\n",
+                               __FUNCTION__, __LINE__, rfcObj->name.c_str(), configEntryCount);
+                    }
+                    child = child->next;
+                }
+
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Processed %d config entries for feature: %s\n",
+                       __FUNCTION__, __LINE__, configEntryCount, rfcObj->name.c_str());
+            } else {
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No configData found for feature: %s\n",
+                       __FUNCTION__, __LINE__, rfcObj->name.c_str());
+            }
+
+            delete rfcObj;
         }
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get features array from JSON\n", __FUNCTION__, __LINE__);
     }
 
     rc = rbus_set(rbusHandle, "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd", trueVal, NULL);
@@ -583,9 +691,15 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
     WriteFile(".version", _firmware_version);
 
     HandleScheduledReboot(rfcRebootCronNeeded);
+
     FreeJson(pJson);
+    rbusValue_Release(falseVal);
     rbusValue_Release(trueVal);
     rbus_close(rbusHandle);
+
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ProcessJsonResponseB completed successfully. Reboot needed: %s\n",
+           __FUNCTION__, __LINE__, rfcRebootCronNeeded ? "true" : "false");
+
     return SUCCESS;
 }
 
@@ -640,7 +754,7 @@ std::string RuntimeFeatureControlProcessor::readAccountIdFromFile()
             }
         }
         fclose(paramFile);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "readAccountIdFromFile: Extracted AccountId=%s from file\n", accountId.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "readAccountIdFromFile: Extracted AccountId=%s from file\n", accountId.c_str());
     }
     else
     {
@@ -678,10 +792,10 @@ void RuntimeFeatureControlProcessor::rfcCheckAccountId()
     // Compare with backup account ID
     if (paramValue != bkAccountId)
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: Account Id mismatch: old=%s, new=%s\n", bkAccountId.c_str(), paramValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "rfcCheckAccountId: Account Id mismatch: old=%s, new=%s\n", bkAccountId.c_str(), paramValue.c_str());
     }
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "rfcCheckAccountId: bkAccountId=%s, paramValue=%s\n", bkAccountId.c_str(), paramValue.c_str());
 }
 
 #endif
@@ -697,19 +811,19 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     if (i == READ_RFC_FAILURE) 
     {
         i = snprintf(tempbuf, szBufSize, "Unknown");
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: read_RFCProperty() failed Status %d\n", i);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetAccountID: read_RFCProperty() failed Status %d\n", i);
     } 
     else 
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
         _accountId = tempbuf;
 #ifdef RDKB_SUPPORT	
-        if (access("/tmp/.timeValue", F_OK) != 0)
+        if (access("/tmp/RFC/.timeValue", F_OK) != 0)
         {
             // Time file doesn't exist, set AccountID to Unknown
             _accountId = "Unknown";
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetAccountID: .timeValue file not found, setting AccountID to Unknown\n");
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
         }
         saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
 #endif	
@@ -731,7 +845,7 @@ void RuntimeFeatureControlProcessor::GetRFCPartnerID()
 
     if (checkWhoamiSupport())
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetPartnerID: WhoAmI support is Enabled\n");
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetPartnerID: WhoAmI support is Enabled\n");
          i = read_RFCProperty(str.c_str(), RFC_PARTNERNAME_KEY_STR, tempbuf, partBufSize);
          if (i == READ_RFC_FAILURE)
          {
@@ -749,7 +863,7 @@ void RuntimeFeatureControlProcessor::GetRFCPartnerID()
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetRFCPartnerID: get from _partner_id\n");
     }
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetRFCPartnerID: PartnerID = %s\n", _partnerId.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetRFCPartnerID: PartnerID = %s\n", _partnerId.c_str());
 
     return;
 }
@@ -792,7 +906,7 @@ void RuntimeFeatureControlProcessor::GetOsClass( void )
 
     if (checkWhoamiSupport())
     {
-         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetOsClass: WhoAmI support if Enabled\n");
+         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetOsClass: WhoAmI support if Enabled\n");
          i = read_RFCProperty(str.c_str(), RFC_OSCLASS_KEY_STR, osclassbuf, osclassbufSize);
          if (i == READ_RFC_FAILURE)
          {
@@ -840,10 +954,16 @@ int RuntimeFeatureControlProcessor::GetExperience( void )
     }
     if( !*tempbuf )  // we got nothing back, "X1" is default
     {
-        *tempbuf = 'X';
-        *(tempbuf + 1) = '1';
-        *(tempbuf + 2) = 0;
-        i=3;
+#ifdef RDKB_SUPPORT
+        *tempbuf = 0;
+        i = 0;
+#else
+        // we got nothing back, "X1" is default in video
+         *tempbuf = 'X';
+         *(tempbuf + 1) = '1';
+         *(tempbuf + 2) = 0;
+         i=3;
+#endif
     }
     _experience = tempbuf;
 
@@ -902,27 +1022,27 @@ int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
         if (!tmp_URL.empty())
         {
             _xconf_server_url = tmp_URL + "/featureControl/getSettings";
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using TR181 URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using TR181 URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
         }
         else
         {
             if (_partnerId == "sky-uk" && !_xconf_server_url_eu.empty())
             {
                 _xconf_server_url = _xconf_server_url_eu;
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk\n", __FUNCTION__, __LINE__);
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk\n", __FUNCTION__, __LINE__);
             }
 
             RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RFC: TR181 URL is empty\n", __FUNCTION__, __LINE__);
         }
 
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Initial URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initial URL: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
     }
     else // rfc_state == Local
     {
         if (_partnerId == "sky-uk" && !_xconf_server_url_eu.empty())
         {
             _xconf_server_url = _xconf_server_url_eu;
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk in LOCAL mode\n", __FUNCTION__, __LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using EU URL for sky-uk in LOCAL mode\n", __FUNCTION__, __LINE__);
         }
     }
 #else
@@ -945,7 +1065,7 @@ int RuntimeFeatureControlProcessor::GetServURL(const char *rfcPropertiesFile)
         return FAILURE;
     }
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] _xconf_server_url: [%s]\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
     return SUCCESS;
 }
 
@@ -1088,7 +1208,7 @@ bool RuntimeFeatureControlProcessor::isXconfSelectorSlotProd()
     else 
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] XconfSelector = %s\n", __FUNCTION__, __LINE__, tempbuf);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] XconfSelector = %s\n", __FUNCTION__, __LINE__, tempbuf);
     }
 
     if(0 == prod_str.compare(tempbuf))
@@ -1108,8 +1228,8 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     // this is required as sometime key value pairs will simply
     // disappear from the config data, as mac is mostly removed
     // to disable a feature rather than having different value
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
 
 #ifndef RDKC
     std::string name = "rfc";
@@ -1128,12 +1248,12 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, BootstrapClearDB, clearValue);
     set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
 
 #else
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
     if (std::remove(TR181STOREFILE) == 0)
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s removed successfully\n",__FUNCTION__, __LINE__, TR181STOREFILE);
@@ -1156,7 +1276,7 @@ void RuntimeFeatureControlProcessor::rfcStashStoreParams(void)
     // Store the current AccountID before clearing DB
     stashAccountId = _accountId;
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Stashed AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Stashed AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
 }
 
 void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
@@ -1167,7 +1287,7 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
 
     if (!stashAccountId.empty() && stashAccountId != "Unknown")
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Restoring AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Restoring AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
 
         std::string name = "rfc";
 
@@ -1187,12 +1307,12 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
     }
     else
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] No valid AccountID to restore\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No valid AccountID to restore\n", __FUNCTION__, __LINE__);
     }
 }
 
 void RuntimeFeatureControlProcessor::clearDBEnd(void){
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DB End\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB End\n", __FUNCTION__,__LINE__);
 
     std::string name = "rfc";
     const std::string clearValue = "true";
@@ -1204,14 +1324,14 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
     set_RFCProperty(name, reloadCacheKey, clearValue);
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
 }
 
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 {
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
 
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetHashName = "ConfigSetHash";
@@ -1227,7 +1347,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
         // Write the hash value to the file
         file << configSetHash;
         file.close();
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully wrote hash to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote hash to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
     } else {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
     }
@@ -1253,7 +1373,7 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
     if (file.is_open()) {
         file << timestampString;
         file.close();
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Successfully wrote timestamp to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote timestamp to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
     } else {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
     }
@@ -1264,7 +1384,7 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 
 void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
 {
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
     std::string httpHeader = curlHeaderResp;
 
     std::string key1 = "configSetHash:";
@@ -1293,7 +1413,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
         configSetHashValue.erase(configSetHashValue.find_last_not_of(" \t\r") + 1);
 
         // Output the value
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "configSetHash value: %s\n", configSetHashValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "configSetHash value: %s\n", configSetHashValue.c_str());
 
         updateHashInDB(configSetHashValue);
     } else {
@@ -1330,12 +1450,12 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
         if (modtime <= (long)direct_block_time)
         {
             std::string remtime_str = std::to_string(remtime);
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking is still valid for %s hrs, preventing direct\n", __FUNCTION__, __LINE__, remtime_str.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking is still valid for %s hrs, preventing direct\n", __FUNCTION__, __LINE__, remtime_str.c_str());
             directret = true;
         }
         else
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
             if (remove(DIRECT_BLOCK_FILENAME) != 0)
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
@@ -1365,7 +1485,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
         {
             if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
             }
             else 
@@ -1374,7 +1494,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
                 {
                     _xconf_server_url.clear();
                     _xconf_server_url = _boot_strap_xconf_url + "/featureControl/getSettings";
-                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from Bootstrap config XCONF_BS_URL:%s to %s \n", __FUNCTION__, __LINE__, _boot_strap_xconf_url.c_str(), _xconf_server_url.c_str());
                     NotifyTelemetry2Value("SYST_INFO_RFC_XconfBSURL", _xconf_server_url.c_str());
                 }
             }
@@ -1510,14 +1630,24 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
-    url << "manufacturer=" << _manufacturer << "&";
+#if defined(RDKB_SUPPORT)
+    url << "ecmMacAddress=" << _ecm_mac_address << "&";
+#else
+     url << "manufacturer=" << _manufacturer << "&";
+#endif
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     url << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     url << "VodId=" << RFC_VIDEO_VOD_ID << "&";
     url << "partnerId=" << _partner_id << "&";
-    url << "osClass=" << _osclass << "&";
+#if !defined(RDKB_SUPPORT)
+     url << "osClass=" << _osclass << "&";
+#endif
     url << "accountId=" << _accountId << "&";
-    url << "Experience=" << _experience << "&";
+#if defined(RDKB_SUPPORT)	
+    url << "experience=" << _experience << "&";
+#else
+	url << "Experience=" << _experience << "&";
+#endif	
     url << "version=" << 2;
     
     #ifndef URLENCODING_DISABLED
@@ -1528,16 +1658,26 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
-    EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
+#if defined(RDKB_SUPPORT)
+    EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
+#else
+     EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
+#endif
 
     encodedUrl << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     encodedUrl << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     encodedUrl << "VodId=" << RFC_VIDEO_VOD_ID << "&";
 
     EncodeString("partnerId=", _partner_id, encodedUrl, "&");
-    EncodeString("osClass=", _osclass, encodedUrl, "&");
+#if !defined(RDKB_SUPPORT)
+     EncodeString("osClass=", _osclass, encodedUrl, "&");
+#endif
     EncodeString("accountId=", _accountId, encodedUrl, "&");
+#if !defined(RDKB_SUPPORT)	
     EncodeString("Experience=", _experience, encodedUrl, "&");
+#else
+	EncodeString("experience=", _experience, encodedUrl, "&");
+#endif	
     encodedUrl << "version=2";
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Encoding is enabled plain URL: %s\n", __FUNCTION__, __LINE__, url.str().c_str());
@@ -1552,9 +1692,11 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 {
     if(!_last_firmware.compare( _firmware_version ))
     {
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         /*Both the input strings are equal.*/
-        if((rfc_state == Init) && (isXconfSelectorSlotProd() == true))
+        if((rfc_state == Init) && (isXconfSelectorSlotProd() == false))
         {
+	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received XconfSelector as Non Prod for RFC state as INIT \n", __FUNCTION__, __LINE__);
             valueTime = "0";
             valueHash = "OVERRIDE_HASH";
         }
@@ -1565,13 +1707,15 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
     }
     else
     {
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are different \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         valueTime = "0";
         valueHash = "UPGRADE_HASH";
     }
 
-    std::string InvalidStr = "Unkown";
+    std::string InvalidStr = "Unknown";
     if ((!_partner_id.compare(InvalidStr)) || (!_accountId.compare(InvalidStr)))
     {
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d]  Invalid partner or account as Unknown, Passing OVERRIDE_HASH \n", __FUNCTION__, __LINE__);
         valueHash="OVERRIDE_HASH";
     }
 
@@ -1595,7 +1739,7 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std:
         if (hashFile.is_open()) {
             std::getline(hashFile, valueHash);
             hashFile.close();
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s (from file)\n", __FUNCTION__, __LINE__, valueHash.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s (from file)\n", __FUNCTION__, __LINE__, valueHash.c_str());
         } else {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open hash file: %s\n", __FUNCTION__, __LINE__, hashFilePath.c_str());
         }
@@ -1610,7 +1754,7 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std:
         if (timeFile.is_open()) {
             std::getline(timeFile, valueTime);
             timeFile.close();
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s (from file)\n", __FUNCTION__, __LINE__, valueTime.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s (from file)\n", __FUNCTION__, __LINE__, valueTime.c_str());
         } else {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open time file: %s\n", __FUNCTION__, __LINE__, timeFilePath.c_str());
         }
@@ -1635,7 +1779,7 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std:
     else
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s\n", __FUNCTION__, __LINE__, tempbuf);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s\n", __FUNCTION__, __LINE__, tempbuf);
     }
     valueHash = tempbuf;
 
@@ -1650,7 +1794,7 @@ void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std:
     else
     {
         i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s\n", __FUNCTION__, __LINE__, tempbuf);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s\n", __FUNCTION__, __LINE__, tempbuf);
     }
     valueTime = tempbuf;
 #endif
@@ -1692,7 +1836,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Curl Initialized\n", __FUNCTION__, __LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Curl Initialized\n", __FUNCTION__, __LINE__);
             FileDwnl_t file_dwnl;
 
             memset(&file_dwnl, '\0', sizeof(FileDwnl_t));
@@ -1702,7 +1846,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             file_dwnl.pDlHeaderData = pHeaderDwnLoc;
             *(file_dwnl.pathname) = 0;
 
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Request : [%s]\n", __FUNCTION__, __LINE__, url_str.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Request : [%s]\n", __FUNCTION__, __LINE__, url_str.c_str());
             strncpy(file_dwnl.url, url_str.c_str(), sizeof(file_dwnl.url)-1);
             
             std::string hashValue;
@@ -1827,7 +1971,7 @@ void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
     if((rfc_state == Init) || ( _is_first_request == true))
     {
         /* Parse JSON */
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, xconfResp);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, xconfResp);
         JSON *pJson = ParseJsonStr(xconfResp);
         if(pJson)
         {
@@ -1835,10 +1979,12 @@ void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
             if(features)
             {
                 CreateConfigDataValueMap(features);
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] First Xconf Request after reboot=%d\n", __FUNCTION__, __LINE__,_is_first_request);
                 if( _is_first_request == true)
                 {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidAccountId\n", __FUNCTION__, __LINE__);
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] GetValidAccountId\n", __FUNCTION__, __LINE__);
                     GetValidAccountId();
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] GetValidPartnerId\n", __FUNCTION__, __LINE__);
                     GetValidPartnerId();
                     _is_first_request = false;
                 }
@@ -1924,7 +2070,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
 
     if(value.empty())
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Parner ID\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Partner ID\n", __FUNCTION__, __LINE__);
         _valid_partnerId = "Unknown";
     }
     else
@@ -2017,7 +2163,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponse(char *featureXConfMsg)
 {
     std::string rfcList;
 
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Response: %s\n", __FUNCTION__, __LINE__, featureXConfMsg);
     JSON *pJson = ParseJsonStr(featureXConfMsg);
 
     if(!pJson)
@@ -2135,7 +2281,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 
     if( _RFCKeyAndValueMap.empty())
     {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
         return;    
     }
 #if !defined(RDKB_SUPPORT)
@@ -2153,7 +2299,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         newKey = pair.first;
         newValue = pair.second;
 
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Value[%s]\n", __FUNCTION__, __LINE__, newKey.c_str(), newValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Value[%s]\n", __FUNCTION__, __LINE__, newKey.c_str(), newValue.c_str());
 
         configChanged = isConfigValueChange(name, newKey , newValue, currentValue);
         if(configChanged == false)
@@ -2164,8 +2310,8 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         {
 	    if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
 	    {
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
 	        if (ProcessXconfUrl(newValue.c_str()) != SUCCESS)
 		{
 		    continue;
@@ -2230,7 +2376,7 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
             pConfigData = GetJsonItem(feature,configData);
             if(!pConfigData)
             {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Config Data not found.\n", __FUNCTION__, __LINE__);
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Config Data not found.\n", __FUNCTION__, __LINE__);
                 break;    
             }
             child = pConfigData->child;
@@ -2280,14 +2426,14 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
             {
                 if(true == StringCaseCompare(value, unknown_str))
                 {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
                     value = currentValue;
                 }
             }
         }
         else
         {
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] For param %s new and old values are same value %s", __FUNCTION__, __LINE__,  key.c_str(), currentValue.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] For param %s new and old values are same value %s", __FUNCTION__, __LINE__,  key.c_str(), currentValue.c_str());
             return false;
         }
     }
@@ -2417,7 +2563,7 @@ void RuntimeFeatureControlProcessor::updateTR181File(const std::string& filename
         while (!paramList.empty()) 
         {
             std::string data = paramList.front();
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, data.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, data.c_str());
             outFile << data << std::endl; // Write the front element to the file
             paramList.pop_front(); // Remove the front element
         }
@@ -2465,7 +2611,7 @@ void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, cons
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File Open %s\n", __FUNCTION__, __LINE__, fullPath.c_str());
         outFile << data << "\n";
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__,data.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__,data.c_str());
         outFile.close();
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s written successfully\n", __FUNCTION__, __LINE__,fullPath.c_str());
     } 
@@ -2490,9 +2636,9 @@ void RuntimeFeatureControlProcessor::writeRemoteFeatureCntrlFile(const std::stri
         std::string effectData = "export RFC_" + feature->name + "_effectiveImmediate=" + effectStr;
 
         outFile << enbData << "\n";
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, enbData.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, enbData.c_str());
         outFile << effectData << "\n";
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, effectData.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, effectData.c_str());
         outFile.close();
 
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s written successfully\n", __FUNCTION__, __LINE__,fullPath.c_str());
