@@ -1820,7 +1820,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     int state_red = -1;
     int cert_ret_code = -1;
     MtlsAuth_t sec;
+#ifdef LIBRDKCERTSELECTOR    
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
+#else
+    int ret = -1 ;
+#endif    
     int httpCode = -1;
 
     hashParam = (hashParam_t *)malloc(sizeof(hashParam_t));
@@ -1830,6 +1834,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
         return ret_value;
     }
 
+#ifdef LIBRDKCERTSELECTOR    
     static rdkcertselector_h thisCertSel = NULL;
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
     if (thisCertSel == NULL) 
@@ -1863,6 +1868,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 	        NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
 	    }
     } while (rdkcertselector_setCurlStatus(thisCertSel, cert_ret_code, url_str.c_str()) == TRY_ANOTHER);
+#endif
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
@@ -1893,7 +1899,11 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
             /* Handle MTLS failure case as well. */
             int curl_ret_code = 0;
+#ifdef LIBRDKCERTSELECTOR    
             if (ret == MTLS_CERT_FETCH_FAILURE)
+#else		    
+            if (ret == -1)
+#endif		    
             {
                 /* RDKE-419: No valid data in 'sec' buffer, pass NULL */
                 curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
