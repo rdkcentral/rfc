@@ -40,13 +40,13 @@ rfcMgr_CPPFLAGS += $(LIBRDKCERTSEL_FLAG)
 rfcMgr_CFLAGS = $(LIBRDKCERTSEL_FLAG)
 if IS_LIBRDKCONFIG_ENABLED
 rfcMgr_CPPFLAGS += $(LIBRDKCONFIG_FLAG)
-rfcMgr_LDADD = -lRdkCertSelector $(PKG_CONFIG_SYSROOT_DIR)/usr/lib/librdkconfig.a -lsafec
+rfcMgr_LDADD = -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig -lsafec
 else
 rfcMgr_LDADD = -lRdkCertSelector
 endif
 else
 if IS_LIBRDKCONFIG_ENABLED
 rfcMgr_CPPFLAGS += $(LIBRDKCONFIG_FLAG)
-rfcMgr_LDADD = $(PKG_CONFIG_SYSROOT_DIR)/usr/lib/librdkconfig.a -lsafec
+rfcMgr_LDADD = -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig -lsafec
 endif
 endif
