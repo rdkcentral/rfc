@@ -1854,7 +1854,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     memset(&sec, '\0', sizeof(MtlsAuth_t));
     do {
 	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Fetching MTLS credential for SSR/XCONF\n", __FUNCTION__, __LINE__);
-        ret = getMtlscert(&sec, &thisCertSel);
+        ret = getMtlscert(&thisCertSel);
 	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] getMtlscert function ret value = %d\n", __FUNCTION__, __LINE__, ret);
 
         if (ret == MTLS_CERT_FETCH_FAILURE) {
