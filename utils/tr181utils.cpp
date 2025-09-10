@@ -38,6 +38,9 @@
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
+#include <fcntl.h>
+#include <unistd.h>
+
 using namespace std;
 
 static char value_type = 'u';
@@ -50,6 +53,32 @@ static bool silent = true;
 inline bool legacyRfcEnabled() {
     ifstream f("/opt/RFC/.RFC_LegacyRFCEnabled.ini");
     return f.good();
+}
+
+static int g_saved_stderr = -1;
+
+static void mute_stderr_except_us() {
+    // Save current stderr (with 2>&1 this points to caller's stdout pipe)
+    g_saved_stderr = dup(STDERR_FILENO);
+    int dn = open("/dev/null", O_WRONLY);
+    if (dn >= 0) { dup2(dn, STDERR_FILENO); close(dn); }
+}
+
+// Single, atomic-ish write of the value + '\n' to the saved pipe.
+static void write_value_line(const char* s) {
+    if (!s) s = "";
+    if (g_saved_stderr < 0) return;
+    // Build one buffer to minimize interleaving
+    size_t len = strlen(s);
+    char buf[4096];
+    if (len + 1 < sizeof(buf)) {
+        memcpy(buf, s, len);
+        buf[len] = '\n';
+        (void)write(g_saved_stderr, buf, len + 1);
+    } else {
+        (void)write(g_saved_stderr, s, len);
+        (void)write(g_saved_stderr, "\n", 1);
+    }
 }
 
 /**
@@ -115,7 +144,7 @@ static int getAttribute(char * const paramName)
        if(status == tr181Success)
        {
            cout << __FUNCTION__ << " >> Param Value :: " << param.value << endl;
-           cerr << param.value << endl;
+           write_value_line(param.value);
        }
        else
        {
@@ -130,7 +159,7 @@ static int getAttribute(char * const paramName)
    if(status == WDMP_SUCCESS || status == WDMP_ERR_DEFAULT_VALUE)
    {
        cout << __FUNCTION__ << " >> Param Value :: " << param.value << endl;
-       cerr << param.value << endl;
+       write_value_line(param.value);
    }
    else
    {
@@ -285,6 +314,8 @@ int main(int argc, char *argv [])
       exit(1);
    }
 
+   mute_stderr_except_us();
+    
    if(silent)
    {
       void_file.open("/dev/null");
