@@ -20,6 +20,9 @@
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"
+#ifdef LIBRDKCONFIG_BUILD
+#include "rdkconfig.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,18 +65,41 @@ int isInStateRed(void) {
     return stateRed;
 }
 
-/* Description: Placeholder functions for implementing MTLS certs retrieval logic from compile time overrides
+#ifdef LIBRDKCERTSELECTOR
+/* Description: Use for get all mtls related certificate and key.
+ * @param sec: This is a pointer hold the certificate, key and type of certificate.
+ * @return :  MTLS_CERT_FETCH_SUCCESS on success, MTLS_CERT_FETCH_FAILURE on mtls cert failure , STATE_RED_CERT_FETCH_FAILURE on state red cert failure
+ * */
+MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
+    /*
+            strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);
+	    sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
+            strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
+	    sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
+            strncpy(sec->key_pas, mtlsbuff, sizeof(sec->key_pas) - 1);
+            sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
+     * */
+    return MTLS_CERT_FETCH_SUCCESS;
+}
+#else
+/* Description: Use for get all mtls related certificate and key.
  * @param sec: This is a pointer hold the certificate, key and type of certificate.
  * @return : int Success 1 and failure -1
  * */
-int getMtlscert(MtlsAuth_t *sec) 
-{
-    if (NULL == sec) {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"getMtlscert(): the sec buffer is empty or null.");
-        return MTLS_FAILURE;
-    }
+int getMtlscert(MtlsAuth_t *sec) {
+    /*
+            strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);
+            sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
+            strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
+            sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
+            strncpy(sec->key_pas, mtlsbuff, sizeof(sec->key_pas) - 1);
+            sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
+        */
+    /* TODO: RDKE-419: temporary change until RDKE-419 gets proper solution. */
     return MTLS_FAILURE;
 }
+#endif
+
 #ifdef __cplusplus
 }
 #endif
