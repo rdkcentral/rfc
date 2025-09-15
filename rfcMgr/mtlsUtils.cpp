@@ -79,6 +79,8 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
             strncpy(sec->key_pas, mtlsbuff, sizeof(sec->key_pas) - 1);
             sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
      * */
+	(void)sec;
+    (void)pthisCertSel;
     return MTLS_CERT_FETCH_SUCCESS;
 }
 #else
@@ -96,6 +98,7 @@ int getMtlscert(MtlsAuth_t *sec) {
             sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
         */
     /* TODO: RDKE-419: temporary change until RDKE-419 gets proper solution. */
+	(void)sec;
     return MTLS_FAILURE;
 }
 #endif
