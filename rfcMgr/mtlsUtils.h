@@ -32,6 +32,9 @@ extern "C" {
 #include <system_utils.h>
 #include <urlHelper.h>
 
+#define MTLS_SUCCESS 1
+#define MTLS_FAILURE -1
+
 #ifdef LIBRDKCERTSELECTOR	
 #include "rdkcertselector.h"
 
@@ -46,8 +49,6 @@ typedef enum {
 
 MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
 #else
-#define MTLS_SUCCESS 1
-#define MTLS_FAILURE -1
 int getMtlscert(MtlsAuth_t *sec);
 #endif
 
