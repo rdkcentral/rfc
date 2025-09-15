@@ -32,9 +32,6 @@ extern "C" {
 #include <system_utils.h>
 #include <urlHelper.h>
 
-#define MTLS_SUCCESS 1
-#define MTLS_FAILURE -1
-
 #ifdef LIBRDKCERTSELECTOR	
 #include "rdkcertselector.h"
 
