@@ -74,6 +74,12 @@ if [ $? -ne 0 ]; then
 fi
 echo "********************"
 
+cd $TOP_DIR/rfcMgr/
+
+gcov -b -c rfcMgr_gtest-rfc_manager.gcno
+
+cat rfc_manager.cpp.gcov
+
 cd $TOP_DIR
 
 if [ "$ENABLE_COV" = true ]; then

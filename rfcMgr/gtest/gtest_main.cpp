@@ -846,6 +846,30 @@ TEST(rfcMgrTest, removed_GatewayIPFile) {
     delete rfcmgrObj;
 }
 
+TEST(rfcMgrTest, CheckIPV6routeConnectivity) {
+    write_on_file(GATEWAYIP_FILE, "IPV6 fe80::1ff:fe23:4567:890a");
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+    EXPECT_EQ(result, true);
+    delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, CheckInvalidIP) {
+    std::remove(GATEWAYIP_FILE);
+    write_on_file(GATEWAYIP_FILE, "192.256.0.1");
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+    EXPECT_EQ(result, false);
+    delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, InvalidGatewayIP_File) {
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(NULL);
+    EXPECT_EQ(result, false);
+    delete rfcmgrObj;
+}
+
 TEST(rfcMgrTest, IsIarmBusConnected) {
     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
     bool result =  rfcmgrObj->IsIarmBusConnected();
@@ -875,6 +899,40 @@ TEST(rfcMgrTest, removed_DnsResolveFile) {
     EXPECT_EQ(result, false);
 }
 
+TEST(rfcMgrTest, InvalidDNS_File) {
+    int result = isDnsResolve(NULL);
+    EXPECT_EQ(result, false);
+}
+
+TEST(rfcMgrTest, removed_IP_ROUTE_File) {
+    std::remove(IP_ROUTE_FLAG);
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->CheckIProuteConnectivity(GATEWAYIP_FILE);
+    EXPECT_EQ(result, false);
+    delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, checkIPConnectivity) {
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    bool result =  rfcmgrObj->CheckIPConnectivity();
+    EXPECT_EQ(result, false);
+    delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, manageCronJob) {
+    std::string myCron = "0 5 * * * /tmp/script.sh";
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    rfcmgrObj->manageCronJob(myCron);
+    EXPECT_EQ(0, 0);
+    delete rfcmgrObj;
+}
+
+TEST(rfcMgrTest, RFCManagerProcess) {
+    rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
+    int result =  rfcmgrObj->RFCManagerProcess();
+    EXPECT_EQ(result, 0);
+    delete rfcmgrObj;
+}
 
 TEST(rfcMgrTest, RFCManagerProcessXconfRequest) {
     rfc::RFCManager *rfcmgrObj = new rfc::RFCManager();
