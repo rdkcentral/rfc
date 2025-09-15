@@ -392,7 +392,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
          logofs << prefix() << __FUNCTION__ << ": http server is ready" << endl;
 #endif
-         RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: http server is ready\n", __FUNCTION__);
+         RDK_LOG (RDK_LOG_INFO, LOG_RFCAPI, "%s: http server is ready\n", __FUNCTION__);
          tr69hostif_http_server_ready = true;
       }
    }
@@ -404,7 +404,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"getRFCParam data = %s, datalen = %d\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
@@ -451,7 +451,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
        logofs  << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
-       RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
@@ -469,7 +469,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
       logofs << prefix() << "curl response: " << response << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
 
       if (response_json)
@@ -569,7 +569,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"setRFCParam data = %s, datalen = %d\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
 
    if (curl_handle)
    {
@@ -611,7 +611,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
       curl_easy_cleanup(curl_handle);
 
       curl_slist_free_all(customHeadersList);
@@ -629,7 +629,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "curl response: " << response << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
       if (response_json)
       {

@@ -195,7 +195,7 @@ tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR1
                 {
                    ifs_rfcVar.close();
                    string value = line.substr(splitterPos+1, line.length());
-                   RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                   RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
                    if(value.length() > 0)
                    {
                       pstParam->type = TR181_NONE; //The caller must know what type they are expecting
@@ -254,7 +254,7 @@ tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue)
                 string key = line.substr(0, splitterPos);
                 string value = line.substr(splitterPos+1, line.length());
                 m_dict[key] = value;
-                RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Key = %s : Value = %s\n", key.c_str(), value.c_str());
             }
         }
         ifs_tr181.close();
