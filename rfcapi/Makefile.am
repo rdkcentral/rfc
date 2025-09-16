@@ -27,11 +27,11 @@ if ENABLE_RDKC
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${top_srcdir}/../rdklogger/include/
 librfcapi_la_LIBADD = -L${top_srcdir}/../rdklogger/src/.libs -lrdkloggers
 else
-//if ENABLE_RDKB
-//librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall $(RDKB_FLAG) -I${top_srcdir}/../rdklogger/include/
-//else
+#if ENABLE_RDKB
+#librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall $(RDKB_FLAG) -I${top_srcdir}/../rdklogger/include/
+#else
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
 librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers
-//endif
+#endif
 endif
 endif
