@@ -39,10 +39,10 @@ using namespace std;
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
 
 #define CONNECTION_TIMEOUT 5
-#if !defined(RDKB_SUPPORT)
+//#if !defined(RDKB_SUPPORT)
 #define TRANSFER_TIMEOUT 10
-#else
-#define TRANSFER_TIMEOUT 30
+//#else
+//#define TRANSFER_TIMEOUT 30
 #endif
 
 //#if defined(USE_IARMBUS)
@@ -175,7 +175,7 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
     }
 }
 #endif
-
+/*
 #if defined(RDKB_SUPPORT)
 int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
@@ -251,6 +251,7 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 }
 
 #else
+*/
 #define FAILURE            -1
 #define SUCCESS             0
 
@@ -780,7 +781,7 @@ bool isRFCEnabled(const char *feature)
    return (stat(fileName.c_str(), &buffer) == 0);
 }
 
-#endif
+//#endif
 
 // Define your write callback function
 #ifdef GTEST_ENABLE
