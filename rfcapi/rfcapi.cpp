@@ -45,10 +45,10 @@ using namespace std;
 #define TRANSFER_TIMEOUT 30
 #endif
 
-#if defined(USE_IARMBUS)
+//#if defined(USE_IARMBUS)
 static const char *url = "http://127.0.0.1:11999";
 static bool tr69hostif_http_server_ready = false;
-#endif
+//#endif
 
 #ifdef TEMP_LOGGING
 static ofstream logofs;
