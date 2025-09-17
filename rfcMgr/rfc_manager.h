@@ -35,11 +35,21 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define DEBUG_INI_FILE "/etc/debug.ini"
+#if !defined(RDKB_SUPPORT)
+#define OVERIDE_DEBUG_INI_FILE "/opt/debug.ini"
+#else
+#define OVERIDE_DEBUG_INI_FILE "/nvram/debug.ini"
+#endif
 #define DNS_RESOLV_FILE "/etc/resolv.dnsmasq"
 #define IP_ROUTE_FLAG "/tmp/route_available"
 #define GATEWAYIP_FILE "/tmp/.GatewayIP_dfltroute"
 #define ROUTE_FLAG_MAX_CHECK 5
 #define RFC_MGR_INTERNET_CHECK_TIMEOUT 2000
+
+#if defined(GTEST_ENABLE)
+#include <gtest/gtest.h>
+#endif
+
 
 /*----------------------------------------------------------------------------*/
 /*                                   Namespace                                */
@@ -60,9 +70,18 @@ enum DeviceStatus {
 #define MAINT_CRITICAL_UPDATE   11
 #define MAINT_REBOOT_REQUIRED   12
 
+#if !defined(RDKB_SUPPORT)
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
+#else
+#define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/RFCpostprocess.sh"
+#define RFC_LOG_FILE                    "/rdklogs/logs/dcmrfc.log.0"
+#endif
 
 #define RFC_MGR_SERVICE_LOCK_FILE       "/tmp/.rfcServiceLock"
+
+#if defined(GTEST_ENABLE)
+bool isDnsResolve(const char *);
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                                   Class                                    */
@@ -75,12 +94,21 @@ class RFCManager {
         RFCManager &operator=(const RFCManager &) = delete;
         int RFCManagerProcessXconfRequest();
         rfc::DeviceStatus CheckDeviceIsOnline(void);
+#if !defined(RDKB_SUPPORT)	
         void SendEventToMaintenanceManager(const char *, unsigned int);
+#endif
+        void manageCronJob(const std::string& cron);	
 
+#if defined(GTEST_ENABLE)
+    public:
+#else
     private:
+#endif
         void InitializeIARM(void);
         bool isConnectedToInternet();
         bool CheckIProuteConnectivity(const char *);
+	std::string getErouterIPAddress();
+	bool CheckIPConnectivity(void);
         bool IsIarmBusConnected();
         int RFCManagerProcess();
         int RFCManagerPostProcess();
