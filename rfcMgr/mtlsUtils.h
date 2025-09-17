@@ -67,7 +67,9 @@ int getMtlscert(MtlsAuth_t *sec);
 #define SYS_CMD_GET_CONFIG_FILE ""
 #define STATE_RED_SPRT_FILE ""
 #define STATEREDFLAG ""
-
+#define RFC_SSH_FILE ""
+#define SSH_WHITELIST_SCRIPT ""
+ 
 #if defined(GTEST_ENABLE)
 int isStateRedSupported(void);
 int isInStateRed(void);
