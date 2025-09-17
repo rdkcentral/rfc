@@ -379,18 +379,58 @@ namespace rfc {
 
     int RFCManager::RFCManagerPostProcess()
     {
-        // Check if the script exists before executing it
-        if (access(RFC_MGR_IPTBLE_INIT_SCRIPT, F_OK) == 0) {
-            if(-1 == v_secure_system("sh %s", RFC_MGR_IPTBLE_INIT_SCRIPT))
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] POSTPROCESSING IS RUN NOW !!! \n", __FUNCTION__, __LINE__);
+
+#if defined(RDKB_SUPPORT)
+        if (access(RFC_SSH_FILE, F_OK) == 0) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC File for SSH present. Refreshing Firewall\n", __FUNCTION__, __LINE__);
+            if(-1 == v_secure_system("sysevent set firewall-restart"))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
-                return FAILURE;
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute sysevent set firewall-restart\n", __FUNCTION__, __LINE__);
             }
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] Executed Successfully\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
         } else {
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC File for SSH is not present or empty\n", __FUNCTION__, __LINE__);
         }
 
+        if(-1 == v_secure_system("dmcli eRT setv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Snmpv3DHKickstart.RFCUpdateDone bool true"))
+        {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to set RFCUpdateDone\n", __FUNCTION__, __LINE__);
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFCUpdateDone set to true\n", __FUNCTION__, __LINE__);
+        }
+
+        if (access(SSH_WHITELIST_SCRIPT, F_OK) == 0) {
+            if(-1 == v_secure_system("sh %s &", SSH_WHITELIST_SCRIPT))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s script\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Triggered %s to execute successfully in background\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s script does not exist, skipping execution\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+        }
+
+#else
+        if (access(IPTABLE_INIT_SCRIPT, F_OK) == 0) {
+            if(-1 == v_secure_system("%s SSH_Refresh &", IPTABLE_INIT_SCRIPT))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SSH_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s SSH_Refresh executed successfully in background\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            }
+
+            // Execute iptables_init SNMP_Refresh in background
+            if(-1 == v_secure_system("%s SNMP_Refresh &", IPTABLE_INIT_SCRIPT))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SNMP_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s SNMP_Refresh executed successfully in background\n", __FUNCTION__, __LINE__,IPTABLE_INIT_SCRIPT);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+        }
+#endif
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] POSTPROCESSING IS COMPLETE !!!\n", __FUNCTION__, __LINE__);
         return SUCCESS;
     }
 
