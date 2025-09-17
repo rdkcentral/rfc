@@ -33,6 +33,8 @@ AC_PROG_CXX
 AC_PROG_CC
 
 GTEST_ENABLE_FLAG = ""
+IS_LIBRDKCERTSEL_ENABLED=""
+IS_LIBRDKCONFIG_ENABLED=""
 
 AC_ARG_ENABLE([gtestapp],
              AS_HELP_STRING([--enable-gtestapp],[enable Gtest support (default is no)]),
@@ -71,6 +73,34 @@ AC_ARG_ENABLE([rfctool],
               ],
               [echo "rfctool app is disabled"])
 AM_CONDITIONAL([ENABLE_RFCTOOL_APP], [test x$ENABLE_RFCTOOL_APP = xtrue])
+
+AC_ARG_ENABLE([rdkcertselector],
+        AS_HELP_STRING([--enable-rdkcertselector],[enables rdkcertselector replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCERTSEL_ENABLED=true
+                LIBRDKCERTSEL_FLAG=" -DLIBRDKCERTSELECTOR ";;
+           no)  IS_LIBRDKCERTSEL_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkcertselector]) ;;
+           esac
+           ],
+        [echo "rdkcertselector is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
+AC_SUBST(LIBRDKCERTSEL_FLAG)
+
+AC_ARG_ENABLE([mountutils],
+        AS_HELP_STRING([--enable-mountutils],[enables mountutils replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCONFIG_ENABLED=true
+                LIBRDKCONFIG_FLAG=" -DLIBRDKCONFIG_BUILD ";;
+           no)  IS_LIBRDKCONFIG_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-mountutils]) ;;
+           esac
+           ],
+        [echo "mountutils is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCONFIG_ENABLED], [test x$IS_LIBRDKCONFIG_ENABLED = xtrue])
+AC_SUBST(LIBRDKCONFIG_FLAG)
 
 AC_ARG_ENABLE([tr181set],
               AS_HELP_STRING([--enable-tr181set],[enable tr181 client app (default is no)]),
@@ -127,6 +157,36 @@ AC_ARG_ENABLE([rdkc],
               [echo "rdkc is disabled"])
 
 AM_CONDITIONAL([ENABLE_RDKC], [test x$ENABLE_RDKC = xtrue])
+
+AC_ARG_ENABLE([rdkb],
+              AS_HELP_STRING([--enable-rdkb],[enable rdkb (default is no)]),
+              [
+                case "${enableval}" in
+                 yes) ENABLE_RDKB=true
+                       RDKB_FLAG=" -DRDKB_SUPPORT ";;
+                  no) ENABLE_RDKB=false
+                      AC_MSG_ERROR([RDKB is disabled]) ;;
+                   *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkb]) ;;
+                esac
+              ],
+              [echo "rdkb is disabled"])
+
+AM_CONDITIONAL([ENABLE_RDKB], [test x$ENABLE_RDKB = xtrue])
+AC_SUBST(RDKB_FLAG)
+
+# Check for breakpad
+BREAKPAD_CFLAGS=" "
+BREAKPAD_LFLAGS=" "
+AC_ARG_ENABLE([breakpad],
+	      AS_HELP_STRING([--enable-breakpad],[enable breakpad support (default is no)]),
+	      [
+	        case "${enableval}" in
+	         yes) BREAKPAD_CFLAGS="-DINCLUDE_BREAKPAD" ;;
+		 no) AC_MSG_ERROR([breakpad is disabled]) ;;
+		 *) AC_MSG_ERROR([bad value ${enableval} for --enable-breakpad]) ;;
+		 esac
+		 ],
+              [echo "breakpad is disabled"])
 
 AC_CONFIG_FILES([
         Makefile

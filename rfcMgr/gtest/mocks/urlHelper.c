@@ -930,6 +930,32 @@ bool checkDeviceInternetConnection(long timeout_ms)
     return status;
 }
 
+char* urlEncodeString(const char* inputString)
+{
+    if (!inputString) {
+        SWLOG_ERROR("Input string is NULL in Function %s\n", __FUNCTION__);
+        return NULL;
+    }
+    char* encodedString = NULL;
+    CURL *curl = curl_easy_init();
+    if (curl) 
+    {
+        char *output = curl_easy_escape(curl, inputString, 0);
+        if (output) {
+            encodedString = strdup(output);
+            curl_free(output);
+        } else {
+            SWLOG_ERROR("curl_easy_escape failed in Function %s\n", __FUNCTION__);
+        }
+        curl_easy_cleanup(curl);
+    }
+    else
+    {
+        SWLOG_ERROR("Error in curl_easy_init in Function %s\n", __FUNCTION__);
+    }
+    return encodedString;
+}
+
 // Define your write callback function
 size_t writeFunction(void *contents, size_t size, size_t nmemb, void *userp)
 {

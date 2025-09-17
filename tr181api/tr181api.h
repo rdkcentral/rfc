@@ -23,6 +23,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if defined(GTEST_ENABLE)
+#include <wdmp-c.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -82,6 +86,14 @@ tr181ErrorCode_t setLocalParam(char *pcCallerID, const char* pcParameterName, co
 
 //NOTE: To clear whole domain/feature, pass the wild card parameter to pcParameterName. eg. clearParam("sysint", "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TelemetryEndpoint.");
 tr181ErrorCode_t clearLocalParam(char *pcCallerID, const char* pcParameterName);
+
+tr181ErrorCode_t getDefaultValue(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData);
+#if defined(GTEST_ENABLE)
+tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue);
+tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR181_ParamData_t *pstParam);
+TR181_PARAM_TYPE getType(DATA_TYPE type);
+tr181ErrorCode_t getErrorCode(WDMP_STATUS status);
+#endif
 
 #ifdef __cplusplus
 }

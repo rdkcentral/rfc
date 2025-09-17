@@ -39,10 +39,16 @@ using namespace std;
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
 
 #define CONNECTION_TIMEOUT 5
+#if !defined(RDKB_SUPPORT)
 #define TRANSFER_TIMEOUT 10
+#else
+#define TRANSFER_TIMEOUT 30
+#endif
 
+#if defined(USE_IARMBUS)
 static const char *url = "http://127.0.0.1:11999";
 static bool tr69hostif_http_server_ready = false;
+#endif
 
 #ifdef TEMP_LOGGING
 static ofstream logofs;
@@ -93,8 +99,8 @@ bool init_rfcdefaults()
    return true;
 }
 
-#ifndef RDKC
-WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
+#if defined(RDKC)
+int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     ifstream ifs_rfcVar(fileName);
     if (!ifs_rfcVar.is_open())
@@ -105,10 +111,10 @@ WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_Para
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Trying to open %s after newly creating\n", RFCDEFAULTS_FILE);
             ifs_rfcVar.open(RFCDEFAULTS_FILE, ifstream::in);
             if (!ifs_rfcVar.is_open())
-                return WDMP_FAILURE;
+                return FAILURE;
         }
         else
-            return WDMP_FAILURE;
+            return FAILURE;
     }
     {
         string line;
@@ -129,32 +135,48 @@ WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_Para
                       strncpy(pstParam->name, pcParameterName, MAX_PARAM_LEN);
                       pstParam->name[MAX_PARAM_LEN - 1] = '\0';
 
-                      pstParam->type = WDMP_NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
+                      pstParam->type = NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
 
                       strncpy(pstParam->value, value.c_str(), MAX_PARAM_LEN);
                       pstParam->value[MAX_PARAM_LEN - 1] = '\0';
-                      return WDMP_SUCCESS;
+                      return SUCCESS;
                    }
-                   return WDMP_ERR_VALUE_IS_EMPTY;
+                   return EMPTY;
                 }
             }
         }
         ifs_rfcVar.close();
     }
-    return WDMP_FAILURE;
+    return FAILURE;
+}
+
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    int ret = FAILURE;
+    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
+    {
+        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
+    }
+
+    if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
+    {
+        return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+    }
+
+    else
+    {
+        ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
+        if (SUCCESS == ret)
+            return SUCCESS;
+
+       // If the param is not found in override files, find it in rfcdefaults.
+       return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
+
+    }
 }
 #endif
 
-static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
-{
-   size_t realsize = size * nmemb;
-   string temp(static_cast<const char*>(ptr), realsize);
-   stream.append(temp);
-   return realsize;
-}
-
-#ifdef RDKC
-
+#if defined(RDKB_SUPPORT)
 int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     ifstream ifs_rfcVar(fileName);
@@ -204,6 +226,91 @@ int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t 
     return FAILURE;
 }
 
+int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    int ret = FAILURE;
+    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
+    {
+        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
+    }
+
+    if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
+    {
+        return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+    }
+    else
+    {
+        ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
+        if (SUCCESS == ret)
+           return SUCCESS;
+
+        // If the param is not found in override files, find it in rfcdefaults.
+        return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
+
+    }
+}
+
+#else
+#define FAILURE            -1
+#define SUCCESS             0
+
+WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
+{
+    ifstream ifs_rfcVar(fileName);
+    if (!ifs_rfcVar.is_open())
+    {
+        RDK_LOG (RDK_LOG_ERROR, LOG_RFCAPI, "%s: Trying to open a non-existent file %s \n", __FUNCTION__, fileName);
+        if ( strcmp(fileName, RFCDEFAULTS_FILE) == 0 && init_rfcdefaults() )
+        {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Trying to open %s after newly creating\n", RFCDEFAULTS_FILE);
+            ifs_rfcVar.open(RFCDEFAULTS_FILE, ifstream::in);
+            if (!ifs_rfcVar.is_open())
+                return WDMP_FAILURE;
+        }
+        else
+            return WDMP_FAILURE;
+    }
+    {
+        string line;
+        while (getline(ifs_rfcVar, line))
+        {
+            line=line.substr(line.find_first_of(" \t")+1);//Remove any export word that maybe before the key(for rfcVariable.ini)
+            size_t splitterPos = line.find('=');
+            if (splitterPos < line.length())
+            {
+                string key = line.substr(0, splitterPos);
+                if ( !key.compare(pcParameterName) )
+                {
+                   ifs_rfcVar.close();
+                   string value = line.substr(splitterPos+1, line.length());
+                   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                   if(value.length() > 0)
+                   {
+                      strncpy(pstParam->name, pcParameterName, MAX_PARAM_LEN);
+                      pstParam->name[MAX_PARAM_LEN - 1] = '\0';
+
+                      pstParam->type = WDMP_NONE; //The caller must know what type they are expecting if they are requesting a param before the hostif is ready.
+
+                      strncpy(pstParam->value, value.c_str(), MAX_PARAM_LEN);
+                      pstParam->value[MAX_PARAM_LEN - 1] = '\0';
+                      return WDMP_SUCCESS;
+                   }
+                   return WDMP_ERR_VALUE_IS_EMPTY;
+                }
+            }
+        }
+        ifs_rfcVar.close();
+    }
+    return WDMP_FAILURE;
+}
+
+static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
+{
+   size_t realsize = size * nmemb;
+   string temp(static_cast<const char*>(ptr), realsize);
+   stream.append(temp);
+   return realsize;
+}
 
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
@@ -213,11 +320,10 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
    RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
  }
 
- if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL) 
+ if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
  {
-  return getValue(RFCVAR_FILE, pcParameterName, pstParam);
+    return getValue(RFCVAR_FILE, pcParameterName, pstParam);
  }
-
  else
  {
     ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
@@ -230,8 +336,6 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
  }
 }
 
-#else
- 
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
 #ifdef TEMP_LOGGING
@@ -288,39 +392,59 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
          logofs << prefix() << __FUNCTION__ << ": http server is ready" << endl;
 #endif
-         RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: http server is ready\n", __FUNCTION__);
+         RDK_LOG (RDK_LOG_INFO, LOG_RFCAPI, "%s: http server is ready\n", __FUNCTION__);
          tr69hostif_http_server_ready = true;
       }
    }
   
    curl_handle = curl_easy_init();
-   string data = "\{\"names\" : [\"";
+   string data = "{\"names\" : [\"";
    data.append(pcParameterName);
    data.append("\"]}");
 #ifdef TEMP_LOGGING
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"getRFCParam data = %s, datalen = %d\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
        if(pcCallerID)
-           sprintf(pcCallerIDHeader, "CallerID: %s", pcCallerID);
+           snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
        else
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
-       curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList);
+       if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
+       }	       
 
-       curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-       curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET");
-       curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length());
-       curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
-       curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
-       curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse);
-       curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response);
-       curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTION_TIMEOUT);
-       curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TRANSFER_TIMEOUT);
+       if(curl_easy_setopt(curl_handle, CURLOPT_URL, url) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_URL\n", __FUNCTION__, __LINE__);
+       } 	       
+       if(curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "GET") != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CUSTOMREQUEST\n", __FUNCTION__, __LINE__); 
+       }	       
+       if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length()) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDSIZE\n", __FUNCTION__, __LINE__); 
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str()) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDS\n", __FUNCTION__, __LINE__); 
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_FOLLOWLOCATION\n", __FUNCTION__, __LINE__);  
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEFUNCTION\n", __FUNCTION__, __LINE__); 
+       }		       
+       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
+       }       
+       if(curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTION_TIMEOUT) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_CONNECTTIMEOUT\n", __FUNCTION__, __LINE__);
+       }
+       if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TRANSFER_TIMEOUT) != CURLE_OK){
+           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_TIMEOUT\n", __FUNCTION__, __LINE__);   
+       }	       
 
        res = curl_easy_perform(curl_handle);
        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
@@ -345,7 +469,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
       logofs << prefix() << "curl response: " << response << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
 
       if (response_json)
@@ -403,6 +527,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+         cJSON_Delete(response_json);
       }
    }
    return ret;
@@ -434,7 +559,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    ss << eDataType;
    string strDataType = ss.str();
 
-   string data = "\{\"parameters\" : [{\"name\":\"";
+   string data = "{\"parameters\" : [{\"name\":\"";
    data.append(pcParameterName);
    data.append("\",\"value\":\"");
    data.append(pcParameterValue);
@@ -444,35 +569,49 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"setRFCParam data = %s, datalen = %d\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
 
    if (curl_handle)
    {
        char pcCallerIDHeader[128];
        if(pcCallerID)
-           sprintf(pcCallerIDHeader, "CallerID: %s", pcCallerID);
+           snprintf(pcCallerIDHeader, sizeof(pcCallerIDHeader), "CallerID: %s", pcCallerID);
        else
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
 
       struct curl_slist *customHeadersList = NULL;
       customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
-      curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList);
-
-      curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-      curl_easy_setopt(curl_handle, CURLOPT_HTTPPOST, 1L);
-      curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length());
-      curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
-      curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
-      curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse);
-      curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response);
-
+      if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);
+      }
+      if(curl_easy_setopt(curl_handle, CURLOPT_URL, url) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_URL\n", __FUNCTION__, __LINE__); 
+      }
+      if(curl_easy_setopt(curl_handle, CURLOPT_HTTPPOST, 1L) != CURLE_OK){
+	  RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPPOST\n", __FUNCTION__, __LINE__);    
+      } 	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) data.length()) != CURLE_OK){
+	  RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDSIZE\n", __FUNCTION__, __LINE__);    
+      }  	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str()) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_POSTFIELDS\n", __FUNCTION__, __LINE__);      	      
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_FOLLOWLOCATION\n", __FUNCTION__, __LINE__);      	      
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEFUNCTION\n", __FUNCTION__, __LINE__);
+      }	      
+      if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
+          RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
+      } 	      
       res = curl_easy_perform(curl_handle);
       curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
 
 #ifdef TEMP_LOGGING
    logofs << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
       curl_easy_cleanup(curl_handle);
 
       curl_slist_free_all(customHeadersList);
@@ -490,7 +629,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "curl response: " << response << endl;
 #endif
-      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
       if (response_json)
       {
@@ -503,6 +642,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #endif
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI,"statusCode = %d\n", ret);
          }
+         cJSON_Delete(response_json);
       }
    }
    return ret;
@@ -640,4 +780,11 @@ bool isRFCEnabled(const char *feature)
    return (stat(fileName.c_str(), &buffer) == 0);
 }
 
+#endif
+
+// Define your write callback function
+#ifdef GTEST_ENABLE
+size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream) {
+    return &writeCurlResponse;
+}
 #endif

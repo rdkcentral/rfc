@@ -30,4 +30,7 @@ Feature: RFC Manager XCONF Communication and Error Handling
     When the RFC manager binary is run
     Then an error message "cURL Return : 0 HTTP Code : 404" should be logged
 
-
+  Scenario: URL Encoding
+    Given all the properties to run RFC manager is available and running
+    When RFC manager binary is communicating with XCONF server
+    Then the URL should be percentage encoded 
