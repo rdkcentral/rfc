@@ -361,3 +361,23 @@ std::string getCronFromDCMSettings()
 
     return cron;
 }
+
+bool ExecuteCommand(const std::string& command, std::string& output)
+{
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        return false;
+    }
+
+    char buffer[128];
+    output = "";
+
+    while (!feof(pipe)) {
+        if (fgets(buffer, 128, pipe) != NULL) {
+            output += buffer;
+        }
+    }
+
+    int status = pclose(pipe);
+    return (status == 0);
+}
