@@ -81,5 +81,6 @@ void waitForRfcCompletion();
 std::string getErouterIPAddress();
 std::string getSyseventValue(const std::string& key);
 std::string getCronFromDCMSettings();
+bool ExecuteCommand(const std::string& command, std::string& output);
 
 #endif
