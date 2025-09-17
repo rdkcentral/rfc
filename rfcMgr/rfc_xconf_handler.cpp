@@ -186,26 +186,6 @@ int RuntimeFeatureControlProcessor::GetLastProcessedFirmware(const char *lastVes
 }
 
 #if defined(RDKB_SUPPORT)
-bool RuntimeFeatureControlProcessor::ExecuteCommand(const std::string& command, std::string& output)
-{
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe) {
-        return false;
-    }
-
-    char buffer[128];
-    output = "";
-
-    while (!feof(pipe)) {
-        if (fgets(buffer, 128, pipe) != NULL) {
-            output += buffer;
-        }
-    }
-
-    int status = pclose(pipe);
-    return (status == 0);
-}
-
 bool RuntimeFeatureControlProcessor::ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Key:%s , Value:%s ImmediateReboot:%d \n", __FUNCTION__, __LINE__, configKey.c_str(), configValue.c_str(), rebootValue);
@@ -709,14 +689,49 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
 
 void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNeeded)
 {
-    if (rfcRebootCronNeeded) {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: RfcRebootCronNeeded=true. Calling script to schedule reboot in maintenance window\n");
+    if (rfcRebootCronNeeded)
+    {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s] [%d] RfcRebootCronNeeded=true. Calling script to schedule reboot in maintenance window\n", __FUNCTION__, __LINE__);
+        char cronfile_bk[] = "/tmp/cron_tabXXXXXX";
+        int fd = mkstemp(cronfile_bk);
+        if (fd == -1) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s] [%d] Failed to create temp cron file\n", __FUNCTION__, __LINE__);
+            return;
+        }
 
-        // Execute the reboot cron schedule script
-        std::string cmd = "sh /etc/RfcRebootCronschedule.sh &";
-        std::string output;
-        ExecuteCommand(cmd, output);
+        FILE* cron = fdopen(fd, "w+");
+        if (!cron) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s] [%d] Failed to create temp cron file\n", __FUNCTION__, __LINE__);
+            close(fd);
+            return;
+        }
+
+        RebootTime rebootTime = calcRebootExecTime();
+        if (access(CRONTAB_FILE, F_OK) == 0)
+        {
+
+            FILE* existing = popen("crontab -l -c /var/spool/cron/crontabs/", "r");
+            if (existing) {
+                char line[256];
+                while (fgets(line, sizeof(line), existing)) {
+                    if (strstr(line, "/usr/bin/rfc_reboot") == NULL) {
+                        fputs(line, cron);
+                    }
+                }
+            }
+            pclose(existing);
+        }
+
+        fprintf(cron, "%d %d * * * /usr/bin/rfc_reboot\n", rebootTime.minute, rebootTime.hour);
+        fclose(cron);
+
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "crontab %s -c %s", cronfile_bk, CRONTAB_DIR);
+        v_secure_system("%s",cmd);
+        unlink(cronfile_bk);
+        v_secure_system("/bin/touch %s", RFC_REBOOT_SCHEDULED);
     }
+
 }
 
 void RuntimeFeatureControlProcessor::saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType)
