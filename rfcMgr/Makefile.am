@@ -17,7 +17,11 @@
 # limitations under the License.
 ##########################################################################
 
+if ENABLE_RDKB
+bin_PROGRAMS = rfcMgr rfc_reboot
+else
 bin_PROGRAMS = rfcMgr
+endif
 
 rfcMgr_SOURCES = rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp rfc_xconf_handler.cpp xconf_handler.cpp
 rfcMgr_CPPFLAGS = -std=c++17 -Wall -Werror -DRDK_LOGGER -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(cjson_CFLAGS) $(curl_CFLAGS) $(CFLAGS)
@@ -33,6 +37,10 @@ endif
 if ENABLE_RDKB
 rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS)
 AM_LDFLAGS += -lrbus
+
+rfc_reboot_SOURCES = rfc_reboot.cpp
+rfc_reboot_CPPFLAGS = -std=c++17 -Wall -Werror -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(CFLAGS)
+rfc_reboot_LDADD = -lsyscfg
 endif
 
 if IS_LIBRDKCERTSEL_ENABLED
