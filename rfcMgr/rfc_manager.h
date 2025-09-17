@@ -71,9 +71,8 @@ enum DeviceStatus {
 #define MAINT_REBOOT_REQUIRED   12
 
 #if !defined(RDKB_SUPPORT)
-#define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
+#define IPTABLE_INIT_SCRIPT             "/lib/rdk/iptables_init"
 #else
-#define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/RFCpostprocess.sh"
 #define RFC_LOG_FILE                    "/rdklogs/logs/dcmrfc.log.0"
 #endif
 
