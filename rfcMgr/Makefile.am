@@ -38,8 +38,8 @@ if ENABLE_RDKB
 rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS)
 AM_LDFLAGS += -lrbus
 
-rfc_reboot_SOURCES = rfc_reboot.cpp
-rfc_reboot_CPPFLAGS = -std=c++17 -Wall -Werror -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(CFLAGS)
+rfc_reboot_SOURCES = rfc_reboot.cpp rfc_common.cpp
+rfc_reboot_CPPFLAGS = -std=c++17 -Wall -Werror -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(CFLAGS)  $(RDKB_FLAG) $(rbus_CFLAGS)
 rfc_reboot_LDADD = -lsyscfg
 endif
 
