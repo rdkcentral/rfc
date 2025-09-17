@@ -400,7 +400,9 @@ namespace rfc {
         }
 
         if (access(SSH_WHITELIST_SCRIPT, F_OK) == 0) {
-            if(-1 == v_secure_system("sh %s &", SSH_WHITELIST_SCRIPT))
+            std::string sshscriptcmd = "sh " + std::string(SSH_WHITELIST_SCRIPT) + " &";
+            std::string output;
+            if(!ExecuteCommand(sshscriptcmd, output))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s script\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
             } else {
@@ -412,7 +414,9 @@ namespace rfc {
 
 #else
         if (access(IPTABLE_INIT_SCRIPT, F_OK) == 0) {
-            if(-1 == v_secure_system("%s SSH_Refresh &", IPTABLE_INIT_SCRIPT))
+            std::string sshrefreshcmd = "sh " + std::string(IPTABLE_INIT_SCRIPT) + " SSH_Refresh &";
+            std::string output;
+            if(!ExecuteCommand(sshrefreshcmd, output))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SSH_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
             } else {
@@ -420,7 +424,9 @@ namespace rfc {
             }
 
             // Execute iptables_init SNMP_Refresh in background
-            if(-1 == v_secure_system("%s SNMP_Refresh &", IPTABLE_INIT_SCRIPT))
+            std::string snmprefreshcmd = "sh " + std::string(IPTABLE_INIT_SCRIPT) + " SNMP_Refresh &";
+            std::string output;
+            if(!ExecuteCommand(snmprefreshcmd, output))
             {
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SNMP_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
             } else {
