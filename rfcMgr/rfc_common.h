@@ -82,5 +82,7 @@ std::string getErouterIPAddress();
 std::string getSyseventValue(const std::string& key);
 std::string getCronFromDCMSettings();
 bool ExecuteCommand(const std::string& command, std::string& output);
+bool getCurrentCronData(const std::string& crontabPath, const std::string& tempFile);
+bool schedulecronjob(const std::string& tempFile, const std::string& crontabPath, const std::string& cronEntry);
 
 #endif
