@@ -381,3 +381,103 @@ bool ExecuteCommand(const std::string& command, std::string& output)
     int status = pclose(pipe);
     return (status == 0);
 }
+
+bool schedulecronjob(const std::string& tempFile, const std::string& crontabPath, const std::string& cronEntry)
+{
+    // Add new cron entry
+    std::ofstream cronFile(tempFile, std::ios::app);
+    if (cronFile.is_open()) {
+        cronFile << cronEntry << std::endl;
+        cronFile.close();
+
+        // Apply crontab
+        int applyResult = v_secure_system("crontab %s -c %s", tempFile.c_str(), crontabPath.c_str());
+        if (applyResult == 0) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully configured cron job\n", __FUNCTION__, __LINE__);
+            return true;
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply crontab with error code %d\n", __FUNCTION__, __LINE__, applyResult);
+            return false;
+        }
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temp cron file for writing\n", __FUNCTION__, __LINE__);
+        return false;
+    }
+}
+
+bool getCurrentCronData(const std::string& crontabPath, const std::string& tempFile)
+{
+    // Export existing crontab using popen to avoid redirection issues
+    std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";
+    FILE* pipe = popen(exportCmd.c_str(), "r");
+    std::ofstream tempFileOut(tempFile);
+
+    if (pipe && tempFileOut.is_open()) {
+        char buffer[1024];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            tempFileOut << buffer;
+        }
+        tempFileOut.close();
+        int exportResult = pclose(pipe);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Crontab export completed with result: %d\n", __FUNCTION__, __LINE__, exportResult);
+
+        // Read and log the contents of the temp file for verification
+        std::ifstream cronContent(tempFile);
+        if (cronContent.is_open()) {
+            std::string line;
+            bool hasContent = false;
+            // Check if file has any content while reading
+            while (std::getline(cronContent, line)) {
+                if (!hasContent) {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
+                    hasContent = true;
+                }
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
+            }
+            cronContent.close();
+            if (!hasContent) {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Existing crontab content found empty\n", __FUNCTION__, __LINE__);
+        }
+
+        return true;
+    } else {
+        if (pipe) pclose(pipe);
+        if (tempFileOut.is_open()) tempFileOut.close();
+        RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Failed to export crontab, creating empty file\n", __FUNCTION__, __LINE__);
+
+        // Create empty file
+        std::ofstream emptyFile(tempFile);
+        if (emptyFile.is_open()) {
+            emptyFile.close();
+        } else {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create temp file\n", __FUNCTION__, __LINE__);
+            return false;
+        }
+    }
+
+    // Read and log the contents of the temp file for verification
+    std::ifstream cronContent(tempFile);
+    if (cronContent.is_open()) {
+        std::string line;
+        bool hasContent = false;
+       // Check if file has any content while reading
+        while (std::getline(cronContent, line)) {
+            if (!hasContent) {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
+                hasContent = true;
+            }
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
+        }
+        cronContent.close();
+        if (!hasContent) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
+        }
+    } else {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Existing crontab content found empty\n", __FUNCTION__, __LINE__);
+    }
+
+    return true;
+}
