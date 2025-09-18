@@ -68,6 +68,10 @@ extern "C" {
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
 #define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
 
+#define CRONTAB_DIR                        "/var/spool/cron/crontabs/"
+#define CRONTAB_FILE                       "/var/spool/cron/crontabs/root"
+#define RFC_REBOOT_SCHEDULED               "/tmp/.RfcwaitingReboot"
+	
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
 #define RFC_CHANNEL_MAP_ID                 2345
@@ -174,7 +178,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void NotifyTelemetry2ErrorCode(int CurlReturn);
         void PreProcessJsonResponse(char *xconfResp);
 #if defined(RDKB_SUPPORT)
-        bool ExecuteCommand(const std::string& command, std::string& output);
 	bool ParseConfigValue(const std::string& configKey, const std::string& configValue, int rebootValue, bool& rfcRebootCronNeeded);
         int ProcessJsonResponseB(char* featureXConfMsg);
         void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);

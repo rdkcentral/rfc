@@ -379,18 +379,64 @@ namespace rfc {
 
     int RFCManager::RFCManagerPostProcess()
     {
-        // Check if the script exists before executing it
-        if (access(RFC_MGR_IPTBLE_INIT_SCRIPT, F_OK) == 0) {
-            if(-1 == v_secure_system("sh %s", RFC_MGR_IPTBLE_INIT_SCRIPT))
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] POSTPROCESSING IS RUN NOW !!! \n", __FUNCTION__, __LINE__);
+
+#if defined(RDKB_SUPPORT)
+        if (access(RFC_SSH_FILE, F_OK) == 0) {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC File for SSH present. Refreshing Firewall\n", __FUNCTION__, __LINE__);
+            if(-1 == v_secure_system("sysevent set firewall-restart"))
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Script[%s] Execution Failed ...!!\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
-                return FAILURE;
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute sysevent set firewall-restart\n", __FUNCTION__, __LINE__);
             }
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] Executed Successfully\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
         } else {
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, RFC_MGR_IPTBLE_INIT_SCRIPT);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC File for SSH is not present or empty\n", __FUNCTION__, __LINE__);
         }
 
+        if(-1 == v_secure_system("dmcli eRT setv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Snmpv3DHKickstart.RFCUpdateDone bool true"))
+        {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to set RFCUpdateDone\n", __FUNCTION__, __LINE__);
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFCUpdateDone set to true\n", __FUNCTION__, __LINE__);
+        }
+
+        if (access(SSH_WHITELIST_SCRIPT, F_OK) == 0) {
+            std::string sshscriptcmd = "sh " + std::string(SSH_WHITELIST_SCRIPT) + " &";
+            std::string output;
+            if(!ExecuteCommand(sshscriptcmd, output))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s script\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Triggered %s to execute successfully in background\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s script does not exist, skipping execution\n", __FUNCTION__, __LINE__, SSH_WHITELIST_SCRIPT);
+        }
+
+#else
+        if (access(IPTABLE_INIT_SCRIPT, F_OK) == 0) {
+            std::string sshrefreshcmd = "sh " + std::string(IPTABLE_INIT_SCRIPT) + " SSH_Refresh &";
+            std::string output;
+            if(!ExecuteCommand(sshrefreshcmd, output))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SSH_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s SSH_Refresh executed successfully in background\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            }
+
+            // Execute iptables_init SNMP_Refresh in background
+            std::string snmprefreshcmd = "sh " + std::string(IPTABLE_INIT_SCRIPT) + " SNMP_Refresh &";
+            std::string output;
+            if(!ExecuteCommand(snmprefreshcmd, output))
+            {
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to execute %s SNMP_Refresh\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+            } else {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s SNMP_Refresh executed successfully in background\n", __FUNCTION__, __LINE__,IPTABLE_INIT_SCRIPT);
+            }
+        } else {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Script[%s] does not exist, skipping execution\n", __FUNCTION__, __LINE__, IPTABLE_INIT_SCRIPT);
+        }
+#endif
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] POSTPROCESSING IS COMPLETE !!!\n", __FUNCTION__, __LINE__);
         return SUCCESS;
     }
 
@@ -514,78 +560,20 @@ namespace rfc {
 
         std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
 
-        // Export existing crontab using popen to avoid redirection issues
-        std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";
-        FILE* pipe = popen(exportCmd.c_str(), "r");
-
-        std::ofstream tempFileOut(tempFile);
-        if (pipe && tempFileOut.is_open()) {
-            tempFileCreated = true;
-            char buffer[1024];
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                tempFileOut << buffer;
-            }
-            tempFileOut.close();
-            int exportResult = pclose(pipe);
-            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Crontab export completed with result: %d\n", __FUNCTION__, __LINE__, exportResult);
-        } else {
-            if (pipe) pclose(pipe);
-            if (tempFileOut.is_open()) tempFileOut.close();
-            RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] Failed to export crontab, creating empty file\n", __FUNCTION__, __LINE__);
-            // Create empty file
-            std::ofstream emptyFile(tempFile);
-            if (emptyFile.is_open()) {
-                tempFileCreated = true;
-                emptyFile.close();
-            } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create temp file\n", __FUNCTION__, __LINE__);
-                return;
-            }
+        if (!getCurrentCronData(crontabPath, tempFile)) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to export crontab to temp file\n", __FUNCTION__, __LINE__);
+            return;
         }
-
-        std::ifstream cronContent(tempFile);
-        if (cronContent.is_open()) {
-            std::string line;
-            bool hasContent = false;
-
-            // Check if file has any content while reading
-            while (std::getline(cronContent, line)) {
-                if (!hasContent) {
-                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Existing cron entries:\n", __FUNCTION__, __LINE__);
-                    hasContent = true;
-                }
-                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s\n", __FUNCTION__, __LINE__, line.c_str());
-            }
-            cronContent.close();
-
-            if (!hasContent) {
-                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] No existing crontab content found\n", __FUNCTION__, __LINE__);
-            }
-        } else {
-                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Existing crontab content found empty\n", __FUNCTION__, __LINE__);
-        }
-
+		
         int sedResult = v_secure_system("sed -i '/rfcMgr/d; /RFCbase\\.sh/d' %s", tempFile.c_str());
         if (sedResult != 0) {
             RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] No existing crontab found for RFC script \n", __FUNCTION__, __LINE__);
         }
 
-        // Add new cron entry
-        std::ofstream cronFile(tempFile, std::ios::app);
-        if (cronFile.is_open()) {
-            cronFile << cronEntry << std::endl;
-            cronFile.close();
-
-            // Apply crontab
-            int applyResult = v_secure_system("crontab %s -c %s", tempFile.c_str(), crontabPath.c_str());
-            if (applyResult == 0) {
-                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully configured cron job\n", __FUNCTION__, __LINE__);
-            } else {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to apply crontab with error code %d\n", __FUNCTION__, __LINE__, applyResult);
-            }
-        } else {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open temp cron file for writing\n", __FUNCTION__, __LINE__);
-        }
+        if (!schedulecronjob(tempFile, crontabPath, cronEntry)) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to add cron entry and apply crontab\n", __FUNCTION__, __LINE__);
+            return;
+        }		
 
         if (tempFileCreated) {
             if (unlink(tempFile.c_str()) != 0) {
