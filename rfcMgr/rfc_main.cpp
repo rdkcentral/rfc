@@ -91,7 +91,12 @@ int main()
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
     if (!createDirectoryIfNotExists(SECURE_RFC_PATH)) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create RFC directory\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create %s RFC directory\n", __FUNCTION__, __LINE__,SECURE_RFC_PATH);
+        exit(EXIT_FAILURE);
+    }
+
+    if (!createDirectoryIfNotExists(RFC_RAM_PATH)) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create %s RFC directory\n", __FUNCTION__, __LINE__, RFC_RAM_PATH);
         exit(EXIT_FAILURE);
     }
 	

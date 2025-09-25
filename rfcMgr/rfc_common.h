@@ -58,7 +58,9 @@
 #define RETRY_COUNT         3
 #define RFC_MAX_LEN         64
 
-#define RFC_TMP_PATH "/tmp/RFC/tmp"
+#define RFC_RAM_PATH "/tmp/RFC"
+#define RFC_HASH_PATH "/tmp/RFC/.hashValue"
+#define RFC_TIME_PATH "/tmp/RFC/.timeValue"
 #define SECURE_RFC_PATH "/opt/secure/RFC"
 
 #define DEFAULT_DL_ALLOC    1024

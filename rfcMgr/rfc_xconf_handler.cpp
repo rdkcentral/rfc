@@ -100,14 +100,14 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 #if !defined(RDKB_SUPPORT)
     _is_first_request = IsNewFirmwareFirstRequest();
 #else
-    if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+    if (access(RFC_TIME_PATH, F_OK) != 0)
     {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Consider as First RFC Request since /tmp/RFC/.timeValue file not found \n");
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Consider as First RFC Request since %s file not found \n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
         _is_first_request = true;
     }
     else
     {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "Setting _is_first_request=false as /tmp/RFC/.timeValue file found \n");
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting _is_first_request=false as %s file found \n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
         _is_first_request = false;
     }
 #endif
@@ -823,11 +823,11 @@ void RuntimeFeatureControlProcessor::GetAccountID()
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
         _accountId = tempbuf;
 #ifdef RDKB_SUPPORT	
-        if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+        if (access(RFC_TIME_PATH, F_OK) != 0)
         {
             // Time file doesn't exist, set AccountID to Unknown
             _accountId = "Unknown";
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] GetAccountID: %s file not found, setting AccountID to Unknown\n", __FUNCTION__,__LINE__,RFC_TIME_PATH);
         }
         saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
 #endif	
@@ -1342,18 +1342,15 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
     set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, configSetHash);
 #else
-    const std::string RFC_RAM_PATH = "/tmp/RFC";
-    std::string filePath = RFC_RAM_PATH + "/.hashValue";
-
-    std::ofstream file(filePath);
+    std::ofstream file(RFC_HASH_PATH);
 
     if (file.is_open()) {
         // Write the hash value to the file
         file << configSetHash;
         file.close();
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote hash to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote hash to %s\n", __FUNCTION__, __LINE__, RFC_HASH_PATH);
     } else {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, RFC_HASH_PATH);
     }
 #endif
     if(true == StringCaseCompare(bkup_hash, configSetHash))
@@ -1370,16 +1367,14 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
     set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
 #else
-    const std::string RFC_RAM_PATH = "/tmp/RFC";
-    std::string filePath = RFC_RAM_PATH + "/.timeValue";
 
-    std::ofstream file(filePath);
+    std::ofstream file(RFC_TIME_PATH);
     if (file.is_open()) {
         file << timestampString;
         file.close();
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote timestamp to %s\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Successfully wrote timestamp to %s\n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
     } else {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, filePath.c_str());
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error: Unable to open file %s for writing\n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
     }
 #endif
 
@@ -1730,40 +1725,37 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash, std::string &valueTime)
 {
 #if defined(RDKB_SUPPORT)
-    const std::string RFC_RAM_PATH = "/tmp/RFC";
 
     // Initialize default values
     valueHash = "UPGRADE_HASH";
     valueTime = "0";
 
     // Read hash value
-    std::string hashFilePath = RFC_RAM_PATH + "/.hashValue";
-    if (access(hashFilePath.c_str(), R_OK) == 0) {
-        std::ifstream hashFile(hashFilePath);
+    if (access(RFC_HASH_PATH, R_OK) == 0) {
+        std::ifstream hashFile(RFC_HASH_PATH);
         if (hashFile.is_open()) {
             std::getline(hashFile, valueHash);
             hashFile.close();
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetHash: Hash = %s (from file)\n", __FUNCTION__, __LINE__, valueHash.c_str());
         } else {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open hash file: %s\n", __FUNCTION__, __LINE__, hashFilePath.c_str());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open hash file: %s\n", __FUNCTION__, __LINE__, RFC_HASH_PATH);
         }
     } else {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Hash file not found, using default value\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] %s file not found, using default value\n", __FUNCTION__, __LINE__, RFC_HASH_PATH);
     }
 
     // Read time value
-    std::string timeFilePath = RFC_RAM_PATH + "/.timeValue";
-    if (access(timeFilePath.c_str(), R_OK) == 0) {
-        std::ifstream timeFile(timeFilePath);
+    if (access(RFC_TIME_PATH, R_OK) == 0) {
+        std::ifstream timeFile(RFC_TIME_PATH);
         if (timeFile.is_open()) {
             std::getline(timeFile, valueTime);
             timeFile.close();
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigSetTime: Set Time = %s (from file)\n", __FUNCTION__, __LINE__, valueTime.c_str());
         } else {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open time file: %s\n", __FUNCTION__, __LINE__, timeFilePath.c_str());
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open time file: %s\n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
         }
     } else {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Time file not found, using default value\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] %s file not found, using default value\n", __FUNCTION__, __LINE__, RFC_TIME_PATH);
     }
 
 #else
