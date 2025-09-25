@@ -27,6 +27,7 @@ extern "C" {
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
 #include <common_device_api.h>
+#include "mtlsUtils.h"
 
 namespace xconf {	
 
@@ -50,8 +51,17 @@ int XconfHandler:: initializeXconfHandler()
 {
 	char tmpbuf[200] = {0};
 	int len = 0;
-	
-	len = GetEstbMac( tmpbuf, sizeof(tmpbuf) );
+
+#if defined(RDKB_SUPPORT)
+        std::string mac = getErouterMac();
+        if (!mac.empty()) {
+            strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+            len = strlen(tmpbuf);
+        }
+#else
+        len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
+#endif
         if( len )
 	{
 	    _estb_mac_address = tmpbuf;
@@ -79,14 +89,27 @@ int XconfHandler:: initializeXconfHandler()
         {
 	     _model_number = tmpbuf;
 	}
-	
+
+#if defined(RDKB_SUPPORT)
+        memset(tmpbuf, '\0', sizeof(tmpbuf));
+        std::string cmmac = geteCMMac();
+        if (!cmmac.empty()) {
+            strncpy(tmpbuf, cmmac.c_str(), sizeof(tmpbuf) - 1);
+            tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+            len = strlen(tmpbuf);
+        }
+        if( len )
+        {
+             _ecm_mac_address = tmpbuf;
+        }
+#else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
         {
              _manufacturer = tmpbuf;
         }
-
+#endif
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
@@ -106,3 +129,5 @@ int XconfHandler:: initializeXconfHandler()
 }
 
 #endif
+
+

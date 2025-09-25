@@ -22,9 +22,13 @@
 
 #define XCONF_SELECTOR_KEY_STR "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector"
 #define XCONF_URL_KEY_STR      "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl"
+#if defined(RDKB_SUPPORT)
+#define BOOTSTRAP_XCONF_URL_KEY_STR "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.XconfURL"
+#else
 #define BOOTSTRAP_XCONF_URL_KEY_STR "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl"
+#endif
 #define RFC_ACCOUNT_ID_KEY_STR "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID"
-#define RFC_PARNER_ID_KEY_STR  "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"
+#define RFC_PARTNER_ID_KEY_STR  "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"
 #define RFC_OSCLASS_KEY_STR     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass"
 #define RFC_PARTNERNAME_KEY_STR "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName"
 #define RFC_CONFIG_SET_HASH    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash"

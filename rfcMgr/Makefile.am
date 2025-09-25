@@ -23,10 +23,32 @@ rfcMgr_SOURCES = rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp rfc_x
 rfcMgr_CPPFLAGS = -std=c++17 -Wall -Werror -DRDK_LOGGER -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(cjson_CFLAGS) $(curl_CFLAGS) $(CFLAGS)
 AM_LDFLAGS = -L$(PKG_CONFIG_SYSROOT_DIR)/$(libdir)
 AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
-AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper
+AM_LDFLAGS += -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl
 
 if IS_IARMBUS_ENABLED
 rfcMgr_CPPFLAGS += $(IARMBUS_EVENT_FLAG) -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus
 AM_LDFLAGS += -lIARMBus
 endif
 
+if ENABLE_RDKB
+rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS)
+AM_LDFLAGS += -lrbus
+else
+AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la
+endif
+
+if IS_LIBRDKCERTSEL_ENABLED
+rfcMgr_CPPFLAGS += $(LIBRDKCERTSEL_FLAG)
+rfcMgr_CFLAGS = $(LIBRDKCERTSEL_FLAG)
+if IS_LIBRDKCONFIG_ENABLED
+rfcMgr_CPPFLAGS += $(LIBRDKCONFIG_FLAG)
+AM_LDFLAGS += -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+else
+AM_LDFLAGS += -lRdkCertSelector
+endif
+else
+if IS_LIBRDKCONFIG_ENABLED
+rfcMgr_CPPFLAGS += $(LIBRDKCONFIG_FLAG)
+AM_LDFLAGS += -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+endif
+endif

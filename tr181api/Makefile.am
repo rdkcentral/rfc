@@ -21,7 +21,11 @@ SUBDIRS =
 if ENABLE_TR181SET_APP
 lib_LTLIBRARIES = libtr181api.la
 libtr181api_la_SOURCES = tr181api.cpp
-libtr181api_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/wdmp-c -I${top_srcdir}/rfcapi/
+if ENABLE_RDKB
+libtr181api_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I${top_srcdir}/rfcapi/ $(RDKB_FLAG)
+else
+libtr181api_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/wdmp-c -I${top_srcdir}/rfcapi/ $(IARMBUS_EVENT_FLAG)
+endif
 libtr181api_la_LIBADD = -lrdkloggers ../rfcapi/.libs/librfcapi.la -lpthread
 
 libtr181api_la_includedir = $(includedir)
