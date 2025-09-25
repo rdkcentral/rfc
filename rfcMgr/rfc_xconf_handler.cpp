@@ -41,7 +41,11 @@ extern "C" {
 #include <common_device_api.h>
 #include <system_utils.h>
 #include <urlHelper.h>	
-    
+
+#ifndef MTLS_FAILURE
+#define MTLS_FAILURE -1
+#endif
+
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
