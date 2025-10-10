@@ -34,4 +34,5 @@
 #define XCONF_SELECTOR_NAME      "XconfSelector"
 #define XCONF_URL_TR181_NAME     "XconfUrl"
 
+#define TELEMETRY_CONFIG_URL     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.ConfigURL"
 #endif

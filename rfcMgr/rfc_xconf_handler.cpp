@@ -1444,6 +1444,22 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
             {
                 if (newValue != currentValue)
                 {
+                    //RDKTV-38785 Sending xconf reload trigger
+		    if(newKey == TELEMETRY_CONFIG_URL){
+		        if (!newValue.empty() && newValue.find("https://") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Sending kill 12 signal to telemetry2_0 for Config Reload.\n", __FUNCTION__, __LINE__);
+                            int systemRet = v_secure_system("killall -12 telemetry2_0");
+                            if (systemRet == -1) {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] kill signal 12 to telemetry2_0 failed\n", __FUNCTION__, __LINE__);
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Successfully sent signal 12 to telemetry2_0, return code: %d\n", __FUNCTION__, __LINE__, systemRet);
+                            }
+                        }
+			else{
+			    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] The configURL value is empty or doesn't start with https. Xconf Reload is not triggered.\n", __FUNCTION__, __LINE__);
+			}
+		    }
+
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] updated for %s from value old=%s, to new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
                     std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
                     bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
