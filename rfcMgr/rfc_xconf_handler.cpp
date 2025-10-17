@@ -2376,6 +2376,20 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                 if (newValue != currentValue)
                 {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] updated for %s from value old=%s, to new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
+                    if(newKey == TELEMETRY_CONFIG_URL){
+			if (!newValue.empty() && newValue.find("https://") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Notifying Telemetry of Config URL update.\n", __FUNCTION__, __LINE__);
+                            int systemRet = v_secure_system("killall -12 telemetry2_0");
+                            if (systemRet == -1) {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Notification to Telemetry failed.\n", __FUNCTION__, __LINE__);
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d]  Notification to Telemetry success, return code = %d\n", __FUNCTION__, __LINE__, systemRet);
+                            }
+                        }
+			else{
+			    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Invalid Telemetry Config URL.\n", __FUNCTION__, __LINE__);
+			}
+		    }
                     std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
                     bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
                     if(isAccountKey == true)
