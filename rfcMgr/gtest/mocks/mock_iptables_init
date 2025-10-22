@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Log that the mock was called
+echo "[MOCK] iptables_init called with args: $@" >> /tmp/iptables_mock.log
+
+# Simulate success
+exit 0
