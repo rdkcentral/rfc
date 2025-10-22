@@ -46,7 +46,7 @@ extern "C" {
 #define MTLS_FAILURE -1
 #endif
 
-static inline bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool labSigned, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
+inline bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool labSigned, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
      return (labSigned && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV));
 }
 
