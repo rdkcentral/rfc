@@ -210,7 +210,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	bool isDebugServicesEnabled(void);
     eDeviceType getDeviceType(void);
     bool GetDbgBuildValue(char *pBuf, size_t szBufSize);
-    static inline bool Debug_Services_Enabled(bool DbgBuild, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType);
+    bool Debug_Services_Enabled(bool DbgBuild, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
