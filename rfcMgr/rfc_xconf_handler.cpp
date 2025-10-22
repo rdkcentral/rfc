@@ -87,8 +87,8 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Experience\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-	
-	/* last Firmware Version */
+
+    /* last Firmware Version */
     if(SUCCESS != GetLastProcessedFirmware(RFC_LAST_VERSION))
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Last firmware\n", __FUNCTION__, __LINE__);
@@ -96,6 +96,9 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 
     GetAccountID();
     GetOsClass();
+#if defined(RDKB_EXTENDER_SUPPORT)
+    GetSerialNumber();
+#endif    
 
 #if !defined(RDKB_SUPPORT)
     _is_first_request = IsNewFirmwareFirstRequest();
@@ -925,6 +928,28 @@ void RuntimeFeatureControlProcessor::GetOsClass( void )
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetOsClass: Exit\n");
 }
 
+
+void RuntimeFeatureControlProcessor::GetSerialNumber(void)
+{
+    char serialBuf[256] = {0};
+    FILE *fp = v_secure_popen("r", "/usr/sbin/deviceinfo.sh -sn");
+    if (!fp) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetSerialNumber: Failed to run deviceinfo.sh\n");
+        return;
+    }
+
+    if (fgets(serialBuf, sizeof(serialBuf), fp) != NULL) {
+        // Remove carriage return and newline characters
+        serialBuf[strcspn(serialBuf, "\r\n")] = 0;
+        _serialNumber = serialBuf;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetSerialNumber: Serial Number = %s\n", _serialNumber.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetSerialNumber: Failed to read serial number\n");
+    }
+
+    v_secure_pclose(fp);
+}
+
 int RuntimeFeatureControlProcessor::GetExperience( void )
 {
     char tempbuf[1024] = {0};
@@ -1647,6 +1672,10 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
      url << "osClass=" << _osclass << "&";
 #endif
     url << "accountId=" << _accountId << "&";
+#if defined(RDKB_EXTENDER_SUPPORT)
+    url << "accountMgmt=" << "xpc" << "&";
+    url << "serialNum=" << _serialNumber << "&";
+#endif    
 #if defined(RDKB_SUPPORT)	
     url << "experience=" << _experience << "&";
 #else
@@ -1677,6 +1706,10 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
      EncodeString("osClass=", _osclass, encodedUrl, "&");
 #endif
     EncodeString("accountId=", _accountId, encodedUrl, "&");
+#if defined(RDKB_EXTENDER_SUPPORT)
+    EncodeString("accountMgmt=", "xpc", encodedUrl, "&");
+    EncodeString("serialNum=", "_serialNumber", encodedUrl, "&");
+#endif    
 #if !defined(RDKB_SUPPORT)	
     EncodeString("Experience=", _experience, encodedUrl, "&");
 #else
