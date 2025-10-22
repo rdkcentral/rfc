@@ -46,7 +46,7 @@ extern "C" {
 #define MTLS_FAILURE -1
 #endif
 
-inline bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool DbgBuild, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
+bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool DbgBuild, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
      return (DbgBuild && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV);
 }
 
