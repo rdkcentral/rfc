@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 inline bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool labSigned, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
-     return (labSigned && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV));
+     return (labSigned && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV);
 }
 
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
@@ -1556,7 +1556,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int retries = 0;
 	int sleep_time = 0;
 	char buf[URL_MAX_LEN];
-	bool labSigned = GetLabsignedValue(buf2, sizeof(buf2));
+	bool labSigned = GetLabsignedValue(buf, sizeof(buf));
 	eDeviceType deviceType = getDeviceType();
     /* Check if New Firmware Request*/
 
@@ -1570,7 +1570,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(labSigned, _ebuild_type, dbgServices, deviceType))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(labSigned, _ebuild_type, dbgServices, deviceType)))
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
