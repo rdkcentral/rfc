@@ -1708,7 +1708,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("accountId=", _accountId, encodedUrl, "&");
 #if defined(RDKB_EXTENDER_SUPPORT)
     EncodeString("accountMgmt=", "xpc", encodedUrl, "&");
-    EncodeString("serialNum=", "_serialNumber", encodedUrl, "&");
+    EncodeString("serialNum=", _serialNumber, encodedUrl, "&");
 #endif    
 #if !defined(RDKB_SUPPORT)	
     EncodeString("Experience=", _experience, encodedUrl, "&");
