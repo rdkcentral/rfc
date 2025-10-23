@@ -1677,18 +1677,20 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
 {
     std::stringstream url;
     url << _xconf_server_url << "?";
-    url << "estbMacAddress=" << _estb_mac_address << "&";
 #if defined(RDKB_EXTENDER_SUPPORT)
     url << "estbMacAddress=" << _extendermacAddress << "&";
+#else
+	url << "estbMacAddress=" << _estb_mac_address << "&";
 #endif	
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
-#if defined(RDKB_SUPPORT)
-    url << "ecmMacAddress=" << _ecm_mac_address << "&";
-#elif defined(RDKB_EXTENDER_SUPPORT)
-    url << "ecmMacAddress=" << _extendermacAddress << "&";	
-#else
+#if defined(RDKB_EXTENDER_SUPPORT)
+	url << "ecmMacAddress=" << _extendermacAddress << "&";
+#elif defined(RDKB_SUPPORT)
+    url << "ecmMacAddress=" << _ecm_mac_address << "&";   
+#endif
+#if !defined(RDKB_SUPPORT)
      url << "manufacturer=" << _manufacturer << "&";
 #endif
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
@@ -1714,18 +1716,20 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     std::stringstream encodedUrl;
     encodedUrl << _xconf_server_url << "?";
 
-    EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
 #if defined(RDKB_EXTENDER_SUPPORT)
     EncodeString("estbMacAddress=", _extendermacAddress, encodedUrl, "&");
+#else
+	EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
 #endif	
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_EXTENDER_SUPPORT)
+	EncodeString("ecmMacAddress=", _extendermacAddress, encodedUrl, "&");
+#elif defined(RDKB_SUPPORT)
     EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
-#elif defined(RDKB_EXTENDER_SUPPORT)
-    EncodeString("ecmMacAddress=", _extendermacAddress, encodedUrl, "&");	
-#else
+#endif
+#if !defined(RDKB_SUPPORT)	
      EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
 #endif
 
