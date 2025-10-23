@@ -97,6 +97,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     GetAccountID();
     GetOsClass();
 #if defined(RDKB_EXTENDER_SUPPORT)
+	GetExtenderMacAddress();
     GetSerialNumber();
 #endif    
 
@@ -950,6 +951,27 @@ void RuntimeFeatureControlProcessor::GetSerialNumber(void)
     v_secure_pclose(fp);
 }
 
+void RuntimeFeatureControlProcessor::GetExtenderMacAddress(void)
+{
+    char macBuf[32] = {0};
+    FILE *fp = v_secure_popen("r", "cat /sys/class/net/eth0/address | tr '[a-f]' '[A-F]'");
+    if (!fp) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetExtenderMacAddress: Failed to read MAC address\n");
+        return;
+    }
+
+    if (fgets(macBuf, sizeof(macBuf), fp) != NULL) {
+        // Remove carriage return and newline characters
+        macBuf[strcspn(macBuf, "\r\n")] = 0;
+        _extendermacAddress = macBuf;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetExtenderMacAddress: MAC Address = %s\n", _extendermacAddress.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetExtenderMacAddress: Failed to read MAC address\n");
+    }
+
+    v_secure_pclose(fp);
+}
+
 int RuntimeFeatureControlProcessor::GetExperience( void )
 {
     char tempbuf[1024] = {0};
@@ -1656,11 +1678,16 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     std::stringstream url;
     url << _xconf_server_url << "?";
     url << "estbMacAddress=" << _estb_mac_address << "&";
+#if defined(RDKB_EXTENDER_SUPPORT)
+    url << "estbMacAddress=" << _extendermacAddress << "&";
+#endif	
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
 #if defined(RDKB_SUPPORT)
     url << "ecmMacAddress=" << _ecm_mac_address << "&";
+#elif defined(RDKB_EXTENDER_SUPPORT)
+    url << "ecmMacAddress=" << _extendermacAddress << "&";	
 #else
      url << "manufacturer=" << _manufacturer << "&";
 #endif
@@ -1688,11 +1715,16 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     encodedUrl << _xconf_server_url << "?";
 
     EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
+#if defined(RDKB_EXTENDER_SUPPORT)
+    EncodeString("estbMacAddress=", _extendermacAddress, encodedUrl, "&");
+#endif	
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
 #if defined(RDKB_SUPPORT)
     EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
+#elif defined(RDKB_EXTENDER_SUPPORT)
+    EncodeString("ecmMacAddress=", _extendermacAddress, encodedUrl, "&");	
 #else
      EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
 #endif
