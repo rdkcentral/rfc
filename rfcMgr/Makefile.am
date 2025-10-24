@@ -31,10 +31,14 @@ AM_LDFLAGS += -lIARMBus
 endif
 
 if ENABLE_RDKB
-rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS)
+rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS) $(RDKBEXTENDER_FLAG)
 AM_LDFLAGS += -lrbus
 else
 AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la
+endif
+
+if ENABLE_RDKBEXTENDER
+rfcMgr_CPPFLAGS += $(RDKBEXTENDER_FLAG)
 endif
 
 if IS_LIBRDKCERTSEL_ENABLED
