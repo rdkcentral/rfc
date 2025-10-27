@@ -46,8 +46,8 @@ extern "C" {
 #define MTLS_FAILURE -1
 #endif
 
-bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool DbgBuild, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
-     return (DbgBuild && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV);
+bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool isLabSigned, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
+     return (isLabSigned && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV);
 }
 
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
@@ -55,7 +55,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
      std::string rfc_file;
      bool dbgServices = isDebugServicesEnabled();
 	 char buf[URL_MAX_LEN];
-	 bool DbgBuild = GetDbgBuildValue(buf, sizeof(buf));
+	 bool isLabSigned = isLabSignedEnabled(buf, sizeof(buf));
 	 eDeviceType deviceType = getDeviceType();
 	
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
@@ -69,7 +69,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     
     GetRFCPartnerID();
 
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(DbgBuild, _ebuild_type, dbgServices, deviceType)))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(isLabSigned, _ebuild_type, dbgServices, deviceType)))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
@@ -140,7 +140,7 @@ eDeviceType RuntimeFeatureControlProcessor:: getDeviceType(void) {
     return DEVICE_TYPE_UNKNOWN;
 }
 
-bool RuntimeFeatureControlProcessor::GetDbgBuildValue(char *pBuf, size_t szBufSize)
+bool RuntimeFeatureControlProcessor::isLabSignedEnabled(char *pBuf, size_t szBufSize)
 {
     FILE *fp;
     bool isEnabled = false;
@@ -148,7 +148,7 @@ bool RuntimeFeatureControlProcessor::GetDbgBuildValue(char *pBuf, size_t szBufSi
     char firmware[150] = {0};
     char *eVal, *eBuf;
     int i = 0;
-	const char* key = "DBGBUILD_PRODHW=";
+	const char* key = "LABSIGNED_ENABLED=";
 
     if (!pBuf || szBufSize == 0)
         return false;
@@ -179,7 +179,7 @@ bool RuntimeFeatureControlProcessor::GetDbgBuildValue(char *pBuf, size_t szBufSi
     }
     fclose(fp);
     if (*pBuf == '\0') {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get DBGBUILD_PRODHW value from /etc/device.properties.\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED value from /etc/device.properties.\n", __FUNCTION__, __LINE__);
         return isEnabled;
     }
 
@@ -192,7 +192,7 @@ bool RuntimeFeatureControlProcessor::GetDbgBuildValue(char *pBuf, size_t szBufSi
         *eBuf = tolower((unsigned char)*eBuf);
         ++eBuf;
     }
-    if (strstr(firmware, "dbgbuild_prodhw") && strstr(pBuf, "true"))
+    if (strstr(firmware, "labsigned") && strstr(pBuf, "true"))
         isEnabled = true;
     return isEnabled;
 }
@@ -1556,7 +1556,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int retries = 0;
 	int sleep_time = 0;
 	char buf[URL_MAX_LEN];
-	bool DbgBuild = GetDbgBuildValue(buf, sizeof(buf));
+	bool isLabSigned = isLabSignedEnabled(buf, sizeof(buf));
 	eDeviceType deviceType = getDeviceType();
     /* Check if New Firmware Request*/
 
@@ -1570,7 +1570,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(DbgBuild, _ebuild_type, dbgServices, deviceType)))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(isLabSigned, _ebuild_type, dbgServices, deviceType)))
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
