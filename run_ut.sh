@@ -38,7 +38,8 @@ mkdir /etc/rfcdefaults
 touch /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini  /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
-
+cp ./rfcMgr/gtest/mocks/iptables_init /lib/rdk/
+cp  /etc/rfc.properties /opt/rfc.properties
 
 export TOP_DIR=`pwd`
 cd ./rfcMgr/gtest
@@ -73,6 +74,16 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "********************"
+
+cd $TOP_DIR/rfcMgr/
+
+gcov -b -c rfcMgr_gtest-rfc_manager.gcno
+
+cat rfc_manager.cpp.gcov
+
+gcov -b -c  rfcMgr_gtest-rfc_xconf_handler.gcno
+
+cat rfc_xconf_handler.cpp.gcov
 
 cd $TOP_DIR
 
