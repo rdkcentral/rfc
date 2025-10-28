@@ -38,9 +38,7 @@ AM_LDFLAGS +=  ../rfcapi/.libs/librfcapi.la
 endif
 
 if ENABLE_RDKB
-rfcMgr_CPPFLAGS += " \
-    -I${STAGING_INCDIR}/syscfg \
-    "
+rfcMgr_CPPFLAGS += -I${STAGING_INCDIR}/syscfg
 endif
 
 if ENABLE_RDKBEXTENDER
