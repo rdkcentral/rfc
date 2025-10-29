@@ -46,17 +46,60 @@ extern "C" {
 #define MTLS_FAILURE -1
 #endif
 
-bool RuntimeFeatureControlProcessor:: Debug_Services_Enabled(bool isLabSigned, BUILDTYPE eBuildType, bool dbgServices, eDeviceType deviceType) { 
-     return (isLabSigned && (eBuildType == ePROD) && dbgServices && (deviceType == DEVICE_TYPE_TEST)) || (eBuildType == eDEV);
+bool RuntimeFeatureControlProcessor:: enableDebugServices(void) { 
+    bool dbgServices = isDebugServicesEnabled(); //check debug services enabled from RFC
+	eDeviceType deviceType = getDeviceTypeRFC(); //Check if device type is TEST from RFC
+	bool isDebugServicesUnlocked = false;// return value
+	const char* key = "LABSIGNED_ENABLED="; // key from /etc/device.properties
+	FILE *fp = fopen(DEVICE_PROPERTIES_FILE, "r");
+	char pBuf[URL_MAX_LEN];
+	char *eVal = NULL;
+	char *eBuf = NULL;
+	int i = 0;
+
+    if (_ebuild_type == eDEV)
+		isDebugServicesUnlocked = true;
+	else if (_ebuild_type == ePROD){
+	    //Read LABSIGNED_ENABLED value from /etc/device.properties
+	    if (!fp) {
+			RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open %s file.\n", __FUNCTION__, __LINE__, DEVICE_PROPERTIES_FILE);
+            return isDebugServicesUnlocked;
+        }
+        while (fgets(buf, sizeof(buf), fp)) {
+            if (strncmp(buf, key, strlen(key)) == 0) {
+                eVal = strchr(buf, '=');
+                if (eVal) {
+                    ++eVal;
+                    i = snprintf(pBuf, sizeof(pBuf), "%s", eVal);
+                    i = stripinvalidchar(pBuf, i);
+                    eBuf = pBuf;
+                    while (*eBuf) {
+                        *eBuf = tolower((unsigned char)*eBuf);
+                        ++eBuf;
+                    }
+                }
+                break;
+            }
+        }
+        fclose(fp);
+
+        if (*pBuf == '\0') {
+			RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED property value.\n", __FUNCTION__, __LINE__);
+            return isDebugServicesUnlocked;
+        }
+	    if(strstr(pBuf, "true")){
+			if((deviceType == DEVICE_TYPE_TEST) && dbgServices){
+				RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
+				isDebugServicesUnlocked = true;
+			}
+		}
+	}
+	return isDebugServicesUnlocked;
 }
 
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
-     std::string rfc_file;
-     bool dbgServices = isDebugServicesEnabled();
-	 char buf[URL_MAX_LEN];
-	 bool isLabSigned = isLabSignedEnabled(buf, sizeof(buf));
-	 eDeviceType deviceType = getDeviceType();
+    std::string rfc_file;
 	
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
     if(rc != 0)
@@ -69,7 +112,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     
     GetRFCPartnerID();
 
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(isLabSigned, _ebuild_type, dbgServices, deviceType)))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (enableDebugServices()))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
@@ -122,12 +165,11 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     return SUCCESS;
 }
 
-eDeviceType RuntimeFeatureControlProcessor:: getDeviceType(void) {
+eDeviceType RuntimeFeatureControlProcessor:: getDeviceTypeRFC(void) {
     char rfc_data[RFC_VALUE_BUF_SIZE] = {0};
     int ret = read_RFCProperty("LABSGND", RFC_DEVICETYPE, rfc_data, sizeof(rfc_data));
 
     if (ret == -1) {
-        SWLOG_ERROR("%s: Failed to read device type\n", __FUNCTION__);
 		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] rfc device type =%s failed Status %d\n", __FUNCTION__, __LINE__, RFC_DEVICETYPE, ret);
         return DEVICE_TYPE_UNKNOWN;
     }
@@ -138,63 +180,6 @@ eDeviceType RuntimeFeatureControlProcessor:: getDeviceType(void) {
         return DEVICE_TYPE_TEST;
     }
     return DEVICE_TYPE_UNKNOWN;
-}
-
-bool RuntimeFeatureControlProcessor::isLabSignedEnabled(char *pBuf, size_t szBufSize)
-{
-    FILE *fp;
-    bool isEnabled = false;
-    char buf[150] = {0};
-    char firmware[150] = {0};
-    char *eVal, *eBuf;
-    int i = 0;
-	const char* key = "LABSIGNED_ENABLED=";
-
-    if (!pBuf || szBufSize == 0)
-        return false;
-
-    *pBuf = '\0';
-
-    fp = fopen(DEVICE_PROPERTIES_FILE, "r");
-    if (!fp) {
-		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open /etc/device.properties.\n", __FUNCTION__, __LINE__);
-        return isEnabled;
-    }
-
-    while (fgets(buf, sizeof(buf), fp)) {
-        if (strncmp(buf, key, strlen(key)) == 0) {
-            eVal = strchr(buf, '=');
-            if (eVal) {
-                ++eVal;
-                i = snprintf(pBuf, szBufSize, "%s", eVal);
-                i = stripinvalidchar(pBuf, i);
-                eBuf = pBuf;
-                while (*eBuf) {
-                    *eBuf = tolower((unsigned char)*eBuf);
-                    ++eBuf;
-                }
-            }
-            break;
-        }
-    }
-    fclose(fp);
-    if (*pBuf == '\0') {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED value from /etc/device.properties.\n", __FUNCTION__, __LINE__);
-        return isEnabled;
-    }
-
-    if (GetFirmwareVersion(firmware, sizeof(firmware)) == 0 || *firmware == '\0') {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get firmware version value.\n", __FUNCTION__, __LINE__);
-        return isEnabled;
-    }
-    eBuf = firmware;
-    while (*eBuf) {
-        *eBuf = tolower((unsigned char)*eBuf);
-        ++eBuf;
-    }
-    if (strstr(firmware, "labsigned") && strstr(pBuf, "true"))
-        isEnabled = true;
-    return isEnabled;
 }
 
 bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
@@ -1555,22 +1540,18 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
 {
     int retries = 0;
 	int sleep_time = 0;
-	char buf[URL_MAX_LEN];
-	bool isLabSigned = isLabSignedEnabled(buf, sizeof(buf));
-	eDeviceType deviceType = getDeviceType();
     /* Check if New Firmware Request*/
 
     rfcSelectOpt = (rfc_state == Local) ? "local" : "prod";
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
-    bool dbgServices = isDebugServicesEnabled();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (Debug_Services_Enabled(isLabSigned, _ebuild_type, dbgServices, deviceType)))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (enableDebugServices()))
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
