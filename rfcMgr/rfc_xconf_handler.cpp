@@ -46,57 +46,45 @@ extern "C" {
 #define MTLS_FAILURE -1
 #endif
 
-bool RuntimeFeatureControlProcessor:: enableDebugServices(void) { 
-    bool dbgServices = isDebugServicesEnabled(); //check debug services enabled from RFC
-	eDeviceType deviceType = getDeviceTypeRFC(); //Check if device type is TEST from RFC
-	bool isDebugServicesUnlocked = false;// return value
-	const char* key = "LABSIGNED_ENABLED="; // key from /etc/device.properties
-	char buf[150] = {0};
-	char pBuf[URL_MAX_LEN] = {0};
-	char *eVal = NULL;
-	char *eBuf = NULL;
-	int i = 0;
+bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
+    bool dbgServices = isDebugServicesEnabled();  // check debug services enabled from RFC
+    eDeviceType deviceType = getDeviceTypeRFC();  // check if device type is TEST from RFC
+    bool isDebugServicesUnlocked = false;         // return value
+    const char* key = "LABSIGNED_ENABLED=";       // key from /etc/device.properties
+    FILE *fp;
+    char buf[URL_MAX_LEN] = {0};
 
-    if (_ebuild_type == eDEV)
-		isDebugServicesUnlocked = true;
-	else if (_ebuild_type == ePROD){
-	    //Read LABSIGNED_ENABLED value from /etc/device.properties
-	    FILE *fp = fopen(DEVICE_PROPERTIES_FILE, "r");
-	    if (!fp) {
-			RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open %s file.\n", __FUNCTION__, __LINE__, DEVICE_PROPERTIES_FILE);
+    if (_ebuild_type == eDEV) {
+        isDebugServicesUnlocked = true;
+    } 
+    else if (_ebuild_type == ePROD) {
+        fp = fopen(DEVICE_PROPERTIES_FILE, "r");
+        if (!fp) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open %s file.\n",
+                    __FUNCTION__, __LINE__, DEVICE_PROPERTIES_FILE);
             return isDebugServicesUnlocked;
         }
+
         while (fgets(buf, sizeof(buf), fp)) {
             if (strncmp(buf, key, strlen(key)) == 0) {
-                eVal = strchr(buf, '=');
-                if (eVal) {
-                    ++eVal;
-                    i = snprintf(pBuf, sizeof(pBuf), "%s", eVal);
-                    i = stripinvalidchar(pBuf, i);
-                    eBuf = pBuf;
-                    while (*eBuf) {
-                        *eBuf = tolower((unsigned char)*eBuf);
-                        ++eBuf;
+                char *eVal = buf + strlen(key);  // points to value after '='
+                if (strcasecmp(eVal, "true") == 0) {
+                    if ((deviceType == DEVICE_TYPE_TEST) && dbgServices) {
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
+                                "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
+                        isDebugServicesUnlocked = true;
                     }
                 }
                 break;
             }
         }
-        fclose(fp);
 
-        if (*pBuf == '\0') {
-			RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED property value.\n", __FUNCTION__, __LINE__);
-            return isDebugServicesUnlocked;
-        }
-	    if(strstr(pBuf, "true")){
-			if((deviceType == DEVICE_TYPE_TEST) && dbgServices){
-				RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
-				isDebugServicesUnlocked = true;
-			}
-		}
-	}
-	return isDebugServicesUnlocked;
+        fclose(fp);
+    }
+
+    return isDebugServicesUnlocked;
 }
+
 
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
@@ -113,7 +101,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     
     GetRFCPartnerID();
 
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (enableDebugServices()))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isSecureDbgSrvUnlocked()))
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
@@ -1552,7 +1540,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (enableDebugServices()))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isSecureDbgSrvUnlocked()))
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
