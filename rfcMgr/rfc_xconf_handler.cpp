@@ -51,7 +51,6 @@ bool RuntimeFeatureControlProcessor:: enableDebugServices(void) {
 	eDeviceType deviceType = getDeviceTypeRFC(); //Check if device type is TEST from RFC
 	bool isDebugServicesUnlocked = false;// return value
 	const char* key = "LABSIGNED_ENABLED="; // key from /etc/device.properties
-	FILE *fp = fopen(DEVICE_PROPERTIES_FILE, "r");
 	char pBuf[URL_MAX_LEN];
 	char *eVal = NULL;
 	char *eBuf = NULL;
@@ -61,6 +60,7 @@ bool RuntimeFeatureControlProcessor:: enableDebugServices(void) {
 		isDebugServicesUnlocked = true;
 	else if (_ebuild_type == ePROD){
 	    //Read LABSIGNED_ENABLED value from /etc/device.properties
+	    FILE *fp = fopen(DEVICE_PROPERTIES_FILE, "r");
 	    if (!fp) {
 			RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open %s file.\n", __FUNCTION__, __LINE__, DEVICE_PROPERTIES_FILE);
             return isDebugServicesUnlocked;
