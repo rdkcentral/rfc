@@ -51,7 +51,8 @@ bool RuntimeFeatureControlProcessor:: enableDebugServices(void) {
 	eDeviceType deviceType = getDeviceTypeRFC(); //Check if device type is TEST from RFC
 	bool isDebugServicesUnlocked = false;// return value
 	const char* key = "LABSIGNED_ENABLED="; // key from /etc/device.properties
-	char pBuf[URL_MAX_LEN];
+	char buf[150] = {0};
+	char pBuf[URL_MAX_LEN] = {0};
 	char *eVal = NULL;
 	char *eBuf = NULL;
 	int i = 0;
