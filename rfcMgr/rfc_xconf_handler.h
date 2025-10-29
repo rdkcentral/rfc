@@ -209,7 +209,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int ProcessXconfUrl(const char *XconfUrl);
 	bool isDebugServicesEnabled(void);
     eDeviceType getDeviceTypeRFC(void);
-    bool enableDebugServices(void);
+    bool isSecureDbgSrvUnlocked(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
