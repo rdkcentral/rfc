@@ -67,11 +67,13 @@ extern "C" {
 #define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini" 
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
 #define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
+#define RFC_DEVICETYPE                     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
 #define RFC_CHANNEL_MAP_ID                 2345
 #define RETRY_DELAY                        10
+#define URL_MAX_LEN                        512
 
 #define RFC_SYNC_DONE                      "/tmp/.rfcSyncDone"
 
@@ -91,6 +93,12 @@ typedef enum {
     WDMP_FAILURE,
 } WDMP_STATUS;
 #endif
+
+typedef enum {
+    DEVICE_TYPE_UNKNOWN = 0,
+    DEVICE_TYPE_PROD,
+    DEVICE_TYPE_TEST
+} eDeviceType;
 
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
@@ -205,6 +213,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
 	bool isDebugServicesEnabled(void);
+    eDeviceType getDeviceTypeRFC(void);
+    bool isSecureDbgSrvUnlocked(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
