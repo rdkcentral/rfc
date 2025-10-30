@@ -68,12 +68,21 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
         while (fgets(buf, sizeof(buf), fp)) {
             if (strncmp(buf, key, strlen(key)) == 0) {
                 char *eVal = buf + strlen(key);  // points to value after '='
-                if (strcasecmp(eVal, "true") == 0) {
+				char pBuf[URL_MAX_LEN] = {0};
+                snprintf(pBuf, sizeof(pBuf), "%s", eVal);
+                stripinvalidchar(pBuf, strlen(pBuf));
+                if (strcasecmp(pBuf, "true") == 0) {
                     if ((deviceType == DEVICE_TYPE_TEST) && dbgServices) {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
                                 "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
                         isDebugServicesUnlocked = true;
                     }
+					else{
+						RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
+                                "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
+						RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
+                                "[%s][%d] dbgServices=%s, deviceType=%d, LABSIGNED_ENABLED=%s\n", __FUNCTION__, __LINE__,dbgServices ? "true" : "false", deviceType, pBuf);
+					}
                 }
                 break;
             }
