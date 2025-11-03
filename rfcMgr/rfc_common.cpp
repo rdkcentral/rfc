@@ -27,7 +27,14 @@
 #if defined(RDKB_SUPPORT)
 #include <rbus/rbus.h>
 #endif	
+#include <thread>
+#include <chrono>
+#include <vector>
 
+
+void rfc_otlp_trace(const char* param_name);
+void rfc_otlp_force_flush();
+const char* rfc_otlp_get_endpoint();
 
 std::string getSyseventValue(const std::string& key)
 {
@@ -99,7 +106,8 @@ void waitForRfcCompletion()
 int read_RFCProperty(const char* type, const char* key, char *out_value, int datasize)
 {
     int ret = READ_RFC_FAILURE;
-
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Read RFC Property\n", __FUNCTION__, __LINE__);
+    rfc_otlp_trace("rfcManager");
     if(key == nullptr || out_value == nullptr || datasize == 0)
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received one or more input values are invalid\n", __FUNCTION__, __LINE__);
