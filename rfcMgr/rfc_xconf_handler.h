@@ -129,6 +129,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         std::string stashAccountId;
         std::string _partnerId; /* Device Partner ID */
         std::string _bkPartnerId; /* Device Partner ID */
+        std::string _accountMgmt;
+        std::string _serialNumber;
+        std::string _extendermacAddress;
         std::string _experience;
         std::string _osclass;
         bool isRebootRequired;
@@ -145,6 +148,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void GetRFCPartnerID();
         bool isMaintenanceEnabled();
         void GetOsClass( void );
+	    void GetSerialNumber( void );
+        void GetExtenderMacAddress( void );
         int GetExperience( void );
         int GetServURL(const char *rfcPropertiesFile);
         int GetBootstrapXconfUrl(std ::string &XconfUrl); 

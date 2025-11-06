@@ -87,8 +87,8 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Experience\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-	
-	/* last Firmware Version */
+
+    /* last Firmware Version */
     if(SUCCESS != GetLastProcessedFirmware(RFC_LAST_VERSION))
     {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Xconf Initialization Failed for Last firmware\n", __FUNCTION__, __LINE__);
@@ -96,6 +96,10 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 
     GetAccountID();
     GetOsClass();
+#if defined(RDKB_EXTENDER_SUPPORT)
+	GetExtenderMacAddress();
+    GetSerialNumber();
+#endif    
 
 #if !defined(RDKB_SUPPORT)
     _is_first_request = IsNewFirmwareFirstRequest();
@@ -925,6 +929,49 @@ void RuntimeFeatureControlProcessor::GetOsClass( void )
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "GetOsClass: Exit\n");
 }
 
+
+void RuntimeFeatureControlProcessor::GetSerialNumber(void)
+{
+    char serialBuf[256] = {0};
+    FILE *fp = v_secure_popen("r", "/usr/sbin/deviceinfo.sh -sn");
+    if (!fp) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetSerialNumber: Failed to run deviceinfo.sh\n");
+        return;
+    }
+
+    if (fgets(serialBuf, sizeof(serialBuf), fp) != NULL) {
+        // Remove carriage return and newline characters
+        serialBuf[strcspn(serialBuf, "\r\n")] = 0;
+        _serialNumber = serialBuf;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetSerialNumber: Serial Number = %s\n", _serialNumber.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetSerialNumber: Failed to read serial number\n");
+    }
+
+    v_secure_pclose(fp);
+}
+
+void RuntimeFeatureControlProcessor::GetExtenderMacAddress(void)
+{
+    char macBuf[32] = {0};
+    FILE *fp = v_secure_popen("r", "cat /sys/class/net/eth0/address | tr '[a-f]' '[A-F]'");
+    if (!fp) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetExtenderMacAddress: Failed to read MAC address\n");
+        return;
+    }
+
+    if (fgets(macBuf, sizeof(macBuf), fp) != NULL) {
+        // Remove carriage return and newline characters
+        macBuf[strcspn(macBuf, "\r\n")] = 0;
+        _extendermacAddress = macBuf;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetExtenderMacAddress: MAC Address = %s\n", _extendermacAddress.c_str());
+    } else {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "GetExtenderMacAddress: Failed to read MAC address\n");
+    }
+
+    v_secure_pclose(fp);
+}
+
 int RuntimeFeatureControlProcessor::GetExperience( void )
 {
     char tempbuf[1024] = {0};
@@ -1630,13 +1677,20 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
 {
     std::stringstream url;
     url << _xconf_server_url << "?";
-    url << "estbMacAddress=" << _estb_mac_address << "&";
+#if defined(RDKB_EXTENDER_SUPPORT)
+    url << "estbMacAddress=" << _extendermacAddress << "&";
+#else
+	url << "estbMacAddress=" << _estb_mac_address << "&";
+#endif	
     url << "firmwareVersion=" << _firmware_version << "&";
     url << "env=" << _build_type_str << "&";
     url << "model=" << _model_number << "&";
-#if defined(RDKB_SUPPORT)
-    url << "ecmMacAddress=" << _ecm_mac_address << "&";
-#else
+#if defined(RDKB_EXTENDER_SUPPORT)
+	url << "ecmMacAddress=" << _extendermacAddress << "&";
+#elif defined(RDKB_SUPPORT)
+    url << "ecmMacAddress=" << _ecm_mac_address << "&";   
+#endif
+#if !defined(RDKB_SUPPORT)
      url << "manufacturer=" << _manufacturer << "&";
 #endif
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
@@ -1647,6 +1701,10 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
      url << "osClass=" << _osclass << "&";
 #endif
     url << "accountId=" << _accountId << "&";
+#if defined(RDKB_EXTENDER_SUPPORT)
+    url << "accountMgmt=" << "xpc" << "&";
+    url << "serialNum=" << _serialNumber << "&";
+#endif    
 #if defined(RDKB_SUPPORT)	
     url << "experience=" << _experience << "&";
 #else
@@ -1658,13 +1716,20 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     std::stringstream encodedUrl;
     encodedUrl << _xconf_server_url << "?";
 
-    EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
+#if defined(RDKB_EXTENDER_SUPPORT)
+    EncodeString("estbMacAddress=", _extendermacAddress, encodedUrl, "&");
+#else
+	EncodeString("estbMacAddress=", _estb_mac_address, encodedUrl, "&");
+#endif	
     EncodeString("firmwareVersion=", _firmware_version, encodedUrl, "&");
     EncodeString("env=", _build_type_str, encodedUrl, "&");
     EncodeString("model=", _model_number, encodedUrl, "&");
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_EXTENDER_SUPPORT)
+	EncodeString("ecmMacAddress=", _extendermacAddress, encodedUrl, "&");
+#elif defined(RDKB_SUPPORT)
     EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
-#else
+#endif
+#if !defined(RDKB_SUPPORT)	
      EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
 #endif
 
@@ -1677,6 +1742,10 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
      EncodeString("osClass=", _osclass, encodedUrl, "&");
 #endif
     EncodeString("accountId=", _accountId, encodedUrl, "&");
+#if defined(RDKB_EXTENDER_SUPPORT)
+    EncodeString("accountMgmt=", "xpc", encodedUrl, "&");
+    EncodeString("serialNum=", _serialNumber, encodedUrl, "&");
+#endif    
 #if !defined(RDKB_SUPPORT)	
     EncodeString("Experience=", _experience, encodedUrl, "&");
 #else
@@ -2376,6 +2445,20 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                 if (newValue != currentValue)
                 {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] updated for %s from value old=%s, to new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
+                    if(newKey == TELEMETRY_CONFIG_URL){
+			if (!newValue.empty() && newValue.find("https://") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Notifying Telemetry of Config URL update.\n", __FUNCTION__, __LINE__);
+                            int systemRet = v_secure_system("killall -12 telemetry2_0");
+                            if (systemRet == -1) {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Notification to Telemetry failed.\n", __FUNCTION__, __LINE__);
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d]  Notification to Telemetry success, return code = %d\n", __FUNCTION__, __LINE__, systemRet);
+                            }
+                        }
+			else{
+			    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Invalid Telemetry Config URL.\n", __FUNCTION__, __LINE__);
+			}
+		    }
                     std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
                     bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
                     if(isAccountKey == true)

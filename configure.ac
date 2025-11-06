@@ -174,6 +174,22 @@ AC_ARG_ENABLE([rdkb],
 AM_CONDITIONAL([ENABLE_RDKB], [test x$ENABLE_RDKB = xtrue])
 AC_SUBST(RDKB_FLAG)
 
+AC_ARG_ENABLE([rdkbextender],
+              AS_HELP_STRING([--enable-rdkbextender],[enable rdkbextender (default is no)]),
+              [
+                case "${enableval}" in
+                 yes) ENABLE_RDKBEXTENDER=true
+                       RDKBEXTENDER_FLAG=" -DRDKB_EXTENDER_SUPPORT ";;
+                  no) ENABLE_RDKBEXTENDER=false
+                      AC_MSG_ERROR([RDKBEXTENDER is disabled]) ;;
+                   *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkbextender]) ;;
+                esac
+              ],
+              [echo "rdkbextender is disabled"])
+
+AM_CONDITIONAL([ENABLE_RDKBEXTENDER], [test x$ENABLE_RDKBEXTENDER = xtrue])
+AC_SUBST(RDKBEXTENDER_FLAG)
+
 # Check for breakpad
 BREAKPAD_CFLAGS=" "
 BREAKPAD_LFLAGS=" "
