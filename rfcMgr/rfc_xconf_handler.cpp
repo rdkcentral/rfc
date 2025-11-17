@@ -1944,7 +1944,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
                 thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
                 if (thisCertSel == NULL) {
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector Initialisation failed\n", __FUNCTION__, __LINE__);
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization failed\n", __FUNCTION__, __LINE__);
                     return cert_ret_code;
                 } else {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Cert selector initialization successful\n", __FUNCTION__, __LINE__);
