@@ -1959,22 +1959,15 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                     ret = getMtlscert(&sec, &thisCertSel);
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] getMtlscert function ret value = %d\n", __FUNCTION__, __LINE__, ret);
 
-                    if (ret == STATE_RED_CERT_FETCH_FAILURE) {
+                    if (ret == MTLS_CERT_FETCH_FAILURE) {
+	                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
+                        return cert_ret_code;
+                    } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
                         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
                         return cert_ret_code;
-                    } 
-
-       	    /* Handle MTLS failure case as well. */
-                    if (ret == MTLS_CERT_FETCH_FAILURE)
-                    {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
-                        /* RDKE-419: No valid data in 'sec' buffer, pass NULL */
-                        curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
-                    }
-                    else
-                    {
+                    } else {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
-                        NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
+	                NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
                         curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
                     }
 
