@@ -1979,11 +1979,16 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                     }
 
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
-                    CURLcode curl_code = (CURLcode)curl_ret_code;
-                    const char *error_msg = curl_easy_strerror(curl_code);
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
             } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);
+#else
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Executing request without cert selector\n", __FUNCTION__, __LINE__);
+            curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
 #endif
+            CURLcode curl_code = (CURLcode)curl_ret_code;
+            const char *error_msg = curl_easy_strerror(curl_code);
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
+
             if(curl)
             {
                 doStopDownload(curl);
