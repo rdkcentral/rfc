@@ -1891,6 +1891,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     void *curl = nullptr;
     hashParam_t *hashParam = nullptr;
     MtlsAuth_t sec;
+	int curl_ret_code = -1;
 #ifdef LIBRDKCERTSELECTOR
     int state_red = -1;
     int cert_ret_code = -1;
@@ -1936,7 +1937,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
 #ifdef LIBRDKCERTSELECTOR
             static rdkcertselector_h thisCertSel = NULL;
-            int curl_ret_code = -1;
+            
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
             if (thisCertSel == NULL)
             {
