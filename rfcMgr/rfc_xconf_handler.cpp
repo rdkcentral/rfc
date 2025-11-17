@@ -1964,7 +1964,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                         return cert_ret_code;
                     } 
 
-       		    /* Handle MTLS failure case as well. */
+       	    /* Handle MTLS failure case as well. */
                     if (ret == MTLS_CERT_FETCH_FAILURE)
                     {
                         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
