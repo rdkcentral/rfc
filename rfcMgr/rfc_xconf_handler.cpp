@@ -1890,14 +1890,13 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     int ret_value = FAILURE;
     void *curl = nullptr;
     hashParam_t *hashParam = nullptr;
-    MtlsAuth_t sec;
+    
 	int curl_ret_code = -1;
 #ifdef LIBRDKCERTSELECTOR
     int state_red = -1;
     int cert_ret_code = -1;
+	MtlsAuth_t sec;
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
-#else
-    int ret = MTLS_FAILURE;
 #endif    
     int httpCode = -1;
 
