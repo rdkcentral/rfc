@@ -66,8 +66,8 @@ def test_rfcMgr_with_locked_file() -> None:
     try:
         rfc_run_binary()
 
-        ERROR_MSG = "CurrentRunningInst: Failed to aquire lock"
-        assert grep_log_file(SWUPDATE_LOG_FILE, ERROR_MSG)
+        ERROR_MSG = "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!"
+        assert grep_log_file(RFC_LOG_FILE, ERROR_MSG)
     finally:
         release_and_cleanup_lock_file(rfc_lock_file)
         initial_rfc_setup()

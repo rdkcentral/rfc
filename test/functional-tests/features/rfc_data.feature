@@ -17,10 +17,21 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: Verify RFC data population
+  The system should correctly populate RFC data files
+  under the /opt/secure/RFC directory. 
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+  Background:
+     Given the RFC API service is running 
+
+  Scenario: Validate RFC data is populated under /opt/secure/RFC
+    When the RFC binary is run
+    And the directory "/opt/secure/RFC" should not be empty
+    Then the directory "/opt/secure/RFC" should contain the file "tr181store.ini"
+    And the directory "/opt/secure/RFC" should contain the file "tr181localstore.ini"
+    And the directory "/opt/secure/RFC" should contain the file "tr181.list"
+    And the directory "/opt/secure/RFC" should contain the file "rfcVariable.ini"
+    And the directory "/opt/secure/RFC" should contain the file "rfcFeature.list"
+    And each RFC data file should have a size greater than 0 bytes
+
 

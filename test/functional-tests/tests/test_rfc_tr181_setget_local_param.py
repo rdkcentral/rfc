@@ -17,10 +17,15 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+from rfc_test_helper import *
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+def test_setLocalParam():
+    command_to_check = "tr181 -d -s -n localOnly -v false Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable"
+    result = run_shell_command(command_to_check)
+    assert "Set Local Param success!" in result, '"Set Local Param success!" not found in the output'
+
+def test_getLocalParam():
+    command_to_check = "tr181 -d -g -n localOnly Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable"
+    result = run_shell_command(command_to_check)
+    assert "Param Value :: false" in result, '"Param Value :: false" not found in the output'
 

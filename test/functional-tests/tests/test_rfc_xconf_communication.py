@@ -138,7 +138,9 @@ def test_rfcMgr_xconf_404_communication() -> None:
         rfc_run_binary()
     
         ERROR_MSG1 = "cURL Return : 0 HTTP Code : 404"
+        RFC_FEATURE_STATUS_MSG = "[Features Enabled]-[NONE]:"
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG1), f"Expected '{ERROR_MSG1}' in log file."
+        assert grep_log_file(RFC_LOG_FILE, RFC_FEATURE_STATUS_MSG), f"Expected '{RFC_FEATURE_STATUS_MSG}' in log file."
     
     finally:
         modify_rfc_url(RFC_XCONF_URL)
@@ -167,8 +169,10 @@ def test_rfcMgr_xconf_communication() -> None:
         post_rfc_run_rfc_version = get_rfc_old_FW()
         rfc_key1, rfc_value1 = get_tr181_file_key_value()
         ERROR_MSG1 = f"COMPLETED RFC PASS"
-        
+        RFC_FEATURE_STATUS_MSG = f"[Features Enabled]-[STAGING]:"
+
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG1), f"Expected '{ERROR_MSG1}' in log file."
+        assert grep_log_file(RFC_LOG_FILE, RFC_FEATURE_STATUS_MSG), f"Expected '{RFC_FEATURE_STATUS_MSG}' in log file."
         assert (post_rfc_run_tr181_File != pre_rfc_run_tr181_File), f"'{TR181_INI_FILE}' creation success on rfc run."
         assert (pre_rfc_run_rfc_version != post_rfc_run_rfc_version) and (device_fw_version == post_rfc_run_rfc_version), f"'{device_fw_version}' updated in '{TR181_INI_FILE}'"
         assert (rfc_key1 == TEST_RFC_PARAM_KEY1) and (rfc_value1 == TEST_RFC_PARAM_VAL1), f"'{TEST_RFC_PARAM_KEY1}' key is set with '{TEST_RFC_PARAM_VAL1} in {TR181_INI_FILE}'"

@@ -24,11 +24,11 @@ Feature: RFC Initialization Failure
     And the properties file is modified to have an empty server URL
     When the RFC binary is run
     Then an error message "URL not found in the file." should be logged
-    And an error message "Xconf Initialization ...!!" should be logged
+    And an error message "Xconf Initialization Failed...!!" should be logged
 
   Scenario: Initialization failure due to missing properties file
     Given the properties file does not exist
     When the RFC binary is run
     Then an error message "Failed to open file." should be logged
-    And an error message "Xconf Initialization ...!!" should be logged
+    And an error message "Xconf Initialization Failed...!!" should be logged
 

@@ -38,7 +38,7 @@ def test_rfc_init_fail_no_server_url():
         rfc_run_binary()
 
         ERROR_MSG1 = "URL not found in the file."
-        ERROR_MSG2 = "Xconf Initialization ...!!"
+        ERROR_MSG2 = "Xconf Initialization Failed...!!"
         
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG1), f"Expected '{ERROR_MSG1}' in log file."
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG2), f"Expected '{ERROR_MSG2}' in log file."
@@ -62,7 +62,7 @@ def test_rfc_init_fail_no_props_file():
         rfc_run_binary()
         
         ERROR_MSG1 = "Failed to open file."
-        ERROR_MSG2 = "Xconf Initialization ...!!"
+        ERROR_MSG2 = "Xconf Initialization Failed...!!"
 
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG1)
         assert grep_log_file(RFC_LOG_FILE, ERROR_MSG2)

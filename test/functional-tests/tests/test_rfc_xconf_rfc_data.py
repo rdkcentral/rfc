@@ -17,10 +17,19 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+import os
+from rfc_test_helper import *
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+def test_RFC_dir_exists():
+    """Verify /opt/secure/RFC exists and is a directory"""
+    path = "/opt/secure/RFC"
+    assert os.path.exists(path), f"{path} does not exist"
+    assert os.path.isdir(path), f"{path} is not a directory"
 
+def test_expected_files_present():
+    path = "/opt/secure/RFC"
+    expected_files = ["tr181store.ini", "tr181localstore.ini", "tr181.list", "rfcVariable.ini", "rfcFeature.list"]
+    actual_files = os.listdir(path)
+
+    for f in expected_files:
+        assert f in actual_files, f"Missing expected file: {f}"
