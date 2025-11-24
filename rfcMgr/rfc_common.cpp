@@ -30,12 +30,7 @@
 #include <thread>
 #include <chrono>
 #include <vector>
-
-
-void rfc_otlp_trace(const char* param_name);
-void rfc_otlp_force_flush();
-const char* rfc_otlp_get_endpoint();
-
+#include "rfc_otlp_instrumentation.h"
 std::string getSyseventValue(const std::string& key)
 {
     std::string cmd = "sysevent get " + key;
@@ -107,13 +102,12 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
 {
     int ret = READ_RFC_FAILURE;
     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Read RFC Property\n", __FUNCTION__, __LINE__);
-    rfc_otlp_trace("rfcManager");
     if(key == nullptr || out_value == nullptr || datasize == 0)
     {
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received one or more input values are invalid\n", __FUNCTION__, __LINE__);
         return ret;
     }
-
+    rfc_otlp_trace_parameter_get("rfcMgr-start");
 #if defined(RDKB_SUPPORT)
     rbusHandle_t handle;
     rbusValue_t value;
@@ -123,13 +117,12 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
     (void)type;
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Looking up parameter: %s\n", __FUNCTION__, __LINE__, paramName);
-
     rc = rbus_open(&handle, "RFC_Manager");
     if (rc != RBUS_ERROR_SUCCESS) {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open rbus handle: %s\n", __FUNCTION__, __LINE__, rbusError_ToString(rc));
         return ret;
     }
-
+    
     rc = rbus_get(handle, paramName, &value);
     if (rc == RBUS_ERROR_SUCCESS) {
         if (rbusValue_GetType(value) == RBUS_STRING) {

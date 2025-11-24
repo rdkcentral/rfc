@@ -24,6 +24,9 @@
 #include <array>
 #include <thread>
 #include <chrono>
+#include "rdk_debug.h"
+
+#define LOG_RFCAPI  "LOG.RDK.RFCAPI"
 
 namespace trace = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;
@@ -135,11 +138,11 @@ public:
     void traceParameterOperation(const std::string& param_name,
                                const std::string& operation_type,
                                const std::function<void()>& operation) {
-        auto span = tracer_->StartSpan("rfcMrg." + operation_type);
+        auto span = tracer_->StartSpan("rfcMgr." + operation_type);
 
         // Get and log trace/span IDs
         auto [trace_id, span_id] = getTraceSpanIds(span);
-        std::cout << "Parameter " << operation_type << " Trace - TraceID: " << trace_id << ", SpanID: " << span_id << std::endl;
+        std::cout << "RFC parameter " << operation_type << "RFC Trace - TraceID: " << trace_id << ",RFC SpanID: " << span_id << std::endl;
 
         // Set parameter-specific attributes
         span->SetAttribute("parameter.name", param_name);
@@ -153,7 +156,7 @@ public:
             // Execute the operation
             operation();
             span->SetStatus(trace::StatusCode::kOk);
-            std::cout << " Parameter " << operation_type << " completed for: " << param_name << std::endl;    
+            std::cout << " RFC Parameter " << operation_type << " completed for: " << param_name << std::endl;    
 
         } catch (const std::exception& e) {
             span->SetAttribute("error.message", e.what());
@@ -163,7 +166,7 @@ public:
         }
 
         span->End();
-        std::cout << " Span sent to collector at: " << getCollectorEndpoint() << std::endl;
+        std::cout << "RFC span sent to collector at: " << getCollectorEndpoint() << std::endl;
     }
 
     /**
@@ -205,18 +208,31 @@ public:
 static rfcOTLPTracer g_otlp_tracer;
 
 // C-style API for integration with existing C code
+extern "C" {
 
-void rfc_otlp_trace(const char* param_name) {
-     g_otlp_tracer.traceParameterOperation(param_name, "start", [](){
-     // Placeholder operation - replace with actual parameter setting
-     });
+void rfc_otlp_trace_parameter_get(const char* param_name) {
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Tracing parameter GET for: %s\n", param_name ? param_name : "NULL");
+    std::cout << "🔍 RFC OTLP: Tracing parameter GET for: " << (param_name ? param_name : "NULL") << std::endl;
+    g_otlp_tracer.traceParameterOperation(param_name, "get", [](){});
+}
+
+void rfc_otlp_trace_parameter_set(const char* param_name) {
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Tracing parameter SET for: %s\n", param_name ? param_name : "NULL");
+    std::cout << "✏️ RFC OTLP: Tracing parameter SET for: " << (param_name ? param_name : "NULL") << std::endl;
+    g_otlp_tracer.traceParameterOperation(param_name, "set", [](){});
 }
 
 void rfc_otlp_force_flush() {
-     g_otlp_tracer.forceFlush();
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Force flush called\n");
+    std::cout << "🔄 RFC OTLP: Force flush called" << std::endl;
+    g_otlp_tracer.forceFlush();
 }
 
 const char* rfc_otlp_get_endpoint() {
     static std::string endpoint = g_otlp_tracer.getCurrentEndpoint();
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Endpoint requested: %s\n", endpoint.c_str());
+    std::cout << "🌐 RFC OTLP: Endpoint requested: " << endpoint << std::endl;
     return endpoint.c_str();
 }
+
+} // extern "C"

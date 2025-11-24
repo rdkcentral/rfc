@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include "rfcapi.h"
 #include "rdk_debug.h"
+#include "rfc_otlp_instrumentation.h"
 using namespace std;
 
 #define LOG_RFCAPI  "LOG.RDK.RFCAPI"
@@ -324,6 +325,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
+   rfc_otlp_trace_parameter_get(pcParameterName);
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
@@ -489,7 +491,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
-
+   rfc_otlp_trace_parameter_set(pcParameterName);
    if (curl_handle)
    {
        char pcCallerIDHeader[128];
