@@ -1095,10 +1095,12 @@ void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
             if(features)
             {
                 CreateConfigDataValueMap(features);
+				RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] First Xconf Request after reboot=%d\n", __FUNCTION__, __LINE__,_is_first_request);
                 if( _is_first_request == true)
                 {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidAccountId\n", __FUNCTION__, __LINE__);
                     GetValidAccountId();
+					RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidPartnerId\n", __FUNCTION__, __LINE__);
                     GetValidPartnerId();
                     _is_first_request = false;
                 }
@@ -1184,7 +1186,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
 
     if(value.empty())
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Parner ID\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Partner ID\n", __FUNCTION__, __LINE__);
         _valid_partnerId = "Unknown";
     }
     else
