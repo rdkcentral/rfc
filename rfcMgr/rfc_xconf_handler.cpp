@@ -846,8 +846,10 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
     if(!_last_firmware.compare( _firmware_version ))
     {
         /*Both the input strings are equal.*/
-        if((rfc_state == Init) && (isXconfSelectorSlotProd() == true))
+		RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
+        if((rfc_state == Init) && (isXconfSelectorSlotProd() == false))
         {
+			RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received XconfSelector as Non Prod for RFC state as INIT, Passing OVERRIDE_HASH \n", __FUNCTION__, __LINE__);
             valueTime = "0";
             valueHash = "OVERRIDE_HASH";
         }
@@ -858,13 +860,15 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
     }
     else
     {
+		RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are different \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         valueTime = "0";
         valueHash = "UPGRADE_HASH";
     }
 
-    std::string InvalidStr = "Unkown";
+    std::string InvalidStr = "Unknown";
     if ((!_partner_id.compare(InvalidStr)) || (!_accountId.compare(InvalidStr)))
     {
+		RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d]  Invalid partner or account as Unknown, Passing OVERRIDE_HASH \n", __FUNCTION__, __LINE__);
         valueHash="OVERRIDE_HASH";
     }
 
@@ -1091,10 +1095,12 @@ void RuntimeFeatureControlProcessor::PreProcessJsonResponse(char *xconfResp)
             if(features)
             {
                 CreateConfigDataValueMap(features);
+				RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] First Xconf Request after reboot=%d\n", __FUNCTION__, __LINE__,_is_first_request);
                 if( _is_first_request == true)
                 {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidAccountId\n", __FUNCTION__, __LINE__);
                     GetValidAccountId();
+					RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] GetValidPartnerId\n", __FUNCTION__, __LINE__);
                     GetValidPartnerId();
                     _is_first_request = false;
                 }
@@ -1180,7 +1186,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
 
     if(value.empty())
     {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Parner ID\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d] Not found Partner ID\n", __FUNCTION__, __LINE__);
         _valid_partnerId = "Unknown";
     }
     else

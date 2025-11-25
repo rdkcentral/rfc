@@ -120,7 +120,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         std::string _osclass;
         bool isRebootRequired;
 	std::string bkup_hash;
-        bool _is_first_request;
+        bool _is_first_request = false;
         bool _url_validation_in_progress = false;
         std::string  rfcSelectOpt;
         std:: string rfcSelectorSlot;
