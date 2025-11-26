@@ -17,7 +17,7 @@
 # limitations under the License.
 ####################################################################################
 
-from rfc_test_helper import *
+from rfc_test_helper import run_shell_command
 
 def test_setLocalParam():
     command_to_check = "tr181 -d -s -n localOnly -v false Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable"
