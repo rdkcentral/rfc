@@ -24,10 +24,10 @@ librfcapi_la_SOURCES = rfcapi.cpp ../rfcMgr/rfc_otlp_instrumentation.cpp
 librfcapi_la_includedir = $(includedir)
 librfcapi_la_include_HEADERS = rfcapi.h rfc_otlp_instrumentation.h
 if ENABLE_RDKC
-librfcapi_la_CPPFLAGS = "-std=c++17" -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${top_srcdir}/../rdklogger/include/
-librfcapi_la_LIBADD = -L${top_srcdir}/../rdklogger/src/.libs -lrdkloggers
+librfcapi_la_CPPFLAGS = -std=c++17 -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${top_srcdir}/../rdklogger/include/ -I${top_srcdir}/rfcMgr -I/usr/local/include
+librfcapi_la_LIBADD = -L${top_srcdir}/../rdklogger/src/.libs -lrdkloggers -L/usr/local/lib -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_http_client -lopentelemetry_trace -lopentelemetry_resources -lopentelemetry_common -lopentelemetry_version -lpthread
 else
-librfcapi_la_CPPFLAGS = "-std=c++17" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
-librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_http_client -lopentelemetry_trace -lopentelemetry_resources -lopentelemetry_common -lopentelemetry_version -lpthread
+librfcapi_la_CPPFLAGS = -std=c++17 -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG) -I${top_srcdir}/rfcMgr -I/usr/local/include
+librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers -L/usr/local/lib -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_http_client -lopentelemetry_trace -lopentelemetry_resources -lopentelemetry_common -lopentelemetry_version -lpthread
 endif
 endif

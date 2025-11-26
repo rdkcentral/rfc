@@ -58,26 +58,43 @@ private:
 
 public:
     rfcOTLPTracer() {
-        initializeTracer();
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: ========== Constructor START ==========\n");
+        try {
+            initializeTracer();
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: ========== Constructor SUCCESS ==========\n");
+        } catch (const std::exception& e) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "RFC OTLP: FATAL - Init failed: %s\n", e.what());
+        } catch (...) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "RFC OTLP: FATAL - Init failed with unknown error\n");
+        }
     }
 
     void initializeTracer() {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: ========== initializeTracer START ==========\n");
         // Configure OTLP HTTP exporter with dynamic endpoint resolution
         otlp::OtlpHttpExporterOptions exporter_opts;
-        exporter_opts.url = getCollectorEndpoint() + "/v1/traces";
+        std::string endpoint = getCollectorEndpoint();
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Collector endpoint: %s\n", endpoint.c_str());
+        exporter_opts.url = endpoint + "/v1/traces";
         exporter_opts.content_type = otlp::HttpRequestContentType::kJson;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Exporter URL: %s\n", exporter_opts.url.c_str());
 
         // Add headers for authentication/identification
         exporter_opts.http_headers.insert({"User-Agent", "rfc-rdk/1.2.7"});
         exporter_opts.http_headers.insert({"X-RDK-Component", "rfc"});
 
-        std::cout << "Initializing OTLP HTTP exporter with endpoint: " << exporter_opts.url << std::endl;     
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Initializing OTLP HTTP exporter with endpoint: %s\n", exporter_opts.url.c_str());
+        std::cout << "Initializing OTLP HTTP exporter with endpoint: " << exporter_opts.url << std::endl;
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Creating OTLP HTTP exporter...\n");
 
         // Create OTLP HTTP exporter
         auto exporter = std::make_unique<otlp::OtlpHttpExporter>(exporter_opts);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Exporter created successfully\n");
 
         // Create span processor
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Creating span processor...\n");
         auto processor = std::make_unique<trace_sdk::SimpleSpanProcessor>(std::move(exporter));
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Processor created successfully\n");
 
         // Create resource with comprehensive RDK-specific attributes
         auto resource_attributes = resource::ResourceAttributes{
@@ -93,18 +110,22 @@ public:
             {"telemetry.sdk.version", "1.23.0"}
         };
         auto resource = resource::Resource::Create(resource_attributes);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Resource created\n");
 
         // Create tracer provider with single processor
         std::vector<std::unique_ptr<trace_sdk::SpanProcessor>> processors;
         processors.push_back(std::move(processor));
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Creating tracer provider...\n");
 
         auto provider = std::make_shared<trace_sdk::TracerProvider>(
             std::move(processors), resource);
 
         trace::Provider::SetTracerProvider(nostd::shared_ptr<trace::TracerProvider>(provider));
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Tracer provider set globally\n");
 
         // Get tracer instance
         tracer_ = provider->GetTracer("rfc", "1.0.0");
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: ========== Tracer initialized successfully ==========\n");
 
         std::cout << "rfc OTLP Tracer initialized successfully!" << std::endl;
     }
@@ -204,8 +225,14 @@ public:
     }
 };
 
-// Global tracer instance
-static rfcOTLPTracer g_otlp_tracer;
+// Singleton accessor - lazy initialization on first use
+// This ensures the tracer is initialized when first accessed, not at library load
+static rfcOTLPTracer& get_tracer_instance() {
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: get_tracer_instance() called\n");
+    static rfcOTLPTracer instance;
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: get_tracer_instance() returning instance\n");
+    return instance;
+}
 
 // C-style API for integration with existing C code
 extern "C" {
@@ -213,26 +240,34 @@ extern "C" {
 void rfc_otlp_trace_parameter_get(const char* param_name) {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Tracing parameter GET for: %s\n", param_name ? param_name : "NULL");
     std::cout << "🔍 RFC OTLP: Tracing parameter GET for: " << (param_name ? param_name : "NULL") << std::endl;
-    g_otlp_tracer.traceParameterOperation(param_name, "get", [](){});
+    get_tracer_instance().traceParameterOperation(param_name, "get", [](){});
 }
 
 void rfc_otlp_trace_parameter_set(const char* param_name) {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Tracing parameter SET for: %s\n", param_name ? param_name : "NULL");
     std::cout << "✏️ RFC OTLP: Tracing parameter SET for: " << (param_name ? param_name : "NULL") << std::endl;
-    g_otlp_tracer.traceParameterOperation(param_name, "set", [](){});
+    get_tracer_instance().traceParameterOperation(param_name, "set", [](){});
 }
 
 void rfc_otlp_force_flush() {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Force flush called\n");
     std::cout << "🔄 RFC OTLP: Force flush called" << std::endl;
-    g_otlp_tracer.forceFlush();
+    get_tracer_instance().forceFlush();
 }
 
 const char* rfc_otlp_get_endpoint() {
-    static std::string endpoint = g_otlp_tracer.getCurrentEndpoint();
+    static std::string endpoint = get_tracer_instance().getCurrentEndpoint();
     RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: Endpoint requested: %s\n", endpoint.c_str());
     std::cout << "🌐 RFC OTLP: Endpoint requested: " << endpoint << std::endl;
     return endpoint.c_str();
+}
+
+void rfc_otlp_test() {
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "============================================\n");
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: TEST FUNCTION CALLED\n");
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "RFC OTLP: This proves the library is linked\n");
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "============================================\n");
+    std::cout << "RFC OTLP TEST: Function is working!" << std::endl;
 }
 
 } // extern "C"

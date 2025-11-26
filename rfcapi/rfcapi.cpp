@@ -261,6 +261,13 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    openLogFile();
 #endif
+   // Test OTLP instrumentation - call once to verify it's linked
+   static bool test_called = false;
+   if (!test_called) {
+       rfc_otlp_test();
+       test_called = true;
+   }
+
    WDMP_STATUS ret = WDMP_FAILURE;
    long http_code = 0;
    string response;
@@ -324,8 +331,9 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"BEFORE OTLP TRACE: getRFCParam data = %s, datalen = %zu, param_name = %s\n", data.c_str(), data.length(), pcParameterName);
    rfc_otlp_trace_parameter_get(pcParameterName);
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: getRFCParam completed\n");
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
@@ -490,8 +498,9 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"BEFORE OTLP TRACE: setRFCParam data = %s, datalen = %zu, param_name = %s\n", data.c_str(), data.length(), pcParameterName);
    rfc_otlp_trace_parameter_set(pcParameterName);
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: setRFCParam completed\n");
    if (curl_handle)
    {
        char pcCallerIDHeader[128];

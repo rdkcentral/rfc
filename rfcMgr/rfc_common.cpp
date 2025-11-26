@@ -107,7 +107,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
         RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Received one or more input values are invalid\n", __FUNCTION__, __LINE__);
         return ret;
     }
-    rfc_otlp_trace_parameter_get("rfcMgr-start");
+
 #if defined(RDKB_SUPPORT)
     rbusHandle_t handle;
     rbusValue_t value;
