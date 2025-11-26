@@ -17,7 +17,7 @@
 # limitations under the License.
 ####################################################################################
 
-from rfc_test_helper import *
+from rfc_test_helper import run_shell_command
 
 def test_setRFCParam():
     command_to_check = "tr181 -d -s -t s -n rfc -v local Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector"
