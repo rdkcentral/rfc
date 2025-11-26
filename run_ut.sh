@@ -38,7 +38,8 @@ mkdir /etc/rfcdefaults
 touch /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini  /etc/rfcdefaults/rfcdefaults.ini
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
-
+cp ./rfcMgr/gtest/mocks/iptables_init /lib/rdk/
+cp  /etc/rfc.properties /opt/rfc.properties
 
 export TOP_DIR=`pwd`
 cd ./rfcMgr/gtest
