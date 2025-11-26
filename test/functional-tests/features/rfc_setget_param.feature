@@ -17,10 +17,19 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: Validate RFC API parameter handling
+  The RFC API should correctly store and retrieve parameters
+  using the setRFCParameter() and getRFCParameter() functions. 
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+  Background:
+    Given the RFC API service is running
+
+  Scenario: Set a parameter successfully
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector" to "local"
+    Then the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector" should be "local"
+
+  Scenario: Get a parameter successfully
+    Given the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector" is set to "local"
+    When I get the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfSelector"
+    Then I should receive "local"
 

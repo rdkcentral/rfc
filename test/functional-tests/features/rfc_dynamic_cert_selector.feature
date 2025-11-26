@@ -17,10 +17,15 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: Certificate Selector - Static Certificate Method
+  I want to validate that Cert Selector uses the Static Certificate method
+  So that secure communication is established correctly
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+  Background:
+    Given the Cert Selector component is initialized
 
+  Scenario: Validate static certificate is successfully loaded
+  Given the static certificate "static_cert.pem" exists in the certificate directory
+  When the Cert Selector loads the static certificate
+  Then the load operation should complete successfully
+  And no certificate parsing errors should occur

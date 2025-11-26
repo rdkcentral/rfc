@@ -18,6 +18,7 @@
 ####################################################################################
 
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -36,6 +37,7 @@ TEST_RFC_PARAM_VAL1: str = "default"
 TR181_INI_FILE: str = "/opt/secure/RFC/tr181.list"
 RFC_XCONF_URL: str = "https://mockxconf:50053/featureControl/getSettings"
 RFC_XCONF_404_URL: str = "https://mockxconf:50053/featureControl404/getSettings"
+RFC_XCONF_304_URL: str = "https://mockxconf:50053/featureControl304/getSettings"
 RFC_XCONF_UNRESOLVED_URL: str = "https://unmockxconf:50053/featureControl/getSettings"
 RFC_SEC_DIR: str = "/opt/secure/RFC/"
 TR181_STORE_FILE: str = RFC_SEC_DIR + "tr181store.ini"
@@ -44,8 +46,9 @@ RFC_DEFAULTS_FILE: str = "/etc/rfcdefaults.ini"
 STORE_FILE_CONTENT: str = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Airplay.Enable=false"
 BOOTSTRAP_CONTENT: str = "Device.Time.NTPServer1=test1"
 DEFAULTS_CONTENT: str = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.ThunderTestClient.ServerURL=test.com"
-
-
+PARODUS_LOG_FILE: str = "/opt/logs/parodus.log"
+RFC_PROPERTIES_PERSISTENCE_FILE: str = "/opt/rfc.properties"
+RFC_XCONF_OVERRIDE_URL: str = "https://mockxconf_opt_rfc_properties/featureControl/getSettings"
 
 def write_on_file(file: str, content: str) -> None:
     """
@@ -131,7 +134,7 @@ def grep_log_file(log_file: str, search_string: str) -> bool:
     """
     try:
         result = subprocess.run(
-            f'grep -r "{search_string}" {log_file}*',
+            f'grep -rFn "{search_string}" {log_file}*',
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -205,3 +208,18 @@ def initial_rfc_setup():
     # RFC Prev FW Version
     write_on_file(RFC_SEC_DIR+".version", get_FWversion() + "_PREV")
 
+def run_shell_command(command):
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    return result.stdout.strip()
+
+def grep_paroduslogs(search: str):
+    search_result = ""
+    search_pattern = re.compile(re.escape(search), re.IGNORECASE)
+    try:
+        with open(PARODUS_LOG_FILE, 'r', encoding='utf-8', errors='ignore') as file:
+            for line_number, line in enumerate(file, start=1):
+                if search_pattern.search(line):
+                    search_result = search_result + " \n" + line
+    except Exception as e:
+        print(f"Could not read file {PARODUS_LOG_FILE}: {e}")
+    return search_result
