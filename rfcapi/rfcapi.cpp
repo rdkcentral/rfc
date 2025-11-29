@@ -148,6 +148,7 @@ int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t 
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     int ret = FAILURE;
+    rfc_otlp_trace_parameter_get(pcParameterName);
     if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
     {
         RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
@@ -235,6 +236,7 @@ static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string str
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
  int ret = FAILURE;
+ rfc_otlp_trace_parameter_get(pcParameterName);
  if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
  {
    RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
@@ -472,7 +474,11 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   static bool test_called = false;
+   if (!test_called) {
+       rfc_otlp_test();
+       test_called = true;
+   }
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,".") && pcParameterValue == NULL)
    {
 #ifdef TEMP_LOGGING
