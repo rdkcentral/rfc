@@ -17,10 +17,20 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: RFC Manager XCONF Communication and Error Handling
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
+  Scenario: Unresolved XCONF URL
+    Given the RFC properties file is modified to use an unresolved XCONF URL
     When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+    Then an error message "Couldn't resolve host name" should be logged
+    And an error message "cURL Return : 6 HTTP Code : 0" should be logged
 
+  Scenario: 404 XCONF URL
+    Given the RFC properties file is modified to use a 404 XCONF URL
+    When the RFC manager binary is run
+    Then an error message "cURL Return : 0 HTTP Code : 404" should be logged
+
+  Scenario: URL Encoding
+    Given all the properties to run RFC manager is available and running
+    When RFC manager binary is communicating with XCONF server
+    Then the URL should be percentage encoded 

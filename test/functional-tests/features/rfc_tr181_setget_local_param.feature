@@ -17,10 +17,19 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: Validate TR181 API parameter handling
+  The TR181 API should correctly store and retrieve parameters
+  using the setLocalParam() and getLocalParam() functions. 
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
+  Background:
+    Given run the TR181 API binary
+
+  Scenario: Set a parameter successfully
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable" to "false"
+    Then the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable" should be "false"
+
+  Scenario: Get a parameter successfully
+    Given the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable" is set to "false"
+    When I get the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.collectd.Enable"
+    Then I should receive "false"
 

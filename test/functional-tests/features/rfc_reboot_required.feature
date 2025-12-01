@@ -17,10 +17,10 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager Lock File Behavior
+Feature: RFC: Posting Reboot Required Event to MaintenanceMGR
 
-  Scenario: Running RFC manager with a locked RFC lock file
-    Given the RFC lock file is created and locked
-    When the RFC manager binary is run
-    Then an error message "RFC: rfcMgr process in progress, New instance not allowed as file /tmp/.rfcServiceLock is locked!" should be logged
 
+  Scenario: Posting Reboot Required Event to MaintenanceMGR
+    Given all the properties to run RFC manager is available and running
+    When RFC manager binary is communicating with XCONF server
+    Then a message "RFC: Posting Reboot Required Event to MaintenanceMGR" should be logged

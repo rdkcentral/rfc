@@ -37,6 +37,31 @@ jobs:
         run: |
           docker run -d --name mockxconf -p 50050:50050 -p 50051:50051 -p 50052:50052 -p 50053:50053 -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
 
+      - name: Copy xconf-rfc-response json to mockxconf service
+        run: |
+          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response.json mockxconf:/etc/xconf/xconf-rfc-response.json
+
+      - name: List all processes inside mockxconf
+        run: docker exec mockxconf ps -ef
+
+      - name: Kill rfcData.js process
+        run: |
+          echo "Killing rfcData.js in mockxconf container..."
+          docker exec mockxconf pkill -f "/usr/local/bin/rfcData.js" || echo "No rfcData.js process found"
+
+      - name: Verify rfcData.js is not running
+        run: |
+          docker exec mockxconf pgrep -fl "/usr/local/bin/rfcData.js" || echo "rfcData.js successfully killed"
+          
+      - name: Copy updated rfcData.js
+        run: |
+          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/rfcData.js mockxconf:/usr/local/bin/rfcData.js
+          echo "Updated rfcData.js copied successfully"
+      
+      - name: Restart rfcData.js
+        run: |
+          docker exec -d mockxconf node /usr/local/bin/rfcData.js &
+
       - name: Start l2-container service
         run: |
           docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
