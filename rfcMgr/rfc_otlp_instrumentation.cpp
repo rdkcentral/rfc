@@ -42,7 +42,7 @@ private:
         // Check environment variable first for Docker container networking
         const char* env_endpoint = std::getenv("OTEL_EXPORTER_OTLP_ENDPOINT");
         if (env_endpoint != nullptr) {
-            return std::string(env_endpoint);
+            return "http://otel-collector:4318";
         }
 
         // Check for container environment
@@ -53,7 +53,7 @@ private:
         }
 
         // Default to localhost for non-container environments
-        return "http://localhost:4318";
+        return "http://otel-collector:4318";
     }
 
 public:
@@ -134,25 +134,21 @@ public:
      * Helper function to get trace and span IDs as hex strings
      * Simplified version that works across different OpenTelemetry versions
      */
-    std::pair<std::string, std::string> getTraceSpanIds(nostd::shared_ptr<trace::Span> span) {
+     std::pair<std::string, std::string> getTraceSpanIds(nostd::shared_ptr<trace::Span> span) {
         auto span_context = span->GetContext();
 
-        // Generate simple IDs for logging purposes
-        // In a real implementation, you might want to use the actual IDs
-        static int trace_counter = 1000;
-        static int span_counter = 2000;
 
-        std::stringstream trace_stream, span_stream;
-        trace_stream << "trace_" << std::hex << (trace_counter++);
-        span_stream << "span_" << std::hex << (span_counter++);
+    // Extract actual trace_id (16 bytes)
+    char trace_id[32];
+    span_context.trace_id().ToLowerBase16(trace_id);
 
-        // Note: This is a simplified approach for demo purposes
-        // For production, you would extract the actual trace/span IDs
-        // but the API varies between OpenTelemetry versions
+    // Extract actual span_id (8 bytes)
+    char span_id[16];
+    span_context.span_id().ToLowerBase16(span_id);
 
-        return {trace_stream.str(), span_stream.str()};
+    return {std::string(trace_id, 32), std::string(span_id, 16)};
+
     }
-
     /**
      * Trace parameter operations (get/set) with trace/span ID logging
      */
