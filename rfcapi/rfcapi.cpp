@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #ifndef RDKC
@@ -264,18 +264,12 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    openLogFile();
 #endif
    // Test OTLP instrumentation - call once to verify it's linked
-   static bool test_called = false;
-   if (!test_called) {
-       rfc_otlp_test();
-       test_called = true;
-   }
-
    WDMP_STATUS ret = WDMP_FAILURE;
    long http_code = 0;
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
    {
 #ifdef TEMP_LOGGING
@@ -345,6 +339,15 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
+       
+       // Add distributed tracing context
+       char* traceparent = rfc_otlp_inject_trace_context();
+       if (traceparent) {
+           customHeadersList = curl_slist_append(customHeadersList, traceparent);
+           RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added trace context header for distributed tracing\n");
+           free(traceparent);
+       }
+       
        if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
        }	       
@@ -461,6 +464,11 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   rfc_metrics_record_parameter_operation(pcParameterName, "get", duration_seconds);
    return ret;
 }
 
@@ -474,11 +482,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-   static bool test_called = false;
-   if (!test_called) {
-       rfc_otlp_test();
-       test_called = true;
-   }
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,".") && pcParameterValue == NULL)
    {
 #ifdef TEMP_LOGGING
@@ -517,6 +521,15 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
       struct curl_slist *customHeadersList = NULL;
       customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
+      
+      // Add distributed tracing context
+      char* traceparent = rfc_otlp_inject_trace_context();
+      if (traceparent) {
+          customHeadersList = curl_slist_append(customHeadersList, traceparent);
+          RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added trace context header for distributed tracing\n");
+          free(traceparent);
+      }
+      
       if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);
       }
@@ -581,6 +594,11 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   rfc_metrics_record_parameter_operation(pcParameterName, "set", duration_seconds);
    return ret;
 }
 

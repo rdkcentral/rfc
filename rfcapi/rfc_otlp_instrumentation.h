@@ -36,7 +36,23 @@ const char* rfc_otlp_get_endpoint(void);
 /**
  * Test function to verify OTLP instrumentation is linked
  */
-void rfc_otlp_test(void);
+void rfc_metrics_init();
+
+void rfc_metrics_record_parameter_operation(const char* param_name, const char* operation_type, double duration_seconds);
+
+/**
+ * Inject trace context into HTTP headers for distributed tracing
+ * Returns a malloc'd string with "traceparent: XX-XXXX-XXXX-XX" format
+ * Caller must free the returned string
+ * @return HTTP header string or NULL if no active span
+ */
+char* rfc_otlp_inject_trace_context(void);
+
+/**
+ * Extract and activate trace context from incoming HTTP traceparent header
+ * @param traceparent_header The traceparent header value (format: "00-traceid-spanid-flags")
+ */
+void rfc_otlp_extract_trace_context(const char* traceparent_header);
 
 #ifdef __cplusplus
 }
