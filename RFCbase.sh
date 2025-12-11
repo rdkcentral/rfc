@@ -250,11 +250,6 @@ XCONF_SELECTOR_TR181_NAME="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfS
 XCONF_URL_TR181_NAME="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl"
 XCONF_BS_URL_TR181_NAME="Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl"
 
-#Xconf URL names for reference only, they are configured in Xconf
-# PROD_XCONF_URL="https://xconf.xcal.tv/featureControl/getSettings"
-# CI_XCONF_URL="https://ci.xconfds.coast.xcal.tv/featureControl/getSettings"
-# AUTO_XCONF_URL="https://rdkautotool.ccp.xcal.tv/featureControl/getSettings"
-
 TLSFLAG="--tlsv1.2"
 if [ "$DEVICE_TYPE" = "broadband" ]; then
     if [ -f /etc/waninfo.sh ]; then
