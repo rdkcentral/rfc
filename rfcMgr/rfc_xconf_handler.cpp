@@ -2416,8 +2416,8 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
             if (currentValue.empty())
             {
 	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
-	    }
-            else
+                continue;
+            }
 	    {
     	        if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
     	        {
