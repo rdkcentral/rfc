@@ -2415,66 +2415,66 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         {
             if (currentValue.empty())
             {
-	            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
                 continue;
             }
 	    
-    	        if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
-    	        {
-		    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
-    		    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
-	            if (ProcessXconfUrl(newValue.c_str()) != SUCCESS)
-	    	    {
-		        continue;
-    		    }
-	        }
+ 	    if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
+    	    {
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
+    	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Processing Xconf URL %s\n", __FUNCTION__, __LINE__, newValue.c_str());
+	        if (ProcessXconfUrl(newValue.c_str()) != SUCCESS)
+	        {
+	            continue;
+    	        }
+	    }
 		
-                WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
-                if (status != WDMP_SUCCESS)
-                {
+            WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
+            if (status != WDMP_SUCCESS)
+            {
 #if !defined(RDKB_SUPPORT)
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%s\n", __FUNCTION__, __LINE__, newKey.c_str(), getRFCErrorString(status));
-#else		
-                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%d\n", __FUNCTION__, __LINE__, newKey.c_str(), status);
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%s\n", __FUNCTION__, __LINE__, newKey.c_str(), getRFCErrorString(status));
+#else	
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%d\n", __FUNCTION__, __LINE__, newKey.c_str(), status);
 #endif			    
+            }
+            else
+            {
+                if (newValue != currentValue)
+                {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] updated for %s from value old=%s, to new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
+                    if(newKey == TELEMETRY_CONFIG_URL){
+    	                if (!newValue.empty() && newValue.find("https://") == 0) {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Notifying Telemetry of Config URL update.\n", __FUNCTION__, __LINE__);
+                            int systemRet = v_secure_system("killall -12 telemetry2_0");
+                            if (systemRet == -1) {
+                                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Notification to Telemetry failed.\n", __FUNCTION__, __LINE__);
+                            } else {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d]  Notification to Telemetry success, return code = %d\n", __FUNCTION__, __LINE__, systemRet);
+                            }
+                        }
+    		        else{
+		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Invalid Telemetry Config URL.\n", __FUNCTION__, __LINE__);
+    		         }
+  		    }
+                    std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
+                    bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
+                    if(isAccountKey == true)
+                    {
+                        NotifyTelemetry2Count("SYST_INFO_ACCID_set");
+                    }
+#if !defined(RDKB_SUPPORT)		    
+                    if (isMaintenanceEnabled())
+                    {
+                        isRebootRequired = true;
+                    }
+#endif		    
                 }
                 else
                 {
-                    if (newValue != currentValue)
-                    {
-                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] updated for %s from value old=%s, to new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
-                        if(newKey == TELEMETRY_CONFIG_URL){
-    			    if (!newValue.empty() && newValue.find("https://") == 0) {
-                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Notifying Telemetry of Config URL update.\n", __FUNCTION__, __LINE__);
-                                int systemRet = v_secure_system("killall -12 telemetry2_0");
-                                if (systemRet == -1) {
-                                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Notification to Telemetry failed.\n", __FUNCTION__, __LINE__);
-                                } else {
-                                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d]  Notification to Telemetry success, return code = %d\n", __FUNCTION__, __LINE__, systemRet);
-                                }
-                            }
-    			    else{
-			        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Invalid Telemetry Config URL.\n", __FUNCTION__, __LINE__);
-    		 	    }
-  		        }
-                        std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
-                        bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
-                        if(isAccountKey == true)
-                        {
-                            NotifyTelemetry2Count("SYST_INFO_ACCID_set");
-                        }
-#if !defined(RDKB_SUPPORT)		    
-                        if (isMaintenanceEnabled())
-                        {
-                            isRebootRequired = true;
-                        }
-#endif		    
-                    }
-                    else
-                    {
-                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] reapplied for %s the same value old=%s, new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
-                    }
-                }    
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] reapplied for %s the same value old=%s, new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
+                }
+            }    
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
