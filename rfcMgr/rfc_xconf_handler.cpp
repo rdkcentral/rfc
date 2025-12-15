@@ -2549,7 +2549,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 	}
 	else
 	{
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] For param %s new and old values are same value %s", __FUNCTION__, __LINE__,  key.c_str(), currentValue.c_str());
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] For param %s new and old values are same value %s\n", __FUNCTION__, __LINE__,  key.c_str(), currentValue.c_str());
 	    return false;
 	}
     }
