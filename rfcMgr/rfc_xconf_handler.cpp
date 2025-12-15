@@ -2559,9 +2559,9 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
         std::string unknown_str = "Unknown";
         bool isAccountKey = (key.find(account_key_str) != std::string::npos) ? true : false;
 
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Checking AccountId received from Xconf is Unknown\n", __FUNCTION__, __LINE__);
         if(isAccountKey == true)
         {
+			RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Checking AccountId received from Xconf is Unknown\n", __FUNCTION__, __LINE__);
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Comparing Xconfvalue='%s' with %s\n", __FUNCTION__, __LINE__, value.c_str(), unknown_str.c_str());		    
             if(true == StringCaseCompare(value, unknown_str))
             {
