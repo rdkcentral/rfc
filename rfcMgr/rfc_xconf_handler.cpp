@@ -2415,10 +2415,10 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         {
             if (currentValue.empty())
             {
-	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
+	            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
                 continue;
             }
-	    {
+	    
     	        if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
     	        {
 		    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
@@ -2475,7 +2475,6 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] reapplied for %s the same value old=%s, new=%s\n", __FUNCTION__, __LINE__,newKey.c_str(), currentValue.c_str(), newValue.c_str());
                     }
                 }    
-	    }	
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
