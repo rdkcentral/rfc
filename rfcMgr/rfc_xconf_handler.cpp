@@ -2542,15 +2542,17 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 
             if(isAccountKey == true)
             {
+				RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Checking AccountId received from Xconf is Unknownn", __FUNCTION__, __LINE__);
                 if(true == StringCaseCompare(value, unknown_str))
                 {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
                     value = currentValue;
-					 return false;
+					RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId received from Xconf is Unknownn", __FUNCTION__, __LINE__);
+					return false;
                 }
                 else
                 {
-                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId '%s' is NOT replaced. No action taken.", __FUNCTION__, __LINE__, value.c_str());
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId is Valid %s, Updating the device Database", __FUNCTION__, __LINE__, value.c_str());
                 }
             }
         }
