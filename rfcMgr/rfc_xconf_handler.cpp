@@ -2546,6 +2546,11 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
                 {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
                     value = currentValue;
+					 return false;
+                }
+                else
+                {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId '%s' is NOT replaced. No action taken.", __FUNCTION__, __LINE__, value.c_str());
                 }
             }
         }
