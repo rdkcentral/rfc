@@ -82,11 +82,13 @@ def test_rfc_override_rfc_prop():
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
         XCONF_REQ_MSG = f" Xconf Request : [https://mockxconf_opt_rfc_properties/featureControl/getSettings"
         OVERRIDE_MSG= f"Setting URL from local override to https://mockxconf_opt_rfc_properties/featureControl/getSettings"
+        RFC_STATE_MSG = f"Updating State 2"
 
         assert grep_log_file(RFC_LOG_FILE, RFC_FILE_PATH_MSG), f"Expected '{RFC_FILE_PATH_MSG}' in log file."
         assert grep_log_file(RFC_LOG_FILE, XCONF_URL_MSG), f"Expected '{XCONF_URL_MSG}' in log file."
         assert grep_log_file(RFC_LOG_FILE, XCONF_REQ_MSG), f"Expected '{XCONF_REQ_MSG}' in log file."
         assert grep_log_file(RFC_LOG_FILE, OVERRIDE_MSG), f"Expected '{OVERRIDE_MSG}' in log file."
+        assert grep_log_file(RFC_LOG_FILE, RFC_STATE_MSG), f"Expected '{RFC_STATE_MSG}' in log file."
     except Exception as e:
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
         assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
