@@ -2404,6 +2404,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         newValue = pair.second;
 
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Value[%s]\n", __FUNCTION__, __LINE__, newKey.c_str(), newValue.c_str());
+	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Checking Config Value changed for tr181 param\n", __FUNCTION__, __LINE__);
 
         configChanged = isConfigValueChange(name, newKey , newValue, currentValue);
         if(configChanged == false)
@@ -2412,6 +2413,12 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         else
         {
+            if (currentValue.empty())
+            {
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
+                continue;
+            }
+
 	    if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
 	    {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Current Value[%s] New Value[%s] \n", __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
@@ -2526,7 +2533,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 
     len = strnlen(tempbuf, szBufSize);
     currentValue.assign(tempbuf, len);
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "Current Value= %s\n", tempbuf);
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s:%d] Current Value= %s\n", __FUNCTION__, __LINE__, tempbuf);
 
     bool is_Bootstrap = checkBootstrap(BS_STORE_FILENAME, key);
     std::string substr = ".X_RDKCENTRAL-COM_RFC.";
@@ -2534,29 +2541,44 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 
     if (!is_Bootstrap && !enable_Check)
     {
-        if (value != currentValue)
+	// This is parameetr outside of RFC namespace and not a bootstrap so needs to be tested if it is same as already set value
+	if (value != currentValue)
         {
-            std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
-            std::string unknown_str = "Unknown";
-            bool isAccountKey = (key.find(account_key_str) != std::string::npos) ? true : false;
-
-            if(isAccountKey == true)
-            {
-                if(true == StringCaseCompare(value, unknown_str))
-                {
-                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
-                    value = currentValue;
-                }
-            }
-        }
-        else
-        {
+            // new value is different, parameetr must be updated	
+	     return true;
+	}
+	else
+	{
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] For param %s new and old values are same value %s", __FUNCTION__, __LINE__,  key.c_str(), currentValue.c_str());
-            return false;
+	    return false;
+	}
+    }
+    else
+    {	    	    
+        std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
+        std::string unknown_str = "Unknown";
+        bool isAccountKey = (key.find(account_key_str) != std::string::npos) ? true : false;
+
+        if(isAccountKey == true)
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Checking AccountId received from Xconf is Unknown\n", __FUNCTION__, __LINE__);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Comparing Xconfvalue='%s' with %s\n", __FUNCTION__, __LINE__, value.c_str(), unknown_str.c_str());			
+            if(true == StringCaseCompare(value, unknown_str))
+            {
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId received from Xconf is Unknown\n", __FUNCTION__, __LINE__);		    
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId %s is replaced with Authservice %s", __FUNCTION__, __LINE__,  value.c_str(), currentValue.c_str());
+                value = currentValue;
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: AccountId Updated Value is %s and Xconf value is %s\n", __FUNCTION__, __LINE__,value.c_str(), currentValue.c_str());
+		return false;
+            }
+    	    else
+            {
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] AccountId is Valid %s, Updating the device Database\n", __FUNCTION__, __LINE__,value.c_str());
+    	    }     	    
         }
+        return true;
     }
 
-    return true;
 }
 
 WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, std::string key, std::string value)
