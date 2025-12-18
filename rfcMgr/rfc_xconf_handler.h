@@ -291,6 +291,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ValidPartnerId);
     FRIEND_TEST(rfcMgrTest, Removed_PERSISTENCE_FILE);
     FRIEND_TEST(rfcMgrTest, EmptyFeatures);
+     FRIEND_TEST(rfcMgrTest, GetAccountID_ValidValue);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_UnknownValue);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_EmptyValue);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknown);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_RejectsEmpty);
 
 #endif
 };
