@@ -70,6 +70,15 @@ jobs:
         run: |
           docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
 
+      - name: Copy unknown-accountid-xconf-rfc-response json to mockxconf service
+        run: |
+          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response-unknown-accountid.json mockxconf:/etc/xconf/xconf-rfc-response.json
+
+      - name: Run Unknown Account id L2 inside Native Platform Container
+        run: |
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2_reboot_trigger.sh"
+
+
       - name: Copy L2 Test report to Host Runner
         run: |
           docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS
