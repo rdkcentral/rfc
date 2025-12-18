@@ -1616,7 +1616,15 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
 #endif		    
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
    	            NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
-                    set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
+					
+                    // Save the actual XconfSelector value from response, not just "local" or "prod"
+                    if (!_RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR].empty()) {
+                        set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, _RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR].c_str());
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Saved XconfSelector from response: %s\n", __FUNCTION__, __LINE__, _RFCKeyAndValueMap[XCONF_SELECTOR_KEY_STR].c_str());
+                    } else {
+                        set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
+                        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Saved XconfSelector default: %s\n", __FUNCTION__, __LINE__, rfcSelectOpt.c_str());
+                    }
                     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
                     
                     break;
