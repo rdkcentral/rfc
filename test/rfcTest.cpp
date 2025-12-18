@@ -18,7 +18,7 @@
 */
 
 #include "gtest/gtest.h"
-#include <string>
+
 
 
 int add(int num1,int num2)
@@ -26,11 +26,7 @@ int add(int num1,int num2)
     return (num1+num2);
 }
 
-// StringCaseCompare function for AccountID validation
-bool StringCaseCompare(const std::string& str1, const std::string& str2)
-{
-    return (strcasecmp(str1.c_str(), str2.c_str()) == 0);
-}
+
 
 TEST(Add, PositiveCase)
 {
