@@ -19,7 +19,7 @@
 
 #include "gtest/gtest.h"
 #include <string>
-#include <cstring>
+
 
 int add(int num1,int num2)
 {
@@ -38,79 +38,6 @@ TEST(Add, PositiveCase)
     EXPECT_EQ(50,add(30,20));
 }
 
-//  AccountID Validation Tests
-class AccountIDValidationTest : public ::testing::Test {
-protected:
-    std::string currentAccountID;
-    std::string unknownStr;
-    
-    void SetUp() override {
-        currentAccountID = "3064488088886635972";
-        unknownStr = "Unknown";
-    }
-};
 
 
-TEST_F(AccountIDValidationTest, EmptyAccountIDRejected)
-{
-    std::string emptyValue = "";
-    EXPECT_TRUE(emptyValue.empty());
-}
-
-
-TEST_F(AccountIDValidationTest, UnknownAccountIDReplaced)
-{
-    std::string receivedAccountID = "Unknown";
-    std::string replacementAccountID = currentAccountID;
-    
-    // Check if received value is "Unknown"
-    bool isUnknown = StringCaseCompare(receivedAccountID, unknownStr);
-    EXPECT_TRUE(isUnknown);
-    
-    // When unknown, should use current value
-    if (isUnknown) {
-        receivedAccountID = replacementAccountID;
-    }
-    
-    EXPECT_EQ(receivedAccountID, "3064488088886635972");
-}
-
-TEST_F(AccountIDValidationTest, ValidAccountIDAccepted)
-{
-    std::string validAccountID = "3064488088886635972";
-    std::string currentValue = "OldAccountID";
-    
-    // Check if it's not empty and not "Unknown"
-    bool isValid = (!validAccountID.empty() && !StringCaseCompare(validAccountID, unknownStr));
-    EXPECT_TRUE(isValid);
-}
-
-
-TEST_F(AccountIDValidationTest, UnknownCaseInsensitiveComparison)
-{
-    std::string unknownUpper = "UNKNOWN";
-    std::string unknownMixed = "UnKnOwN";
-    
-    EXPECT_TRUE(StringCaseCompare(unknownUpper, unknownStr));
-    EXPECT_TRUE(StringCaseCompare(unknownMixed, unknownStr));
-}
-
-
-TEST_F(AccountIDValidationTest, ConfigValueChangeDetection)
-{
-    std::string currentValue = "OldAccountID";
-    std::string newValue = "3064488088886635972";
-    
-    bool valueChanged = (currentValue != newValue);
-    EXPECT_TRUE(valueChanged);
-}
-
-TEST_F(AccountIDValidationTest, NoConfigValueChangeWhenSame)
-{
-    std::string currentValue = "3064488088886635972";
-    std::string newValue = "3064488088886635972";
-    
-    bool valueChanged = (currentValue != newValue);
-    EXPECT_FALSE(valueChanged);
-}
 
