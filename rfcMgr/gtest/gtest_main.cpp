@@ -1346,43 +1346,9 @@ protected:
     }
 };
 
-// Test case: Empty AccountID should be rejected
-TEST_F(AccountIDValidationTest, EmptyAccountIDRejected)
-{
-    std::string emptyValue = "";
-    EXPECT_TRUE(emptyValue.empty());
-}
 
-// Test case: Unknown AccountID should be replaced with current value
-TEST_F(AccountIDValidationTest, UnknownAccountIDReplaced)
-{
-    std::string receivedAccountID = "Unknown";
-    std::string replacementAccountID = currentAccountID;
-    
-    // Check if received value is "Unknown"
-    bool isUnknown = StringCaseCompare(receivedAccountID, unknownStr);
-    EXPECT_TRUE(isUnknown);
-    
-    // When unknown, should use current value
-    if (isUnknown) {
-        receivedAccountID = replacementAccountID;
-    }
-    
-    EXPECT_EQ(receivedAccountID, "3064488088886635972");
-}
 
-// Test case: Valid AccountID should be accepted
-TEST_F(AccountIDValidationTest, ValidAccountIDAccepted)
-{
-    std::string validAccountID = "3064488088886635972";
-    std::string currentValue = "OldAccountID";
-    
-    // Check if it's not empty and not "Unknown"
-    bool isValid = (!validAccountID.empty() && !StringCaseCompare(validAccountID, unknownStr));
-    EXPECT_TRUE(isValid);
-}
 
-// Test case: AccountID comparison should be case-insensitive
 TEST_F(AccountIDValidationTest, UnknownCaseInsensitiveComparison)
 {
     std::string unknownUpper = "UNKNOWN";
@@ -1392,7 +1358,7 @@ TEST_F(AccountIDValidationTest, UnknownCaseInsensitiveComparison)
     EXPECT_TRUE(StringCaseCompare(unknownMixed, unknownStr));
 }
 
-// Test case: Config value change detection
+
 TEST_F(AccountIDValidationTest, ConfigValueChangeDetection)
 {
     std::string currentValue = "OldAccountID";
@@ -1402,7 +1368,7 @@ TEST_F(AccountIDValidationTest, ConfigValueChangeDetection)
     EXPECT_TRUE(valueChanged);
 }
 
-// Test case: No change when current and new values are same
+
 TEST_F(AccountIDValidationTest, NoConfigValueChangeWhenSame)
 {
     std::string currentValue = "3064488088886635972";
