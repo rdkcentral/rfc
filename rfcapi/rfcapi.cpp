@@ -19,6 +19,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #ifndef RDKC
 #include <curl/curl.h>
 #include "cJSON.h"
@@ -148,7 +149,7 @@ int getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t 
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     int ret = FAILURE;
-    rfc_otlp_trace_parameter_get(pcParameterName);
+    //rfc_otlp_trace_parameter_get(pcParameterName);
     if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
     {
         RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
@@ -236,7 +237,9 @@ static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string str
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
  int ret = FAILURE;
- rfc_otlp_trace_parameter_get(pcParameterName);
+ // NOTE: Removed rfc_otlp_trace_parameter_get() call
+ // This creates a NEW trace ID instead of propagating parent context
+ // When called from trsetutil(), parent trace context should be propagated via IARM
  if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
  {
    RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
@@ -328,7 +331,10 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"BEFORE OTLP TRACE: getRFCParam data = %s, datalen = %zu, param_name = %s\n", data.c_str(), data.length(), pcParameterName);
-   rfc_otlp_trace_parameter_get(pcParameterName);
+   // NOTE: Do NOT create a new span here!
+   // This function is called from trsetutils.cpp which already has parent trace context
+   // The parent trace context should be propagated via IARM_Bus_Call() and thread context
+   // Creating a new span here would break the trace chain with a new trace_id
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: getRFCParam completed\n");
    if (curl_handle) 
    {
@@ -340,13 +346,17 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
        
-       // Add distributed tracing context
-       char* traceparent = rfc_otlp_inject_trace_context();
-       if (traceparent) {
-           customHeadersList = curl_slist_append(customHeadersList, traceparent);
-           RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added trace context header for distributed tracing\n");
-           free(traceparent);
+       // Add W3C Trace Context header for distributed tracing to tr69hostif
+       char traceparent_buffer[100];
+       if (rfc_otlp_get_current_trace_header(traceparent_buffer, sizeof(traceparent_buffer)) == 0) {
+           char traceparent_header[120];
+           snprintf(traceparent_header, sizeof(traceparent_header), "traceparent: %s", traceparent_buffer);
+           customHeadersList = curl_slist_append(customHeadersList, traceparent_header);
+           RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added traceparent header for GET: %s\n", traceparent_header);
+       } else {
+           RDK_LOG(RDK_LOG_WARN, LOG_RFCAPI,"Failed to get trace context for GET operation\n");
        }
+       
        
        if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
@@ -380,12 +390,34 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_TIMEOUT\n", __FUNCTION__, __LINE__);   
        }	       
 
+       // Start child span for HTTP operation
+       void* child_span = rfc_otlp_start_child_span("rfc.http.get.", NULL);
+       
+       // Record HTTP operation attributes
+       if (child_span) {
+           RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Child span created for GET operation\n");
+           rfc_otlp_set_span_attribute_string(child_span, "http.method", "GET");
+           rfc_otlp_set_span_attribute_string(child_span, "http.url", "http://127.0.0.1:11999");
+           rfc_otlp_set_span_attribute_string(child_span, "param.name", pcParameterName);
+           rfc_otlp_set_span_attribute_string(child_span, "caller.id", pcCallerID ? pcCallerID : "unknown");
+       }
+
        res = curl_easy_perform(curl_handle);
        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
 #ifdef TEMP_LOGGING
        logofs  << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+       
+       // Record HTTP response and end child span
+       if (child_span) {
+           rfc_otlp_set_span_attribute_int(child_span, "http.status_code", http_code);
+           bool http_success = (res == CURLE_OK && http_code >= 200 && http_code < 300);
+           const char* error_msg = http_success ? NULL : curl_easy_strerror(res);
+           rfc_otlp_end_child_span(child_span, http_success, error_msg);
+           RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Child span ended for GET operation\n");
+       }
+       
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
@@ -509,7 +541,9 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"BEFORE OTLP TRACE: setRFCParam data = %s, datalen = %zu, param_name = %s\n", data.c_str(), data.length(), pcParameterName);
-   rfc_otlp_trace_parameter_set(pcParameterName);
+   // NOTE: Removed rfc_otlp_trace_parameter_set() call
+   // This creates a NEW trace ID instead of propagating parent context
+   // When called from trsetutil(), parent trace context should be propagated via IARM
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: setRFCParam completed\n");
    if (curl_handle)
    {
@@ -522,12 +556,15 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
       struct curl_slist *customHeadersList = NULL;
       customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
       
-      // Add distributed tracing context
-      char* traceparent = rfc_otlp_inject_trace_context();
-      if (traceparent) {
-          customHeadersList = curl_slist_append(customHeadersList, traceparent);
-          RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added trace context header for distributed tracing\n");
-          free(traceparent);
+      // Add W3C Trace Context header for distributed tracing to tr69hostif
+      char traceparent_buffer[100];
+      if (rfc_otlp_get_current_trace_header(traceparent_buffer, sizeof(traceparent_buffer)) == 0) {
+          char traceparent_header[120];
+          snprintf(traceparent_header, sizeof(traceparent_header), "traceparent: %s", traceparent_buffer);
+          customHeadersList = curl_slist_append(customHeadersList, traceparent_header);
+          RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Added traceparent header for SET: %s\n", traceparent_header);
+      } else {
+          RDK_LOG(RDK_LOG_WARN, LOG_RFCAPI,"Failed to get trace context for SET operation\n");
       }
       
       if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
@@ -554,6 +591,24 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
       } 	      
+      
+      // Start child span for HTTP operation
+      void* child_span = rfc_otlp_start_child_span("http.set.tr69hostif", NULL);
+      
+      // Get current trace context to propagate
+      rfc_trace_context_t trace_ctx;
+      memset(&trace_ctx, 0, sizeof(trace_ctx));
+      
+      // Record HTTP operation attributes
+      if (child_span) {
+	  RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: setRFCParam completed1\n");
+          rfc_otlp_set_span_attribute_string(child_span, "http.method", "POST");
+          rfc_otlp_set_span_attribute_string(child_span, "http.url", "http://127.0.0.1:11999");
+          rfc_otlp_set_span_attribute_string(child_span, "param.name", pcParameterName);
+          rfc_otlp_set_span_attribute_string(child_span, "param.value", pcParameterValue);
+          rfc_otlp_set_span_attribute_string(child_span, "caller.id", pcCallerID);
+      }
+      
       res = curl_easy_perform(curl_handle);
       curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
 
@@ -561,6 +616,16 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+      
+      // Record HTTP response and end child span
+      if (child_span) {
+          rfc_otlp_set_span_attribute_int(child_span, "http.status_code", http_code);
+          bool http_success = (res == CURLE_OK && http_code >= 200 && http_code < 300);
+          const char* error_msg = http_success ? NULL : curl_easy_strerror(res);
+          rfc_otlp_end_child_span(child_span, http_success, error_msg);
+	  RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: setRFCParam completed2\n");
+      }
+      RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: setRFCParam completed3\n");
       curl_easy_cleanup(curl_handle);
 
       curl_slist_free_all(customHeadersList);

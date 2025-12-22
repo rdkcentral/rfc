@@ -33,6 +33,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <fstream>
 using namespace std;
@@ -43,6 +44,7 @@ using namespace std;
 
 #if defined(USE_TR69HOSTIF)
 #include "hostIf_tr69ReqHandler.h"
+#include "rfc_otlp_instrumentation.h"
 #endif
 
 #define IARM_APP_NAME "tr181Set"
@@ -153,7 +155,8 @@ string getErrorDetails() {
 *@returns true if the call succeded, false otherwise.
 */
 #if defined(USE_TR69HOSTIF) && defined(USE_IARMBUS)
-static bool getParamType(char * const paramName, HostIf_ParamType_t * paramType)
+static bool getParamType(char * const paramName, HostIf_ParamType_t * paramType,
+                          const char* trace_id = nullptr, const char* span_id = nullptr, const char* trace_flags = nullptr)
 {
         IARM_Result_t result;
 	bool status = false;
@@ -162,6 +165,21 @@ static bool getParamType(char * const paramName, HostIf_ParamType_t * paramType)
 	memset(&param,0,sizeof(param));
         snprintf(param.paramName,TR69HOSTIFMGR_MAX_PARAM_LEN,"%s",paramName);
         param.reqType = HOSTIF_GET;
+        
+        // Propagate trace context if provided
+        if (trace_id && span_id && trace_flags) {
+            strncpy(param.trace_id, trace_id, 32);
+            param.trace_id[32] = '\0';
+            strncpy(param.span_id, span_id, 16);
+            param.span_id[16] = '\0';
+            strncpy(param.trace_flags, trace_flags, 2);
+            param.trace_flags[2] = '\0';
+            cout << "[RFC-getParamType] Propagating trace context: trace_id=" << param.trace_id 
+                 << ", span_id=" << param.span_id << endl;
+        } else {
+            cout << "[RFC-getParamType] NO trace context to propagate" << endl;
+        }
+        
         cout << __FUNCTION__ << " >>Retrieving values for :: " << paramName << endl;
 
         result = IARM_Bus_Call(IARM_BUS_TR69HOSTIFMGR_NAME,IARM_BUS_TR69HOSTIFMGR_API_GetParams,
@@ -333,7 +351,8 @@ void printParameterDetails(){
 * @return 0 if succesfully retrieve value, 1 otherwise
 */
 #if defined(USE_TR69HOSTIF)
-static int getAttribute(char * const paramName)
+static int getAttribute(char * const paramName,
+                         const char* trace_id = nullptr, const char* span_id = nullptr, const char* trace_flags = nullptr)
 {
 	int status = 1;
 #if defined(USE_TR69HOSTIF) && defined(USE_IARMBUS)
@@ -342,6 +361,25 @@ static int getAttribute(char * const paramName)
 	memset(&param,0,sizeof(param));
 	snprintf(param.paramName,TR69HOSTIFMGR_MAX_PARAM_LEN,"%s",paramName);
 	param.reqType = HOSTIF_GET;
+	
+	// Propagate trace context if provided
+	cerr << "[RFC-getAttribute] Checking context: trace_id=" << (trace_id ? "[yes]" : "[NULL]") 
+	     << " span_id=" << (span_id ? "[yes]" : "[NULL]") 
+	     << " trace_flags=" << (trace_flags ? "[yes]" : "[NULL]") << endl;
+	
+	if (trace_id && span_id && trace_flags) {
+	    strncpy(param.trace_id, trace_id, 32);
+	    param.trace_id[32] = '\0';
+	    strncpy(param.span_id, span_id, 16);
+	    param.span_id[16] = '\0';
+	    strncpy(param.trace_flags, trace_flags, 2);
+	    param.trace_flags[2] = '\0';
+	    
+	    cerr << "[RFC-getAttribute] Propagating trace context to IARM - trace_id=" << trace_id << endl;
+	} else {
+	    cerr << "[RFC-getAttribute] WARNING: No trace context to propagate" << endl;
+	}
+	
 	cout << __FUNCTION__ << " >>Retrieving values for :: " << paramName << endl;
 
 	result = IARM_Bus_Call(IARM_BUS_TR69HOSTIFMGR_NAME,IARM_BUS_TR69HOSTIFMGR_API_GetParams,
@@ -352,7 +390,7 @@ static int getAttribute(char * const paramName)
 		if(fcNoFault == param.faultCode)
 		{
 			status = 0;
-			printParameterDetails(param);
+			printParameterDetails(&param);
 		}
 	}
 	else
@@ -370,10 +408,14 @@ static int getAttribute(char * const paramName)
 * @param [in] paramName the name of the property
 * @param [in] type type of property
 * @param [in] value  value of the property
+* @param [in] trace_id trace ID for distributed tracing (optional)
+* @param [in] span_id span ID for distributed tracing (optional)
+* @param [in] trace_flags trace flags for distributed tracing (optional)
 * @return 0 if success, 1 otherwise
 */
 #if defined(USE_TR69HOSTIF)
-static int setAttribute(char * const paramName  ,char type, char * value)
+static int setAttribute(char * const paramName  ,char type, char * value,
+                         const char* trace_id = nullptr, const char* span_id = nullptr, const char* trace_flags = nullptr)
 {
 	int status = 1;
 #if defined(USE_TR69HOSTIF)
@@ -382,7 +424,12 @@ static int setAttribute(char * const paramName  ,char type, char * value)
 	HostIf_ParamType_t paramType;
 
 	snprintf(param.paramName,TR69HOSTIFMGR_MAX_PARAM_LEN,"%s", paramName);
-	if (getParamType (paramName, &paramType))
+	
+	cerr << "[RFC-setAttribute] START - trace_id=" << (trace_id ? trace_id : "NULL") 
+	     << ", span_id=" << (span_id ? span_id : "NULL") 
+	     << ", trace_flags=" << (trace_flags ? trace_flags : "NULL") << endl;
+	
+	if (getParamType (paramName, &paramType, trace_id, span_id, trace_flags))
 	{
 		param.paramtype = paramType;
 	}
@@ -394,17 +441,58 @@ static int setAttribute(char * const paramName  ,char type, char * value)
 	convertParamValues(&param,value);
 
 	param.reqType = HOSTIF_SET;
+	
+	// Propagate trace context if provided
+	if (trace_id && span_id && trace_flags) {
+	    cerr << "[RFC-setAttribute] Propagating trace context - trace_id='" << trace_id << "', span_id='" << span_id << "'" << endl;
+	    
+	    strncpy(param.trace_id, trace_id, 32);
+	    param.trace_id[32] = '\0';
+	    strncpy(param.span_id, span_id, 16);
+	    param.span_id[16] = '\0';
+	    strncpy(param.trace_flags, trace_flags, 2);
+	    param.trace_flags[2] = '\0';
+	    
+	    cerr << "[RFC-setAttribute] After strncpy: param.trace_id='" << param.trace_id << "'" << endl;
+	    
+	    cerr << "[RFC-setAttribute] Sending to IARM - trace_id=" << trace_id << ", span_id=" << span_id << ", trace_flags=" << trace_flags << endl;
+	} else {
+	    cout << "[RFC-setAttribute] \u26a0 No trace context for SET" << endl;
+	    if (!trace_id) cout << "[RFC-setAttribute]   - trace_id is NULL" << endl;
+	    if (!span_id) cout << "[RFC-setAttribute]   - span_id is NULL" << endl;
+	    if (!trace_flags) cout << "[RFC-setAttribute]   - trace_flags is NULL" << endl;
+	}
 
+	cout << "[RFC-setAttribute] DEBUG: About to call IARM_Bus_Call" << endl;
+	
+	// Debug: Dump the exact memory location and offset of trace_id field
+	cout << "[RFC-setAttribute] DEBUG: Memory dump:" << endl;
+	cout << "  &param = " << (void*)&param << endl;
+	cout << "  &param.trace_id = " << (void*)&param.trace_id << endl;
+	cout << "  Offset of trace_id = " << (unsigned long)(&param.trace_id) - (unsigned long)(&param) << " bytes" << endl;
+	cout << "  Offset of span_id = " << (unsigned long)(&param.span_id) - (unsigned long)(&param) << " bytes" << endl;
+	cout << "  Offset of trace_flags = " << (unsigned long)(&param.trace_flags) - (unsigned long)(&param) << " bytes" << endl;
+	
+	// Hex dump of trace_id field
+	cout << "  Hex dump of trace_id field (first 40 bytes): ";
+	unsigned char* ptr = (unsigned char*)param.trace_id;
+	for (int i = 0; i < 40; i++) {
+		cout << std::hex << std::setw(2) << std::setfill('0') << (int)ptr[i] << " ";
+	}
+	cout << std::dec << endl;
+	
 	result = IARM_Bus_Call(IARM_BUS_TR69HOSTIFMGR_NAME, IARM_BUS_TR69HOSTIFMGR_API_SetParams,
 	(void *)&param, sizeof(param));
 
+	cout << "[RFC-setAttribute] DEBUG: IARM_Bus_Call returned result=" << result << " (0=SUCCESS)" << endl;
+	
 	if(result  == IARM_RESULT_SUCCESS)
 	{
 		if(param.faultCode == fcNoFault)
 		{
 			cout << __FUNCTION__ << " >> Set operation passed" << endl;
 			status = 0;
-			getAttribute(paramName);
+			getAttribute(paramName, trace_id, span_id, trace_flags);
 		}
 		else
 		{
@@ -513,12 +601,48 @@ int trsetutil(int argc, char *argv [])
 	}
 	initilize();
 
+	// Start distributed tracing for the operation
+	rfc_trace_context_t trace_context = {0};
+	void* span_handle = nullptr;
+	
 	if(mode == HOSTIF_GET)
 	{
-		retcode = getAttribute(key);
+		// Start distributed trace for GET operation
+		span_handle = rfc_otlp_start_parameter_get(key, &trace_context);
+		cout << "======================================" << endl;
+		cout << "[RFC] Started PARENT span for GET" << endl;
+		cout << "  TraceID: " << trace_context.trace_id << endl;
+		cout << "  SpanID:  " << trace_context.span_id << endl;
+		cout << "  Flags:   " << trace_context.trace_flags << endl;
+		cout << "  Param:   " << key << endl;
+		cout << "======================================" << endl;
+		
+		retcode = getAttribute(key, trace_context.trace_id, trace_context.span_id, trace_context.trace_flags);
+		
+		// End the span
+		if (span_handle) {
+			cout << "[RFC] Ending PARENT span. Result: " << (retcode == 0 ? "SUCCESS" : "FAILED") << endl;
+			rfc_otlp_end_span(span_handle, (retcode == 0), (retcode != 0) ? "Get operation failed" : nullptr);
+		}
 	}
 	else if( NULL != value){
-		retcode = setAttribute(key,value_type, value);
+		// Start distributed trace for SET operation
+		span_handle = rfc_otlp_start_parameter_set(key, &trace_context);
+		cout << "======================================" << endl;
+		cout << "[RFC] Started PARENT span for SET" << endl;
+		cout << "  TraceID: " << trace_context.trace_id << endl;
+		cout << "  SpanID:  " << trace_context.span_id << endl;
+		cout << "  Flags:   " << trace_context.trace_flags << endl;
+		cout << "  Param:   " << key << endl;
+		cout << "======================================" << endl;
+		
+		retcode = setAttribute(key, value_type, value, trace_context.trace_id, trace_context.span_id, trace_context.trace_flags);
+		
+		// End the span
+		if (span_handle) {
+			cout << "[RFC] Ending PARENT span. Result: " << (retcode == 0 ? "SUCCESS" : "FAILED") << endl;
+			rfc_otlp_end_span(span_handle, (retcode == 0), (retcode != 0) ? "Set operation failed" : nullptr);
+		}
 	}
 
 	//Redirecting again to avoid IARM prints

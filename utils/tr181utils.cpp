@@ -38,6 +38,7 @@
 #include "rfcapi.h"
 #include "tr181api.h"
 #include "trsetutils.h"
+#include "rfc_otlp_instrumentation.h"
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -299,8 +300,15 @@ int main(int argc, char *argv [])
 {
    if(legacyRfcEnabled() == true)
    {
+      cout << "======================================" << endl;
+      cout << "[tr181] Using LEGACY RFC path (IARM)" << endl;
+      cout << "======================================" << endl;
       return trsetutil(argc,argv);
    }
+
+   cout << "======================================" << endl;
+   cout << "[tr181] Using NEW RFC path (HTTP/REST)" << endl;
+   cout << "======================================" << endl;
 
    streambuf* stdout_handle = nullptr;
    ofstream void_file;
@@ -323,16 +331,82 @@ int main(int argc, char *argv [])
 
       cout.rdbuf(void_file.rdbuf());
    }
+   
+   // Start distributed tracing for the operation
+   rfc_trace_context_t trace_context = {0};
+   void* span_handle = nullptr;
+   
    try {
       if(mode == GET)
       {
+         // Start distributed trace for GET operation
+         span_handle = rfc_otlp_start_parameter_get(key, &trace_context);
+         
+         // Record span attributes for GET operation
+         if (span_handle) {
+            rfc_otlp_set_span_attribute_string(span_handle, "param.name", key);
+            rfc_otlp_set_span_attribute_string(span_handle, "operation.type", "GET");
+            if (id) {
+               rfc_otlp_set_span_attribute_string(span_handle, "caller.id", id);
+            }
+         }
+         
          retcode = getAttribute(key);
+         
+         // Record operation result
+         if (span_handle) {
+            rfc_otlp_set_span_attribute_string(span_handle, "operation.status", (retcode == 0) ? "SUCCESS" : "FAILED");
+            if (retcode != 0) {
+               rfc_otlp_add_span_event(span_handle, "GetOperationFailed");
+            }
+         }
+         
+         // End the span
+         if (span_handle) {
+            rfc_otlp_end_span(span_handle, (retcode == 0), (retcode != 0) ? "Get operation failed" : nullptr);
+         }
       }
-      else if(mode == DELETE_ROW){
+      else if(mode == DELETE_ROW){[tr181] Using NEW RFC path (HTTP/REST)
         retcode = clearAttribute(key);
       }
       else if( mode == SET && NULL != value){
-        retcode = setAttribute(key,value_type, value);
+         // Start distributed trace for SET operation
+         span_handle = rfc_otlp_start_parameter_set(key, &trace_context);
+         
+         // Record span attributes for SET operation
+         if (span_handle) {
+            rfc_otlp_set_span_attribute_string(span_handle, "param.name", key);
+            rfc_otlp_set_span_attribute_string(span_handle, "param.value", value);
+            rfc_otlp_set_span_attribute_string(span_handle, "operation.type", "SET");
+            // Convert type character to readable string
+            const char* type_str = "UNKNOWN";
+            switch(value_type) {
+               case 's': type_str = "STRING"; break;
+               case 'i': type_str = "INT"; break;
+               case 'b': type_str = "BOOLEAN"; break;
+            }
+            rfc_otlp_set_span_attribute_string(span_handle, "param.type", type_str);
+            if (id) {
+               rfc_otlp_set_span_attribute_string(span_handle, "caller.id", id);
+            }
+         }
+         
+         retcode = setAttribute(key, value_type, value);
+         
+         // Record operation result
+         if (span_handle) {
+            rfc_otlp_set_span_attribute_string(span_handle, "operation.status", (retcode == 0) ? "SUCCESS" : "FAILED");
+            if (retcode != 0) {
+               rfc_otlp_add_span_event(span_handle, "SetOperationFailed");
+            } else {
+               rfc_otlp_add_span_event(span_handle, "SetOperationSuccess");
+            }
+         }
+         
+         // End the span
+         if (span_handle) {
+            rfc_otlp_end_span(span_handle, (retcode == 0), (retcode != 0) ? "Set operation failed" : nullptr);
+         }
       }
 
    } catch (const std::bad_cast& e) {

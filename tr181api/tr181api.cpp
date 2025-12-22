@@ -26,7 +26,8 @@
 #include "rdk_debug.h"
 #include <fstream>
 #include <unordered_map>
-
+#include <iostream>
+#include "rfc_otlp_instrumentation.h"
 #define TR181_CLEAR_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.ClearParam"
 
 #ifdef USE_NONSECURE_TR181_LOCALSTORE
@@ -103,6 +104,11 @@ tr181ErrorCode_t getErrorCode(WDMP_STATUS status)
 tr181ErrorCode_t getParam(char *pcCallerID, const char* pcParameterName, TR181_ParamData_t *pstParamData)
 {
    RFC_ParamData_t param;
+   // NOTE: Do NOT create a new span here!
+   // This function is called from rfcapi.cpp which already has parent trace context
+   // The parent trace context is propagated via IARM_Bus_Call()
+   // Creating a new span here would break the trace chain with a new trace_id
+   
    WDMP_STATUS wdmpStatus = getRFCParameter(pcCallerID, pcParameterName, &param);
    if (wdmpStatus == WDMP_SUCCESS || wdmpStatus == WDMP_ERR_DEFAULT_VALUE)
    {
