@@ -1335,6 +1335,97 @@ TEST(rfcMgrTest, EmptyFeatures) {
     }
 }
 
+class AccountIDValidationTest : public ::testing::Test {
+protected:
+    std::string currentAccountID;
+    std::string unknownStr;
+    
+    void SetUp() override {
+        currentAccountID = "3064488088886635972";
+        unknownStr = "Unknown";
+    }
+};
+
+
+
+
+TEST_F(AccountIDValidationTest, UnknownCaseInsensitiveComparison)
+{
+    std::string unknownUpper = "UNKNOWN";
+    std::string unknownMixed = "UnKnOwN";
+    
+    EXPECT_TRUE(StringCaseCompare(unknownUpper, unknownStr));
+    EXPECT_TRUE(StringCaseCompare(unknownMixed, unknownStr));
+}
+
+
+TEST_F(AccountIDValidationTest, ConfigValueChangeDetection)
+{
+    std::string currentValue = "OldAccountID";
+    std::string newValue = "3064488088886635972";
+    
+    bool valueChanged = (currentValue != newValue);
+    EXPECT_TRUE(valueChanged);
+}
+
+
+TEST_F(AccountIDValidationTest, NoConfigValueChangeWhenSame)
+{
+    std::string currentValue = "3064488088886635972";
+    std::string newValue = "3064488088886635972";
+    
+    bool valueChanged = (currentValue != newValue);
+    EXPECT_FALSE(valueChanged);
+}
+
+TEST(rfcMgrTest, GetAccountID_ValidValue) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "3064488088886635972", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetAccountID();
+    EXPECT_EQ(rfcObj->_accountId, "3064488088886635972");
+    EXPECT_FALSE(StringCaseCompare(rfcObj->_accountId, "Unknown"));
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetAccountID_UnknownValue) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "Unknown", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetAccountID();
+    EXPECT_TRUE(StringCaseCompare(rfcObj->_accountId, "Unknown"));
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetAccountID_EmptyValue) {
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", "", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->GetAccountID();
+    EXPECT_TRUE(rfcObj->_accountId.empty());
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknown) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_accountId = "4123705941507160513";
+    rfcObj->_RFCKeyAndValueMap[RFC_ACCOUNT_ID_KEY_STR] = "Unknown";
+    rfcObj->GetValidAccountId();
+    // Should use the stored valid account ID instead of "Unknown"
+    EXPECT_EQ(rfcObj->_valid_accountId, "4123705941507160513");
+    delete rfcObj;
+}
+
+TEST(rfcMgrTest, GetValidAccountId_RejectsEmpty) {
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->_accountId = "4123705941507160513";
+    rfcObj->_RFCKeyAndValueMap[RFC_ACCOUNT_ID_KEY_STR] = "";
+    rfcObj->GetValidAccountId();
+    // Should use the stored valid account ID instead of empty string
+    EXPECT_EQ(rfcObj->_valid_accountId, "4123705941507160513");
+    delete rfcObj;
+}
+
+
+
+
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
