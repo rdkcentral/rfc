@@ -197,6 +197,54 @@ char emptyFeaturesXconfResp[] = R"({
 })";
 
 
+// Mock XCONF response with Unknown AccountID 
+char xconfRespUnknownAccountId[] = R"({
+    "featureControl": {
+        "configset-id": "090909",
+        "configset-label": "default",
+        "features": [
+            {
+                "name": "LSA",
+                "effectiveImmediate": false,
+                "enable": true,
+                "configData": {
+                    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass": "default"
+                },
+                "featureInstance": "OsClass"
+            },
+            {
+                "name": "AccountId",
+                "enable": true,
+                "effectiveImmediate": true,
+                "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID": "Unknown"
+                },
+                "featureInstance": "AccountId"
+            }
+        ]
+    }
+})";
+
+// Mock XCONF response with valid AccountID 
+char xconfRespValidAccountId[] = R"({
+    "featureControl": {
+        "configset-id": "090909",
+        "configset-label": "default",
+        "features": [
+            {
+                "name": "AccountId",
+                "enable": true,
+                "effectiveImmediate": true,
+                "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID": "1234567890000000001"
+                },
+                "featureInstance": "AccountId"
+            }
+        ]
+    }
+})";
+
+
 TEST(rfcMgrTest, getMtlscert) {
     MtlsAuth_t sec;
     memset(&sec, '\0', sizeof(MtlsAuth_t));
@@ -1334,6 +1382,244 @@ TEST(rfcMgrTest, EmptyFeatures) {
         delete rfcObj;
     }
 }
+
+
+// RDKEMW-11615: AccountID Validation Tests
+class AccountIDValidationTest : public ::testing::Test {
+protected:
+    RuntimeFeatureControlProcessor* rfcObj;
+    
+    // Test AccountID values
+    static constexpr const char* DUMMY_ACCOUNTID_1 = "1234567890000000001";
+    static constexpr const char* DUMMY_ACCOUNTID_2 = "9876543210000000001";
+    static constexpr const char* DUMMY_ACCOUNTID_3 = "5555555550000000001";
+    static constexpr const char* UNKNOWN_VALUE = "Unknown";
+    static constexpr const char* ACCOUNTID_KEY = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID";
+    static constexpr const char* TR181_STORE_PATH = "/opt/secure/RFC/tr181store.ini";
+    
+    void SetUp() override {
+        rfcObj = new RuntimeFeatureControlProcessor();
+    }
+    
+    void TearDown() override {
+        delete rfcObj;
+        rfcObj = nullptr;
+    }
+    
+    // Helper method to write AccountID to tr181store
+    void SetAccountIDInStore(const std::string& accountId) {
+        writeToTr181storeFile(ACCOUNTID_KEY, accountId, TR181_STORE_PATH, Quoted);
+    }
+    
+    // Helper method to test config value change
+    bool TestConfigValueChange(const std::string& xconfValue, const std::string& currentValue, std::string& resultValue) {
+        resultValue = xconfValue;
+        return rfcObj->isConfigValueChange("AccountId", ACCOUNTID_KEY, resultValue, currentValue);
+    }
+};
+
+
+// Basic validation tests
+TEST_F(AccountIDValidationTest, EmptyAccountID_ShouldBeRejected)
+{
+    std::string emptyValue = "";
+    EXPECT_TRUE(emptyValue.empty());
+    
+    // Test rejection through config change method
+    std::string resultValue;
+    bool changed = TestConfigValueChange("", DUMMY_ACCOUNTID_1, resultValue);
+    EXPECT_FALSE(changed);
+}
+
+TEST_F(AccountIDValidationTest, UnknownAccountID_ShouldBeReplacedWithAuthserviceValue)
+{
+    std::string resultValue;
+    bool changed = TestConfigValueChange(UNKNOWN_VALUE, DUMMY_ACCOUNTID_1, resultValue);
+    
+    EXPECT_FALSE(changed);  // No change needed when Unknown is replaced
+    EXPECT_EQ(resultValue, DUMMY_ACCOUNTID_1);  // Value replaced with authservice AccountID
+}
+
+TEST_F(AccountIDValidationTest, ValidAccountID_ShouldBeAccepted)
+{
+    std::string resultValue;
+    bool changed = TestConfigValueChange(DUMMY_ACCOUNTID_1, UNKNOWN_VALUE, resultValue);
+    
+    EXPECT_TRUE(changed);  // Config change should be detected
+    EXPECT_EQ(resultValue, DUMMY_ACCOUNTID_1);  // Valid value should be preserved
+}
+
+TEST_F(AccountIDValidationTest, UnknownComparison_ShouldBeCaseInsensitive)
+{
+    EXPECT_TRUE(StringCaseCompare("UNKNOWN", UNKNOWN_VALUE));
+    EXPECT_TRUE(StringCaseCompare("UnKnOwN", UNKNOWN_VALUE));
+    EXPECT_TRUE(StringCaseCompare("unknown", UNKNOWN_VALUE));
+}
+
+TEST_F(AccountIDValidationTest, ConfigValueChange_ShouldBeDetectedCorrectly)
+{
+    std::string resultValue;
+    
+    // Test 1: Different values should trigger change
+    bool changed1 = TestConfigValueChange(DUMMY_ACCOUNTID_1, DUMMY_ACCOUNTID_2, resultValue);
+    EXPECT_TRUE(changed1);
+    
+    // Test 2: Same values should not trigger change
+    bool changed2 = TestConfigValueChange(DUMMY_ACCOUNTID_1, DUMMY_ACCOUNTID_1, resultValue);
+    EXPECT_FALSE(changed2);
+}
+
+// Integration tests with RFC system
+TEST(rfcMgrTest, GetAccountID_LoadsValueFromStore)
+{
+    // Test loading valid AccountID
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "1234567890000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    EXPECT_EQ(rfcObj._accountId, "1234567890000000001");
+    EXPECT_FALSE(StringCaseCompare(rfcObj._accountId, "Unknown"));
+}
+
+TEST(rfcMgrTest, GetAccountID_HandlesUnknownValue)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "Unknown", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    EXPECT_TRUE(StringCaseCompare(rfcObj._accountId, "Unknown"));
+}
+
+TEST(rfcMgrTest, GetAccountID_HandlesEmptyValue)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    EXPECT_TRUE(rfcObj._accountId.empty());
+}
+
+TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknownWithAuthservice)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "9876543210000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    rfcObj._RFCKeyAndValueMap[RFC_ACCOUNT_ID_KEY_STR] = "Unknown";
+    rfcObj.GetValidAccountId();
+    
+    EXPECT_EQ(rfcObj._accountId, "9876543210000000001");
+}
+
+TEST(rfcMgrTest, GetValidAccountId_RejectsEmptyValue)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "9876543210000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    rfcObj._RFCKeyAndValueMap[RFC_ACCOUNT_ID_KEY_STR] = "";
+    rfcObj.GetValidAccountId();
+    
+    EXPECT_EQ(rfcObj._accountId, "9876543210000000001");
+}
+
+// L2 test equivalents - XCONF response processing
+TEST(rfcMgrTest, L2_XconfUnknownAccountID_ReplacedByAuthservice)
+{
+    // Simulates rfc_unknown_accountid L2 test
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "5555555550000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    
+    std::string key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID";
+    std::string xconfValue = "Unknown";
+    std::string authserviceValue = "5555555550000000001";
+    
+    bool configChanged = rfcObj.isConfigValueChange("AccountId", key, xconfValue, authserviceValue);
+    
+    EXPECT_FALSE(configChanged);  // No update needed
+    EXPECT_EQ(xconfValue, "5555555550000000001");  // Unknown replaced with authservice value
+}
+
+TEST(rfcMgrTest, L2_XconfValidAccountID_UpdatesDatabase)
+{
+    // Simulates rfc_trigger_reboot L2 test
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "Unknown", "/opt/secure/RFC/tr181store.ini", Quoted);
+    
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetAccountID();
+    
+    std::string key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID";
+    std::string xconfValue = "1234567890000000001";
+    std::string currentValue = "Unknown";
+    
+    bool configChanged = rfcObj.isConfigValueChange("AccountId", key, xconfValue, currentValue);
+    
+    EXPECT_TRUE(configChanged);  // Database update triggered
+    EXPECT_EQ(xconfValue, "1234567890000000001");  // Valid value preserved
+}
+
+TEST(rfcMgrTest, L2_XconfEmptyAccountID_IsRejected)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "9876543210000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    
+    RuntimeFeatureControlProcessor rfcObj;
+    
+    std::string key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID";
+    std::string xconfValue = "";
+    std::string currentValue = "9876543210000000001";
+    
+    bool configChanged = rfcObj.isConfigValueChange("AccountId", key, xconfValue, currentValue);
+    
+    EXPECT_FALSE(configChanged);  // Empty value rejected
+}
+
+// XCONF response processing tests
+TEST(rfcMgrTest, ProcessXconfResponse_WithUnknownAccountID)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "5555555550000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
+    
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.rfc_state = Init;
+    rfcObj._is_first_request = true;
+    
+    rfcObj.PreProcessJsonResponse(xconfRespUnknownAccountId);
+    int result = rfcObj.ProcessJsonResponse(xconfRespUnknownAccountId);
+    
+    EXPECT_GE(result, 0);
+}
+
+TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID)
+{
+    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
+                          "Unknown", "/opt/secure/RFC/tr181store.ini", Quoted);
+    
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.rfc_state = Init;
+    rfcObj._is_first_request = true;
+    
+    rfcObj.PreProcessJsonResponse(xconfRespValidAccountId);
+    int result = rfcObj.ProcessJsonResponse(xconfRespValidAccountId);
+    
+    EXPECT_GE(result, 0);
+}
+
+GTEST_API_ int main(int argc, char *argv[]){
+    ::testing::InitGoogleTest(&argc, argv);
+
+    cout << "Starting GTEST===========================>" << endl;
+    return RUN_ALL_TESTS();
+}
+
+
+
+
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
