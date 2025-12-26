@@ -1412,8 +1412,9 @@ protected:
     }
     
     // Helper method to test config value change
-    bool TestConfigValueChange(const std::string& xconfValue, const std::string& currentValue, std::string& resultValue) {
+   bool TestConfigValueChange(const std::string& xconfValue, const std::string& currentValueIn, std::string& resultValue) {
         resultValue = xconfValue;
+        std::string currentValue = currentValueIn;  // Create non-const copy for the API
         return rfcObj->isConfigValueChange("AccountId", ACCOUNTID_KEY, resultValue, currentValue);
     }
 };
