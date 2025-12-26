@@ -283,6 +283,16 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ConfigDataNotFound);
     FRIEND_TEST(rfcMgrTest, features_NotFound);
     FRIEND_TEST(rfcMgrTest, AccountId_SpecialChars);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_LoadsValueFromStore);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_HandlesUnknownValue);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_HandlesEmptyValue);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknownWithAuthservice);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_RejectsEmptyValue);
+    FRIEND_TEST(rfcMgrTest, XconfUnknownAccountID_ReplacedByAuthservice);
+    FRIEND_TEST(rfcMgrTest, XconfValidAccountID_UpdatesDatabase);
+    FRIEND_TEST(rfcMgrTest, XconfEmptyAccountID_IsRejected);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfResponse_WithUnknownAccountID);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID);
     FRIEND_TEST(rfcMgrTest, preProcessJsonResponse_rfcstate);
     FRIEND_TEST(rfcMgrTest, updateHashAndTimeInDB);
     FRIEND_TEST(rfcMgrTest, lowerconfigSetHash);
