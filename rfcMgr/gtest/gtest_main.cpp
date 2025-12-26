@@ -1524,7 +1524,7 @@ TEST(rfcMgrTest, GetValidAccountId_RejectsEmptyValue)
 }
 
 // L2 test equivalents - XCONF response processing
-TEST(rfcMgrTest, L2_XconfUnknownAccountID_ReplacedByAuthservice)
+TEST(rfcMgrTest, XconfUnknownAccountID_ReplacedByAuthservice)
 {
     // Simulates rfc_unknown_accountid L2 test
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
@@ -1543,7 +1543,7 @@ TEST(rfcMgrTest, L2_XconfUnknownAccountID_ReplacedByAuthservice)
     EXPECT_EQ(xconfValue, "5555555550000000001");  // Unknown replaced with authservice value
 }
 
-TEST(rfcMgrTest, L2_XconfValidAccountID_UpdatesDatabase)
+TEST(rfcMgrTest, XconfValidAccountID_UpdatesDatabase)
 {
     // Simulates rfc_trigger_reboot L2 test
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
@@ -1562,7 +1562,7 @@ TEST(rfcMgrTest, L2_XconfValidAccountID_UpdatesDatabase)
     EXPECT_EQ(xconfValue, "1234567890000000001");  // Valid value preserved
 }
 
-TEST(rfcMgrTest, L2_XconfEmptyAccountID_IsRejected)
+TEST(rfcMgrTest, XconfEmptyAccountID_IsRejected)
 {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID", 
                           "9876543210000000001", "/opt/secure/RFC/tr181store.ini", Quoted);
@@ -1618,14 +1618,5 @@ GTEST_API_ int main(int argc, char *argv[]){
 
 
 
-
-
-
-GTEST_API_ int main(int argc, char *argv[]){
-    ::testing::InitGoogleTest(&argc, argv);
-
-    cout << "Starting GTEST===========================>" << endl;
-    return RUN_ALL_TESTS();
-}
 
 
