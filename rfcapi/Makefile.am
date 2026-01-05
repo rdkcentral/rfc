@@ -27,7 +27,7 @@ if ENABLE_RDKC
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${top_srcdir}/../rdklogger/include/
 librfcapi_la_LIBADD = -L${top_srcdir}/../rdklogger/src/.libs -lrdkloggers
 else
-librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
-librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers
+librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG) -I/mnt/L2_CONTAINER_SHARED_VOLUME/dtracing/rdk_otel_instrumentation/include
+librfcapi_la_LIBADD = -L/usr/local/lib -lcurl -lcjson -lrdkloggers -lrdk_otlp
 endif
 endif

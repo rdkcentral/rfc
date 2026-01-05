@@ -29,6 +29,9 @@
 #include <dirent.h>
 #include "rfcapi.h"
 #include "rdk_debug.h"
+#include "rdk_otlp_instrumentation.h"
+#include <chrono>
+#include <iostream>
 using namespace std;
 
 #define LOG_RFCAPI  "LOG.RDK.RFCAPI"
@@ -266,6 +269,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
 
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
    {
 #ifdef TEMP_LOGGING
@@ -449,6 +453,11 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   rdk_otlp_metrics_record_parameter_operation(pcParameterName, "get", duration_seconds);
    return ret;
 }
 
@@ -462,7 +471,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,".") && pcParameterValue == NULL)
    {
 #ifdef TEMP_LOGGING
@@ -564,6 +573,11 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   rdk_otlp_metrics_record_parameter_operation(pcParameterName, "get", duration_seconds);
    return ret;
 }
 
