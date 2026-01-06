@@ -1416,7 +1416,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         newKey = pair.first;
         newValue = pair.second;
 
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Value[%s]\n", __FUNCTION__, __LINE__, newKey.c_str(), newValue.c_str());
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Feature Name [%s] Value[%s]\n", __FUNCTION__, __LINE__, newKey.c_str(), newValue.c_str());
 	RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Checking Config Value changed for tr181 param\n", __FUNCTION__, __LINE__);
 
         configChanged = isConfigValueChange(name, newKey , newValue, currentValue);
@@ -1427,7 +1427,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         else
         {
 
-            if (currentValue.empty())
+            if (newValue.empty())
             {
 	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
                 continue;
