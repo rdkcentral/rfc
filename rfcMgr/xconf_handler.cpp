@@ -28,20 +28,61 @@ extern "C" {
 #include <downloadUtil.h>
 #include <common_device_api.h>
 #include "mtlsUtils.h"
+#include <errno.h>
 
 namespace xconf {	
 
 int XconfHandler::ExecuteRequest(FileDwnl_t *file_dwnl, MtlsAuth_t *security, int *httpCode)
 {
+	// ---- Stage 1: Basic parameter checks (run before doCurlInit) ----
+	if (!file_dwnl || !httpCode) {
+		return -EINVAL;       // required parameters missing
+	}
+	if (!security) {
+		return -EKEYREQUIRED; // credential struct is mandatory for mTLS path
+	}
+
+	// ---- Stage 2: Credential-content validation (still before doCurlInit) ----
+	// Adjust these to your actual MtlsAuth_t fields.
+	const bool hasPkcs12 = security->pkcs12Path && security->pkcs12Path[0] != '\0';
+	const bool hasPkcs11 = security->pkcs11Uri   && security->pkcs11Uri[0]   != '\0';
+
+	// Enforce exactly one mode (prevents the mixed PKCS12+PKCS11 path seen in the crash callstack)
+	if (hasPkcs12 == hasPkcs11) {
+		return -EBADMSG;      // ambiguous or missing credential configuration
+	}
+
+	if (hasPkcs11) {
+		if (!security->pkcs11ModulePath || security->pkcs11ModulePath[0] == '\0') {
+			return -ENOENT;   // module path required for PKCS11 engine
+		}
+		if (!security->pkcs11Pin || security->pkcs11Pin[0] == '\0') {
+			return -EACCES;   // PIN required for private key access
+		}
+		// Optional: lightweight URI sanity checks (prefix, required attributes)
+		// if (strncmp(security->pkcs11Uri, "pkcs11:", 7) != 0) return -EBADMSG;
+	}
+
+	if (hasPkcs12) {
+		// Optional: pre-check file existence if your platform/API allows here
+		// if (!fileExists(security->pkcs12Path)) return -ENOENT;
+	}
+
+	// ---- Stage 3: Proceed with curl only if inputs are valid ----
 	void *curl = nullptr;
 	int curl_ret_code = -1;
 	
 	curl = doCurlInit();
     
 	if(curl)
-    {
-	    curl_ret_code = doHttpFileDownload(curl, file_dwnl, security, 0, NULL, httpCode);
+	{
+		// NOTE: At this point we know we won't hand bad credential state to the TLS stack.
+		curl_ret_code = doHttpFileDownload(curl, file_dwnl, security, 0, NULL, httpCode);
 		doStopDownload(curl);
+	}
+	else
+	{
+		return -ECONNREFUSED; // curl init failure
 	}
 	
 	return curl_ret_code;
