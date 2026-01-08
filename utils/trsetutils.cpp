@@ -337,6 +337,9 @@ static int getAttribute(char * const paramName)
 {
 	int status = 1;
 #if defined(USE_TR69HOSTIF) && defined(USE_IARMBUS)
+        // Start distributed trace for tr181 GET operation (root span)
+        rfc_otlp_start_distributed_trace(paramName, "get");
+        
         IARM_Result_t result;
 	HOSTIF_MsgData_t param;
 	memset(&param,0,sizeof(param));
@@ -359,6 +362,9 @@ static int getAttribute(char * const paramName)
 	{
 		cout << __FUNCTION__ << " >>Failed to retrieve value  " << result << endl;
 	}
+	
+	// Finish distributed trace for tr181 GET operation
+	rfc_otlp_finish_distributed_trace();
 #else
     status = 0;
 #endif

@@ -16,9 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-
+#include <chrono>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #ifndef RDKC
 #include <curl/curl.h>
 #include "cJSON.h"
@@ -29,6 +30,7 @@
 #include <dirent.h>
 #include "rfcapi.h"
 #include "rdk_debug.h"
+#include "rfc_otlp_instrumentation.h"
 using namespace std;
 
 #define LOG_RFCAPI  "LOG.RDK.RFCAPI"
@@ -260,12 +262,15 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    openLogFile();
 #endif
+   // Start RFC child span (parent context from tr181)
+   //c_otlp_trace_parameter_get(pcParameterName);
+   
    WDMP_STATUS ret = WDMP_FAILURE;
    long http_code = 0;
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,"."))
    {
 #ifdef TEMP_LOGGING
@@ -287,20 +292,32 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
          if(strncmp(pcParameterName, "RFC_", 4) == 0 && strchr(pcParameterName, '.') == NULL)
          {
+            // Finish distributed trace before early return
+           // rfc_otlp_finish_distributed_trace();
             return getValue(RFCVAR_FILE, pcParameterName, pstParam);
          }
          else
          {
             ret = getValue(TR181STORE_FILE, pcParameterName, pstParam);
             if (WDMP_SUCCESS == ret)
+            {
+               // Finish distributed trace before early return
+             //  rfc_otlp_finish_distributed_trace();
                return WDMP_SUCCESS;
+            }
 
             // If the param is not found in tr181store.ini, also search in bootstrap.ini. When the hostif is not ready we do not know whether the requested param is regular tr181 param or bootstrap param.
             ret = getValue(BOOTSTRAP_FILE, pcParameterName, pstParam);
             if (WDMP_SUCCESS == ret)
+            {
+               // Finish distributed trace before early return
+             //  rfc_otlp_finish_distributed_trace();
                return WDMP_SUCCESS;
+            }
 
             // If the param is not found in override files, find it in rfcdefaults.
+            // Finish distributed trace before early return
+           // rfc_otlp_finish_distributed_trace();
             return getValue(RFCDEFAULTS_FILE, pcParameterName, pstParam);
 
          }
@@ -323,7 +340,12 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"BEFORE OTLP TRACE: getRFCParam data = %s, datalen = %zu, param_name = %s\n", data.c_str(), data.length(), pcParameterName);
+   // NOTE: Do NOT create a new span here!
+   // This function is called from trsetutils.cpp which already has parent trace context
+   // The parent trace context should be propagated via IARM_Bus_Call() and thread context
+   // Creating a new span here would break the trace chain with a new trace_id
+   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"AFTER OTLP TRACE: getRFCParam completed\n");
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
@@ -333,6 +355,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
            sprintf(pcCallerIDHeader, "CallerID: Unknown");
        struct curl_slist *customHeadersList = NULL;
        customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
+       
        if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);            
        }	       
@@ -371,6 +394,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        logofs  << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+       
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
@@ -449,6 +473,14 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   //  rfc_metrics_record_parameter_operation(pcParameterName, "get", duration_seconds);
+   
+   // RFC child span will auto-complete when function exits
+   
    return ret;
 }
 
@@ -462,7 +494,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   auto startTime = std::chrono::high_resolution_clock::now();
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,".") && pcParameterValue == NULL)
    {
 #ifdef TEMP_LOGGING
@@ -488,8 +520,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 #ifdef TEMP_LOGGING
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
-   RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
-
+   // rfc_otlp_start_distributed_trace(pcParameterName, \"set\"); // REMOVED - RFC should only create child span
    if (curl_handle)
    {
        char pcCallerIDHeader[128];
@@ -500,6 +531,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
 
       struct curl_slist *customHeadersList = NULL;
       customHeadersList = curl_slist_append(customHeadersList, pcCallerIDHeader);
+      
       if(curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, customHeadersList) != CURLE_OK){
           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_HTTPHEADER\n", __FUNCTION__, __LINE__);
       }
@@ -524,6 +556,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
       if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK){
           RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"%s:%d curl setup failed for CURLOPT_WRITEDATA\n", __FUNCTION__, __LINE__);
       } 	      
+      
       res = curl_easy_perform(curl_handle);
       curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
 
@@ -531,6 +564,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+      
       curl_easy_cleanup(curl_handle);
 
       curl_slist_free_all(customHeadersList);
@@ -564,6 +598,11 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
          cJSON_Delete(response_json);
       }
    }
+   auto endTime = std::chrono::high_resolution_clock::now();
+   auto timeTaken = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+   // Record metrics (convert microseconds to seconds)
+   double duration_seconds = timeTaken / 1000000.0;
+   rfc_metrics_record_parameter_operation(pcParameterName, "set", duration_seconds);
    return ret;
 }
 

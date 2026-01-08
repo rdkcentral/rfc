@@ -40,6 +40,7 @@
 #include "trsetutils.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include "rfc_otlp_instrumentation.h"
 
 using namespace std;
 
@@ -138,6 +139,9 @@ static DATA_TYPE convertType(char type)
 */
 static int getAttribute(char * const paramName)
 {
+   // Start distributed trace (creates parent span and stores context)
+   rfc_otlp_start_distributed_trace(paramName, "get");
+   
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
        tr181ErrorCode_t status = getLocalParam(id, paramName, &param);
@@ -150,6 +154,7 @@ static int getAttribute(char * const paramName)
        {
           cout << __FUNCTION__ << " >> Failed to retrieve : Reason " << getTR181ErrorString(status) << endl;
        }
+       rfc_otlp_finish_distributed_trace();
        return status;
     }
 
@@ -166,6 +171,8 @@ static int getAttribute(char * const paramName)
       cout << __FUNCTION__ << " >> Failed to retrieve : Reason " << getRFCErrorString(status) << endl;
    }
 
+   // Finish distributed trace (ends parent span)
+   rfc_otlp_finish_distributed_trace();
    return status;
 }
 /**
@@ -177,6 +184,9 @@ static int getAttribute(char * const paramName)
 */
 static int setAttribute(char * const paramName  ,char type, char * value)
 {
+   // Start distributed trace (creates parent span and stores context)
+   rfc_otlp_start_distributed_trace(paramName, "set");
+   
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
       if(status == 0)
@@ -187,6 +197,7 @@ static int setAttribute(char * const paramName  ,char type, char * value)
       {
          cout << __FUNCTION__ << " >> Failed to Set Local Param." << endl;
       }
+      rfc_otlp_finish_distributed_trace();
       return status;
    }
 
@@ -203,6 +214,8 @@ static int setAttribute(char * const paramName  ,char type, char * value)
    else
       cout << __FUNCTION__ << " >> Set operation success " << endl;
 
+   // Finish distributed trace (ends parent span)
+   rfc_otlp_finish_distributed_trace();
    return status;
 }
 
