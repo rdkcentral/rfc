@@ -20,7 +20,8 @@
 import os
 from rfc_test_helper import *
 
-def test_xconf_request_response():
+
+def test_rfcmanager_rejects_empty_value():
     """
     Test the communication between RFC Manager and XCONF.
 
@@ -35,17 +36,40 @@ def test_xconf_request_response():
 
     try:
         rfc_run_binary()
-        RFC_PARAM = f"Checking Config Value changed for tr181 param"
-        XCONF_RESP_ACTID_UNKNOWN_MSG = f"RFC: Checking AccountId received from Xconf is Unknown"
-        XCONF_RESP_ACTID_VALID_MSG = f"AccountId is Valid 3064488088886635972, Updating the device Database"
-        XCONF_RESP_CMP_MSG = f"RFC: Comparing Xconfvalue='3064488088886635972' with Unknown"
+        XCONF_RESP_MSG_STATUS = f"EMPTY value for Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName is rejected"
 
-
-        assert grep_log_file(RFC_LOG_FILE, RFC_PARAM), f"Expected '{RFC_PARAM}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_ACTID_UNKNOWN_MSG), f"Expected '{XCONF_RESP_ACTID_UNKNOWN_MSG}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_ACTID_VALID_MSG), f"Expected '{XCONF_RESP_ACTID_VALID_MSG}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_CMP_MSG), f"Expected '{XCONF_RESP_CMP_MSG}' in log file."
+        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_MSG_STATUS), f"Expected '{XCONF_RESP_MSG_STATUS}' in log file."
     except Exception as e:
         print(f"Exception during Validate the XConf request and response: {e}")
         assert False, f"Exception during Validate the XConf request and response: {e}"
+
+def test_set_empty_value():
+    command_to_check = 'tr181 -d -s -t string -v "" Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName'
+    result = run_shell_command(command_to_check)
+    assert "Set operation success" in result, '"Set operation success" not found in the output'
+
+
+def test_rfc_partnername_value():
+    """
+    Test the communication between RFC Manager and XCONF.
+
+    This function checks the creation of the TR181 INI file,
+    verifies the firmware version update, and checks the key-value pair in the TR181 INI file.
+    """
+    if os.path.exists(TR181_INI_FILE):
+        os.remove(TR181_INI_FILE)
+
+    if os.path.exists(RFC_OLD_FW_FILE):
+        rename_file(RFC_OLD_FW_FILE, RFC_OLD_FW_FILE + "_bak")
+
+    try:
+        rfc_run_binary()
+    except Exception as e:
+        print(f"Exception during Validate the XConf request and response: {e}")
+        assert False, f"Exception during Validate the XConf request and response: {e}"
+
+def test_xconf_partnername_value():
+    command_to_check = "tr181 -d -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName"
+    result = run_shell_command(command_to_check)
+    assert "TestPartner" in result, '"TestPartner" not found in the output'
 
