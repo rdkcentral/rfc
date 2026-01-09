@@ -36,7 +36,7 @@ extern "C" {
 namespace xconf {
     class XconfHandler {
         public :
-        XconfHandler() : _ebuild_type(RDKB_DEV) { }
+        XconfHandler()  { }
         int initializeXconfHandler(void);
         
         // We do not allow this class to be copied !!
