@@ -1,3 +1,4 @@
+
 /**
 * If not stated otherwise in this file or this component's LICENSE
 * file the following copyright and licenses apply:
@@ -96,8 +97,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
         public :
 
-        RuntimeFeatureControlProcessor() : rfc_state(Invalid), isRebootRequired(false)
+        RuntimeFeatureControlProcessor() 
         {
+            isRebootRequired = false;
         }
         // We do not allow this class to be copied !!
         RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete;
@@ -282,6 +284,16 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ConfigDataNotFound);
     FRIEND_TEST(rfcMgrTest, features_NotFound);
     FRIEND_TEST(rfcMgrTest, AccountId_SpecialChars);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_LoadsValueFromStore);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_HandlesUnknownValue);
+    FRIEND_TEST(rfcMgrTest, GetAccountID_HandlesEmptyValue);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknownWithAuthservice);
+    FRIEND_TEST(rfcMgrTest, GetValidAccountId_RejectsEmptyValue);
+    FRIEND_TEST(rfcMgrTest, XconfUnknownAccountID_ReplacedByAuthservice);
+    FRIEND_TEST(rfcMgrTest, XconfValidAccountID_UpdatesDatabase);
+    FRIEND_TEST(rfcMgrTest, XconfEmptyAccountID_IsRejected);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfResponse_WithUnknownAccountID);
+    FRIEND_TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID);
     FRIEND_TEST(rfcMgrTest, preProcessJsonResponse_rfcstate);
     FRIEND_TEST(rfcMgrTest, updateHashAndTimeInDB);
     FRIEND_TEST(rfcMgrTest, lowerconfigSetHash);
@@ -290,11 +302,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ValidPartnerId);
     FRIEND_TEST(rfcMgrTest, Removed_PERSISTENCE_FILE);
     FRIEND_TEST(rfcMgrTest, EmptyFeatures);
-     FRIEND_TEST(rfcMgrTest, GetAccountID_ValidValue);
-    FRIEND_TEST(rfcMgrTest, GetAccountID_UnknownValue);
-    FRIEND_TEST(rfcMgrTest, GetAccountID_EmptyValue);
-    FRIEND_TEST(rfcMgrTest, GetValidAccountId_ReplacesUnknown);
-    FRIEND_TEST(rfcMgrTest, GetValidAccountId_RejectsEmpty);
 
 #endif
 };
