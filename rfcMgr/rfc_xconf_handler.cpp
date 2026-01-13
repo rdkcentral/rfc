@@ -823,21 +823,31 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     } 
     else 
     {
-        i = strnlen(tempbuf, szBufSize);
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
-        _accountId = tempbuf;
-#ifdef RDKB_SUPPORT	
-        if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+        if (CheckSpecialCharacters(tempbuf))
         {
-            // Time file doesn't exist, set AccountID to Unknown
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid characters in newly received accountId: %s\n", __FUNCTION__, __LINE__, tempbuf);
             _accountId = "Unknown";
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
         }
-        saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
-#endif	
-        if((_accountId.empty()) || (_last_firmware.compare( _firmware_version) != 0))
+        else
         {
-            _accountId="Unknown";
+            i = strnlen(tempbuf, szBufSize);
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: AccountID = %s\n", tempbuf);
+            _accountId = tempbuf;
+#ifdef RDKB_SUPPORT
+            if (access("/tmp/RFC/.timeValue", F_OK) != 0)
+            {
+                // Time file doesn't exist, set AccountID to Unknown
+                _accountId = "Unknown";
+                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: /tmp/RFC/.timeValue file not found, setting AccountID to Unknown\n");
+            }
+
+            saveAccountIdToFile(_accountId, RFC_ACCOUNT_ID_KEY_STR, "string");
+#endif
+
+            if((_accountId.empty()) || (_last_firmware.compare( _firmware_version) != 0))
+            {
+                _accountId = "Unknown";
+            }
         }
     }
 

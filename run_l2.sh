@@ -52,11 +52,9 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_valid_accountid.json test/functional-tests/tests/test_rfc_valid_accountid.py
 
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_factory_reset.json test/functional-tests/tests/test_rfc_factory_reset.py
+
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_trigger_reboot_unknown_accountid.json test/functional-tests/tests/test_rfc_trigger_reboot.py
-
-cat /opt/logs/rfcscript.txt.1
-
-cat /opt/logs/rfcscript.txt.0
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_enable.json test/functional-tests/tests/test_rfc_feature_enable.py
 
@@ -65,8 +63,7 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_co
 echo "ENABLE_MAINTENANCE=true" >> /etc/device.properties
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_reboot.json test/functional-tests/tests/test_rfc_xconf_reboot.py
-
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_invalid_accountid.json test/functional-tests/tests/test_rfc_invalid_accountid.py
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
-
