@@ -2413,11 +2413,13 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         else
         {
+#if !defined(RDKB_SUPPORT)
             if (newValue.empty())
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
                 continue;
             }
+#endif
 	    
  	    if(newKey == BOOTSTRAP_XCONF_URL_KEY_STR)
     	    {
@@ -2555,6 +2557,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
     }
     else
     {
+#if !defined(RDKB_SUPPORT)
         std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
         std::string unknown_str = "Unknown";
         bool isAccountKey = (key.find(account_key_str) != std::string::npos) ? true : false;
@@ -2576,6 +2579,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
  	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] AccountId is Valid %s, Updating the device Database\n", __FUNCTION__, __LINE__,value.c_str());
 	    }
         }
+#endif
 
 	return true;
     }
