@@ -1297,7 +1297,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
     set_RFCProperty(name, std::move(ClearDB), clearValue);
     set_RFCProperty(name, std::move(BootstrapClearDB), clearValue);
-    set_RFCProperty(name, std::move(ConfigChangeTimeKey), std::move(ConfigChangeTime));
+    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value\n", __FUNCTION__,__LINE__);
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value\n", __FUNCTION__,__LINE__);
@@ -1371,9 +1371,9 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
     
-    set_RFCProperty(name, std::move(ClearDBEndKey), clearValue);
-    set_RFCProperty(name, std::move(BootstrapClearDBEndKey), clearValue);
-    set_RFCProperty(name, std::move(reloadCacheKey), clearValue);
+    set_RFCProperty(name, ClearDBEndKey, clearValue);
+    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
+    set_RFCProperty(name, reloadCacheKey, clearValue);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
