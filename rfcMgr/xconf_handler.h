@@ -36,7 +36,7 @@ extern "C" {
 namespace xconf {
     class XconfHandler {
         public :
-        XconfHandler()  { }
+        XconfHandler() { }
         int initializeXconfHandler(void);
         
         // We do not allow this class to be copied !!
