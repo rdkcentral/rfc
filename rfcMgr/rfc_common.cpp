@@ -99,6 +99,7 @@ void waitForRfcCompletion()
 int read_RFCProperty(const char* type, const char* key, char *out_value, int datasize)
 {
     int ret = READ_RFC_FAILURE;
+ 
 
     if(key == nullptr || out_value == nullptr || datasize == 0)
     {
