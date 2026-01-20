@@ -20,7 +20,7 @@ A successful RFC startup shows the following sequence:
 
 ```
 [RFC] RFC: Starting service, creating lock
-[RFC] Waiting for IP Acquistion
+[RFC] Waiting for IP Acquisition
 [RFC] Checking IP and Route configuration
 [RFC] DNS Nameservers are available
 [RFC] Starting execution of RFCManager
