@@ -31,6 +31,8 @@
 #include <rbus/rbus_value.h>
 #endif
 #include <ctime>
+#include <cerrno>
+#include <cstring>
 
 #ifdef __cplusplus
 extern "C" {
@@ -1507,8 +1509,17 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
         else
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
-            // Attempt to remove the file - if it fails (e.g., already removed), it's not critical
-            (void)remove(DIRECT_BLOCK_FILENAME);
+            // Attempt to remove the file - check errno to distinguish expected vs unexpected failures
+            if (remove(DIRECT_BLOCK_FILENAME) != 0) {
+                int err = errno;
+                if (err == ENOENT) {
+                    // File already removed (race condition) - this is expected and not an error
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: %s already removed (expected race condition)\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
+                } else {
+                    // Unexpected error (e.g., permission denied)
+                    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] RFC: Failed to remove %s, errno=%d (%s)\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME, err, strerror(err));
+                }
+            }
         }
     }
 #endif
