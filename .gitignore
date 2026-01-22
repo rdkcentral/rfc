@@ -1,0 +1,24 @@
+# Build artifacts
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+*.in
+config.h.in
+.deps/
+.libs/
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.so.*
