@@ -1295,12 +1295,12 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     std::ofstream touch_file(TR181STOREFILE);
     touch_file.close();	
 
-    set_RFCProperty(name, std::move(ClearDB), clearValue);
-    set_RFCProperty(name, std::move(BootstrapClearDB), clearValue);
+    set_RFCProperty(name, ClearDB, clearValue);
+    set_RFCProperty(name, BootstrapClearDB, clearValue);
     set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value\n", __FUNCTION__,__LINE__);
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value\n", __FUNCTION__,__LINE__);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Key Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
 
 #else
