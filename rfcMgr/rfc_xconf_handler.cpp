@@ -1387,7 +1387,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
-    set_RFCProperty(std::move(ConfigSetHashName), std::move(ConfigSetHash_key), configSetHash);
+    set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, std::move(configSetHash));
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.hashValue";
