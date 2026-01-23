@@ -2033,7 +2033,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 91:
                      NotifyTelemetry2ErrorCode(curl_ret_code);
 				     break;
-			    default
+				default:
 				     break;
             }
 
