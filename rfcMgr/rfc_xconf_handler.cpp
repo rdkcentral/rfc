@@ -1386,7 +1386,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
-    set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, configSetHash);
+    set_RFCProperty(std::move(ConfigSetHashName), std::move(ConfigSetHash_key), configSetHash);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.hashValue";
@@ -1414,7 +1414,7 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
-    set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
+    set_RFCProperty(std::move(ConfigSetTimeName),std::move(ConfigSetTime_Key), timestampString);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.timeValue";
@@ -1465,7 +1465,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
         // Output the value
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "configSetHash value: %s\n", configSetHashValue.c_str());
 
-        updateHashInDB(configSetHashValue);
+        updateHashInDB(std::move(configSetHashValue));
     } else {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "configSetHash not found in httpHeader!");
     }
@@ -1473,7 +1473,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     
     std::time_t timestamp = std::time(nullptr); // Get current timestamp
     std::string timestampString = std::to_string(timestamp);
-    updateTimeInDB(timestampString);
+    updateTimeInDB(std::move(timestampString));
 
     std::fstream fs;
     fs.open(RFC_SYNC_DONE, std::ios::out);
@@ -1987,7 +1987,18 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             if(file_dwnl.hashData != nullptr)
             {
+				if(file_dwnl.hashData->hashvalue != nullptr)
+                {
+                    free(file_dwnl.hashData->hashvalue);
+                    file_dwnl.hashData->hashvalue = nullptr;
+                }
+                if(file_dwnl.hashData->hashtime != nullptr)
+                {
+                    free(file_dwnl.hashData->hashtime);
+                    file_dwnl.hashData->hashtime = nullptr;
+                }
                 free(file_dwnl.hashData);
+				file_dwnl.hashData = nullptr;
             }
 	    
 	    if (_url_validation_in_progress)
@@ -2020,7 +2031,10 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 83:
                 case 90:
                 case 91:
-                NotifyTelemetry2ErrorCode(curl_ret_code);
+                     NotifyTelemetry2ErrorCode(curl_ret_code);
+				     break;
+			    default
+				break;
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
@@ -2479,7 +2493,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
-        paramList.push_back(data);
+        paramList.push_back(std::move(data));
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
@@ -2886,7 +2900,7 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     std::string FQDN = _xconf_server_url;
     _xconf_server_url = std::string(XconfUrl) + "/featureControl/getSettings"; 
     std::stringstream url = CreateXconfHTTPUrl();
-    _xconf_server_url = FQDN;
+    _xconf_server_url = std::move(FQDN);
 
     DownloadData DwnLoc, HeaderDwnLoc;
     InitDownloadData(&DwnLoc);
