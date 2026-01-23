@@ -1373,9 +1373,9 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
-    set_RFCProperty(name, std::move(ClearDBEndKey), clearValue);
-    set_RFCProperty(name, std::move(BootstrapClearDBEndKey), clearValue);
-    set_RFCProperty(name, std::move(reloadCacheKey), clearValue);
+    set_RFCProperty(name, ClearDBEndKey, clearValue);
+    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
+    set_RFCProperty(name, reloadCacheKey, clearValue);
 
 }
 
