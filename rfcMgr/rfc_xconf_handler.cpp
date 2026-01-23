@@ -1300,7 +1300,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
     set_RFCProperty(name, std::move(BootstrapClearDB), clearValue);
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
-    set_RFCProperty(name, ConfigChangeTimeKey, std::move(ConfigChangeTime));
+    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
 #else
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
