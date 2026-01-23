@@ -2034,7 +2034,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                      NotifyTelemetry2ErrorCode(curl_ret_code);
 				     break;
 			    default
-				break;
+				     break;
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
