@@ -1299,8 +1299,8 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     set_RFCProperty(name, std::move(ClearDB), clearValue);
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
     set_RFCProperty(name, std::move(BootstrapClearDB), clearValue);
-	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
-    set_RFCProperty(name, std::move(ConfigChangeTimeKey), ConfigChangeTime);
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+    set_RFCProperty(name, ConfigChangeTimeKey, std::move(ConfigChangeTime));
 
 #else
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
@@ -1341,7 +1341,7 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
 
         std::string name = "rfc";
 
-        WDMP_STATUS status = set_RFCProperty(name, RFC_ACCOUNT_ID_KEY_STR, std::move(stashAccountId));
+        WDMP_STATUS status = set_RFCProperty(name, RFC_ACCOUNT_ID_KEY_STR, stashAccountId);
         if (status != WDMP_SUCCESS)
         {
 #if !defined(RDKB_SUPPORT)		
@@ -1370,7 +1370,7 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
 
-	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
     set_RFCProperty(name, std::move(ClearDBEndKey), clearValue);
