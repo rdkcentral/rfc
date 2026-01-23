@@ -2032,9 +2032,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 90:
                 case 91:
                     NotifyTelemetry2ErrorCode(curl_ret_code);
-                    break;
+                     break;
                 default:
-                    break;
+                     break;
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
