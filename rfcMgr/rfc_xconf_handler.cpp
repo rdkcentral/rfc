@@ -1414,7 +1414,7 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
-    set_RFCProperty(std::move(ConfigSetTimeName),std::move(ConfigSetTime_Key), timestampString);
+    set_RFCProperty(std::move(ConfigSetTimeName), std::move(ConfigSetTime_Key), timestampString);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.timeValue";
