@@ -62,6 +62,7 @@
 #define SECURE_RFC_PATH "/opt/secure/RFC"
 
 #define DEFAULT_DL_ALLOC    1024
+#define ACCOUNT_ID_MAX_LEN  32
 
 typedef enum {
     eRdkSsaCli,
