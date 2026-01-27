@@ -21,6 +21,7 @@
 
 #include "rfc_xconf_handler.h"
 #include "rfc_common.h"
+#include <errno.h>
 #include "rfcapi.h"
 #include "rfc_mgr_json.h"
 #include "mtlsUtils.h"
