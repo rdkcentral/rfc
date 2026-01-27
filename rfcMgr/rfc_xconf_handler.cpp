@@ -1987,7 +1987,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             if(file_dwnl.hashData != nullptr)
             {
-				if(file_dwnl.hashData->hashvalue != nullptr)
+                if(file_dwnl.hashData->hashvalue != nullptr)
                 {
                     free(file_dwnl.hashData->hashvalue);
                     file_dwnl.hashData->hashvalue = nullptr;
@@ -1998,7 +1998,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                     file_dwnl.hashData->hashtime = nullptr;
                 }
                 free(file_dwnl.hashData);
-				file_dwnl.hashData = nullptr;
+                file_dwnl.hashData = nullptr;
             }
 	    
 	    if (_url_validation_in_progress)
