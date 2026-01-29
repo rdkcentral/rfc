@@ -22,6 +22,7 @@
 #include "rfc_xconf_handler.h"
 #include "rfc_common.h"
 #include "rfcapi.h"
+#include <errno.h>
 #include "rfc_mgr_json.h"
 #include "mtlsUtils.h"
 #include <sys/stat.h>
@@ -1283,11 +1284,11 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Resetting all rfc values in backing store\n", __FUNCTION__,__LINE__);
 
 #ifndef RDKC
-    std::string name = "rfc";
-    const std::string clearValue = "true";
-    std::string ClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB";
-    std::string BootstrapClearDB = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB";
-    std::string ConfigChangeTimeKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime";    
+    std::string name("rfc");
+    const std::string clearValue("true");
+    std::string ClearDB("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDB");
+    std::string BootstrapClearDB("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDB");
+    std::string ConfigChangeTimeKey("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigChangeTime");    
 
     std::time_t timestamp = std::time(nullptr);
     std::string ConfigChangeTime = std::to_string(timestamp);
@@ -1340,7 +1341,7 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
     {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Restoring AccountID: %s\n", __FUNCTION__, __LINE__, stashAccountId.c_str());
 
-        std::string name = "rfc";
+        std::string name("rfc");
 
         WDMP_STATUS status = set_RFCProperty(name, RFC_ACCOUNT_ID_KEY_STR, stashAccountId);
         if (status != WDMP_SUCCESS)
@@ -1365,11 +1366,11 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
 void RuntimeFeatureControlProcessor::clearDBEnd(void){
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB End\n", __FUNCTION__,__LINE__);
 
-    std::string name = "rfc";
-    const std::string clearValue = "true";
-    std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
-    std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
-    std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
+    std::string name("rfc");
+    const std::string clearValue("true");
+    std::string ClearDBEndKey("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd");
+    std::string BootstrapClearDBEndKey("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd");
+    std::string reloadCacheKey("RFC_CONTROL_RELOADCACHE");
     
     set_RFCProperty(name, ClearDBEndKey, clearValue);
     set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
@@ -1385,8 +1386,8 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
 
 #if !defined(RDKB_SUPPORT)
-    std::string ConfigSetHashName = "ConfigSetHash";
-    std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
+    std::string ConfigSetHashName("ConfigSetHash");
+    std::string ConfigSetHash_key("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash");
     set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, configSetHash);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
@@ -1413,8 +1414,8 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 {
 #if !defined(RDKB_SUPPORT)
-    std::string ConfigSetTimeName = "ConfigSetTime";
-    std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
+    std::string ConfigSetTimeName("ConfigSetTime");
+    std::string ConfigSetTime_Key("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime");
     set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
@@ -1438,8 +1439,8 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Xconf Header Response: %s\n", __FUNCTION__, __LINE__, curlHeaderResp);
     std::string httpHeader = curlHeaderResp;
 
-    std::string key1 = "configSetHash:";
-    std::string key2 = "configsethash:";
+    std::string key1("configSetHash:");
+    std::string key2("configsethash:");
     std::size_t start = httpHeader.find(key1);
     if (start == std::string::npos) {
         // some xconf have lowercase string.
@@ -1507,9 +1508,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
         else
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
-            if (remove(DIRECT_BLOCK_FILENAME) != 0)
+            if (remove(DIRECT_BLOCK_FILENAME) != 0 && errno != ENOENT)
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s,errno=%d\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME,errno);
             }
         }
     }
@@ -2021,7 +2022,10 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 83:
                 case 90:
                 case 91:
-                NotifyTelemetry2ErrorCode(curl_ret_code);
+                    NotifyTelemetry2ErrorCode(curl_ret_code);
+                    break;
+                default:
+                    break;
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
@@ -2133,7 +2137,7 @@ void RuntimeFeatureControlProcessor::GetValidAccountId()
     }
     else
     {
-        _valid_accountId = value;
+        _valid_accountId = std::move(value);
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] NEW valid Account ID: %s\n", __FUNCTION__, __LINE__, _valid_accountId.c_str());
 
         std::string unknown_str = "Unknown";
@@ -2185,7 +2189,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
        }
        else
        {
-            _valid_partnerId = value;
+            _valid_partnerId = std::move(value);
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] NEW valid Partner ID: %s\n", __FUNCTION__, __LINE__, _valid_partnerId.c_str());
 
             std::string unknown_str = "Unknown";
@@ -2480,7 +2484,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
-        paramList.push_back(data);
+        paramList.push_back(std::move(data));
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
@@ -2887,7 +2891,7 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     std::string FQDN = _xconf_server_url;
     _xconf_server_url = std::string(XconfUrl) + "/featureControl/getSettings"; 
     std::stringstream url = CreateXconfHTTPUrl();
-    _xconf_server_url = FQDN;
+    _xconf_server_url = std::move(FQDN);
 
     DownloadData DwnLoc, HeaderDwnLoc;
     InitDownloadData(&DwnLoc);
