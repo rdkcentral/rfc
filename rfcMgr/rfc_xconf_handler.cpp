@@ -1439,7 +1439,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     std::string httpHeader = curlHeaderResp;
 
     std::string key1("configSetHash:");
-    std::string key2 ("configsethash:");
+    std::string key2("configsethash:");
     std::size_t start = httpHeader.find(key1);
     if (start == std::string::npos) {
         // some xconf have lowercase string.
