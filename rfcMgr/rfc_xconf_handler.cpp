@@ -1906,8 +1906,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
         return ret_value;
     }
     
-    hashParam->hashvalue = NULL;
-    hashParam->hashtime = NULL;
+    hashParam->hashvalue = nullptr;
+    hashParam->hashtime = nullptr;
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
@@ -2055,18 +2055,15 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 cleanup:
     if (hashParam != nullptr)
     {
-        if (hashParam->hashvalue != NULL)
+        if (hashParam->hashvalue != nullptr)
         {
             free(hashParam->hashvalue);
-            hashParam->hashvalue = NULL;
         }
-        if (hashParam->hashtime != NULL)
+        if (hashParam->hashtime != nullptr)
         {
             free(hashParam->hashtime);
-            hashParam->hashtime = NULL;
         }
         free(hashParam);
-        hashParam = nullptr;
     }
     
     return ret_value;
