@@ -1295,8 +1295,8 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     std::ofstream touch_file(TR181STOREFILE);
     touch_file.close();	
 
-    set_RFCProperty(name, ClearDB, clearValue);
-    set_RFCProperty(name, BootstrapClearDB, clearValue);
+    set_RFCProperty(name, ClearDB, std::move(clearValue));
+    set_RFCProperty(name, BootstrapClearDB, std::move(clearValue));
     set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
@@ -1888,7 +1888,6 @@ void RuntimeFeatureControlProcessor::InitDownloadData(DownloadData *pDwnData)
 int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str) 
 {
     int ret_value = FAILURE;
-    void *curl = nullptr;
     hashParam_t *hashParam = nullptr;
     
 	int curl_ret_code = -1;
@@ -1981,11 +1980,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
 
-            if(curl)
-            {
-                doStopDownload(curl);
-                curl = nullptr;
-            }
             if(file_dwnl.hashData != nullptr)
             {
                 free(file_dwnl.hashData);
