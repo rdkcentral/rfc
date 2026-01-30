@@ -1508,9 +1508,12 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
         else
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
-            if (remove(DIRECT_BLOCK_FILENAME) != 0 && errno != ENOENT)
+            if (remove(DIRECT_BLOCK_FILENAME) != 0)
             {
+				if (errno != ENOENT)
+				{
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s,errno=%d\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME,errno);
+				}
             }
         }
     }
