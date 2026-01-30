@@ -1982,7 +1982,19 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
             if(file_dwnl.hashData != nullptr)
             {
-                free(file_dwnl.hashData);
+                hashParam_t* hashData = (hashParam_t*)file_dwnl.hashData;
+                if (hashData->hashvalue != NULL)
+                {
+                    free(hashData->hashvalue);
+                    hashData->hashvalue = NULL;
+                }
+                if (hashData->hashtime != NULL)
+                {
+                    free(hashData->hashtime);
+                    hashData->hashtime = NULL;
+                }
+                free(hashData);
+                file_dwnl.hashData = nullptr;
             }
 	    
 	    if (_url_validation_in_progress)
