@@ -21,6 +21,7 @@
 #include "rfc_common.h"
 #include "rfc_mgr_iarm.h"
 #include "rfc_xconf_handler.h"
+#include "rdk_logger.h"
 #include <fstream>
 #include <unistd.h>
 #include <sys/types.h>
@@ -40,8 +41,19 @@ namespace rfc {
 #endif
     RFCManager ::RFCManager() {
         /* Initialize RDK Logger */
-        rdk_logger_init(0 == access(OVERIDE_DEBUG_INI_FILE, R_OK) ? OVERIDE_DEBUG_INI_FILE : DEBUG_INI_FILE);	    
-
+        static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
+		     rdk_logger_ext_config_t config = {
+            .pModuleName = RFCMGR,     /* Module name */
+            .loglevel = RDK_LOG_INFO,                 /* Default log level */
+            .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
+            .format = RDKLOG_FORMAT_WITH_TS,          /* Timestamped format */
+            .pFilePolicy = NULL                       /* Not using file output, so NULL */
+        };
+    
+        if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
+            printf("RFC : ERROR - Extended logger init failed\n");
+        }
+		
         /* Initialize IARM Bus */
         InitializeIARM();
     }
