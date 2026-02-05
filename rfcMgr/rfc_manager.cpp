@@ -44,7 +44,7 @@ namespace rfc {
 
 
 		 rdk_logger_ext_config_t config = {
-        .pModuleName = "LOG.RDK.RFC",     /* Module name */
+        .pModuleName = "LOG.RDK.RFCMGR",     /* Module name */
         .loglevel = RDK_LOG_INFO,                 /* Default log level */
         .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
         .format = RDKLOG_FORMAT_WITH_TS,          /* Timestamped format */
