@@ -42,9 +42,9 @@ namespace rfc {
     RFCManager ::RFCManager() {
         /* Initialize RDK Logger */
 
-
+         static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
 		 rdk_logger_ext_config_t config = {
-        .pModuleName = "LOG.RDK.RFCMGR",     /* Module name */
+        .pModuleName = RFCMGRLOG,     /* Module name */
         .loglevel = RDK_LOG_INFO,                 /* Default log level */
         .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
         .format = RDKLOG_FORMAT_WITH_TS,          /* Timestamped format */
