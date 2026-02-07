@@ -1295,13 +1295,12 @@ void RuntimeFeatureControlProcessor::clearDB(void)
     std::ofstream touch_file(TR181STOREFILE);
     touch_file.close();	
 
+	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     set_RFCProperty(name, ClearDB, clearValue);
-    set_RFCProperty(name, BootstrapClearDB, clearValue);
-    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
-
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
+    set_RFCProperty(name, BootstrapClearDB, clearValue);
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
 
 #else
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
@@ -1370,14 +1369,14 @@ void RuntimeFeatureControlProcessor::clearDBEnd(void){
     std::string ClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ClearDBEnd";
     std::string BootstrapClearDBEndKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Control.ClearDBEnd";
     std::string reloadCacheKey = "RFC_CONTROL_RELOADCACHE";
-    
-    set_RFCProperty(name, ClearDBEndKey, clearValue);
-    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
-    set_RFCProperty(name, reloadCacheKey, clearValue);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,ClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DBEnd Key Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDBEndKey.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Reload Cache Key: %s\n", __FUNCTION__,__LINE__,reloadCacheKey.c_str());
+    set_RFCProperty(name, ClearDBEndKey, clearValue);
+    set_RFCProperty(name, BootstrapClearDBEndKey, clearValue);
+    set_RFCProperty(name, reloadCacheKey, clearValue);
+
 }
 
 void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
@@ -1387,7 +1386,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
-    set_RFCProperty(ConfigSetHashName, ConfigSetHash_key, configSetHash);
+    set_RFCProperty(std::move(ConfigSetHashName), std::move(ConfigSetHash_key), configSetHash);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.hashValue";
@@ -1415,7 +1414,7 @@ void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 #if !defined(RDKB_SUPPORT)
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
-    set_RFCProperty(ConfigSetTimeName, ConfigSetTime_Key, timestampString);
+    set_RFCProperty(std::move(ConfigSetTimeName), std::move(ConfigSetTime_Key), timestampString);
 #else
     const std::string RFC_RAM_PATH = "/tmp/RFC";
     std::string filePath = RFC_RAM_PATH + "/.timeValue";
@@ -1466,7 +1465,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
         // Output the value
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "configSetHash value: %s\n", configSetHashValue.c_str());
 
-        updateHashInDB(configSetHashValue);
+        updateHashInDB(std::move(configSetHashValue));
     } else {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "configSetHash not found in httpHeader!");
     }
@@ -1474,7 +1473,7 @@ void RuntimeFeatureControlProcessor::updateHashAndTimeInDB(char *curlHeaderResp)
     
     std::time_t timestamp = std::time(nullptr); // Get current timestamp
     std::string timestampString = std::to_string(timestamp);
-    updateTimeInDB(timestampString);
+    updateTimeInDB(std::move(timestampString));
 
     std::fstream fs;
     fs.open(RFC_SYNC_DONE, std::ios::out);
@@ -1988,7 +1987,18 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             }
             if(file_dwnl.hashData != nullptr)
             {
+				if(file_dwnl.hashData->hashvalue != nullptr)
+                {
+                    free(file_dwnl.hashData->hashvalue);
+                    file_dwnl.hashData->hashvalue = nullptr;
+                }
+                if(file_dwnl.hashData->hashtime != nullptr)
+                {
+                    free(file_dwnl.hashData->hashtime);
+                    file_dwnl.hashData->hashtime = nullptr;
+                }
                 free(file_dwnl.hashData);
+				file_dwnl.hashData = nullptr;
             }
 	    
 	    if (_url_validation_in_progress)
@@ -2021,7 +2031,10 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 case 83:
                 case 90:
                 case 91:
-                NotifyTelemetry2ErrorCode(curl_ret_code);
+                    NotifyTelemetry2ErrorCode(curl_ret_code);
+                     break;
+                default:
+                     break;
             }
 
             if((curl_ret_code == 0) && (httpCode == 404))
@@ -2480,7 +2493,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
-        paramList.push_back(data);
+        paramList.push_back(std::move(data));
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
@@ -2887,7 +2900,7 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     std::string FQDN = _xconf_server_url;
     _xconf_server_url = std::string(XconfUrl) + "/featureControl/getSettings"; 
     std::stringstream url = CreateXconfHTTPUrl();
-    _xconf_server_url = FQDN;
+    _xconf_server_url = std::move(FQDN);
 
     DownloadData DwnLoc, HeaderDwnLoc;
     InitDownloadData(&DwnLoc);
