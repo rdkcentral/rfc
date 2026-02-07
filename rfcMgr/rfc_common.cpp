@@ -256,9 +256,14 @@ int executeCommandAndGetOutput(SYSCMD eSysCmd,  const char *pArgs, std::string& 
 }
 
 bool CheckSpecialCharacters(const std::string& str) {
+    
+    if (str.length() >= ACCOUNT_ID_MAX_LEN) {
+        return true;  // invalid: length limit exceeded
+    }
+
     for (char c : str)
     {
-        if(!std::isalnum(c))
+        if(!std::isalnum(c) && c != '_' && c != '-')
         {
             return true; // Return true if a non-alphanumeric character is found
         }
