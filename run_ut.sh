@@ -31,7 +31,7 @@ if [ "x$1" = "x--enable-cov" ]; then
 fi
 
 git clone https://github.com/rdkcentral/rdk_logger.git -b develop
-cp rdk_logger/include/rdk_logger.h /usr/local/include
+cp rdk_logger/include/* /usr/local/include
 
 cp ./rfcMgr/gtest/mocks/rfc.properties /etc/rfc.properties
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini /tmp/rfcdefaults.ini
