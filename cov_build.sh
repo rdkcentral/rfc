@@ -29,8 +29,9 @@ autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
 export CXXFLAGS="-Wno-format -Wno-unused-variable"
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
+
 cd $RFC_ROOT
-git clone https://github.com/rdkcentral/rdk_logger.git
+git clone https://github.com/rdkcentral/rdk_logger.git -b develop
 cp rdk_logger/include/* /usr/local/include
 
 
