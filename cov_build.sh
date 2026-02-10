@@ -32,7 +32,7 @@ export CXXFLAGS="-Wno-format -Wno-unused-variable"
 
 cd $RFC_ROOT
 git clone https://github.com/rdkcentral/rdk_logger.git -b develop
-cp /usr/rdk_logger/include/* /usr/local/include
+cp rdk_logger/include/rdk_logger.h /usr/local/include
 
 
 cd $RFC_ROOT
