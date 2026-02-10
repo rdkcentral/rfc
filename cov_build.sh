@@ -31,6 +31,7 @@ export CXXFLAGS="-Wno-format -Wno-unused-variable"
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
 
 cd $RFC_ROOT
+
 rm -rf common_utilities
 git clone https://github.com/rdkcentral/common_utilities.git -b develop
 cd common_utilities
