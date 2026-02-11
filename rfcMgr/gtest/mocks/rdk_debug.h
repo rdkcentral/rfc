@@ -25,18 +25,15 @@
 #include <stdio.h>
 
 #define LOG_RFCMGR "LOG.RDK.RFCMGR"
+#if defined(RDK_LOGGER)
+#include "rdk_logger.h"
+#define RDK_LOG rdk_logger_msg_printf
+#else
 #define RDK_LOG_TRACE1 1
 #define RDK_LOG_DEBUG 2
 #define RDK_LOG_INFO 3
 #define RDK_LOG_WARN 4
 #define RDK_LOG_ERROR 5
-
-
-
-#if defined(RDK_LOGGER)
-#include "rdk_logger.h"
-#define RDK_LOG rdk_logger_msg_printf
-#else
 #define rdk_logger_init(DEBUG_INI_NAME) ;
 
 // The macro to convert RDK_LOG to printf
