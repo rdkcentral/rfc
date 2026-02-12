@@ -42,7 +42,10 @@ namespace rfc {
     }
 #endif
     RFCManager ::RFCManager() {
-#if defined(RDK_LOGGER)		
+#if defined(RDK_LOGGER)
+#if (RDKB_SUPPORT)
+	RDK_LOGGER_INIT();
+#else
         /* Initialize RDK Logger */
         static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
 		rdk_logger_ext_config_t config = {
@@ -56,7 +59,8 @@ namespace rfc {
         if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
             printf("RFC : ERROR - Extended logger init failed\n");
         }
-#endif		
+#endif /* !RDKB_SUPPORT */
+#endif /* RDK_LOGGER */
         /* Initialize IARM Bus */
         InitializeIARM();
     }
