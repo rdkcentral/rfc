@@ -108,11 +108,21 @@
 
     #define RDK_LOGGER_INIT() ;
     
+    typedef enum {
+        RDKLOG_OUTPUT_CONSOLE = 1,
+        RDKLOG_OUTPUT_FILE = 2
+    } rdklog_output_t;
+
+    typedef enum {
+        RDKLOG_FORMAT_SIMPLE = 1,
+        RDKLOG_FORMAT_WITH_TS = 2
+    } rdklog_format_t;
+    
     typedef struct {
         char *pModuleName;
         int loglevel;
-        int output;
-        int format;
+        rdklog_output_t output;
+        rdklog_format_t format;
         void *pFilePolicy;
     } rdk_logger_ext_config_t;
 
