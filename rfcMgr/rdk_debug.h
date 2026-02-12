@@ -38,6 +38,7 @@
         #define RDK_LOG_INFO 3
         #define RDK_LOG_WARN 4
         #define RDK_LOG_ERROR 5
+        #define RDK_LOG_FATAL 6
 
         // RDK Logger success/failure codes
         #define RDK_SUCCESS 0
@@ -88,6 +89,9 @@
                 else if (level == RDK_LOG_ERROR) { \
                     printf("ERROR: %s: ", module); \
                 } \
+                else if (level == RDK_LOG_FATAL) { \
+                    printf("FATAL: %s: ", module); \
+                } \
                 printf(__VA_ARGS__); \
             } while (0)
     #endif
@@ -98,6 +102,7 @@
     #define RDK_LOG_INFO 3
     #define RDK_LOG_WARN 4
     #define RDK_LOG_ERROR 5
+    #define RDK_LOG_FATAL 6
 
     #define RDK_SUCCESS 0
     #define RDK_FAILURE -1
@@ -120,7 +125,21 @@
     // Simple printf-based logging when RDK_LOGGER is not enabled
     #define RDK_LOG(level, module, ...) \
         do { \
-            printf("[%s] ", module); \
+            if (level == RDK_LOG_DEBUG) { \
+                printf("DEBUG: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_INFO) { \
+                printf("INFO: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_ERROR) { \
+                printf("ERROR: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_FATAL) { \
+                printf("FATAL: %s: ", module); \
+            } \
+            else { \
+                printf("[%s] ", module); \
+            } \
             printf(__VA_ARGS__); \
         } while (0)
 #endif
