@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 
-#define LOG_RFCMGR "LOG.RDK.RFCMGR"
 
 // Try to include the real RDK logger if available
 #ifdef RDK_LOGGER
