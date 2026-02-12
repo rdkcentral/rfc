@@ -79,13 +79,13 @@
         // Fallback RDK_LOG macro that uses printf
         #define RDK_LOG(level, module, ...) \
             do { \
-                if (( level == RDK_LOG_DEBUG )) { \
+                if (level == RDK_LOG_DEBUG) { \
                     printf("DEBUG: %s: ", module); \
                 } \
-                else if (( level == RDK_LOG_INFO )) { \
+                else if (level == RDK_LOG_INFO) { \
                     printf("INFO: %s: ", module); \
                 } \
-                else if (( level == RDK_LOG_ERROR )) { \
+                else if (level == RDK_LOG_ERROR) { \
                     printf("ERROR: %s: ", module); \
                 } \
                 printf(__VA_ARGS__); \
