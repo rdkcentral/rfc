@@ -21,9 +21,7 @@
 #include "rfc_common.h"
 #include "rfc_mgr_iarm.h"
 #include "rfc_xconf_handler.h"
-#if defined(RDK_LOGGER)
-#include "rdk_logger.h"
-#endif
+
 #include <fstream>
 #include <unistd.h>
 #include <sys/types.h>
