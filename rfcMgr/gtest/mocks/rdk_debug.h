@@ -30,6 +30,7 @@
 #define RDK_LOG_INFO 3
 #define RDK_LOG_WARN 4
 #define RDK_LOG_ERROR 5
+#define RDK_LOG_FATAL 6
 
 #define rdk_logger_init(DEBUG_INI_NAME) ;
 
@@ -44,6 +45,9 @@
         } \
         else if (( level == RDK_LOG_ERROR )) { \
             printf("ERROR: %s: ", module); \
+        } \
+        else if (( level == RDK_LOG_FATAL )) { \
+            printf("FATAL: %s: ", module); \
         } \
         printf(__VA_ARGS__); \
     } while (0)

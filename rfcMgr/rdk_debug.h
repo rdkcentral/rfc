@@ -134,7 +134,21 @@
     // Simple printf-based logging when RDK_LOGGER is not enabled
     #define RDK_LOG(level, module, ...) \
         do { \
-            printf("[%s] ", module); \
+            if (level == RDK_LOG_DEBUG) { \
+                printf("DEBUG: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_INFO) { \
+                printf("INFO: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_ERROR) { \
+                printf("ERROR: %s: ", module); \
+            } \
+            else if (level == RDK_LOG_FATAL) { \
+                printf("FATAL: %s: ", module); \
+            } \
+            else { \
+                printf("[%s] ", module); \
+            } \
             printf(__VA_ARGS__); \
         } while (0)
 #endif
