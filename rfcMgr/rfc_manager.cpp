@@ -39,10 +39,25 @@ namespace rfc {
     }
 #endif
     RFCManager ::RFCManager() {
+#if defined(RDK_LOGGER)
+#if defined(RDKB_SUPPORT)
+        RDK_LOGGER_INIT();
+#else		
         /* Initialize RDK Logger */
+        static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
+		rdk_logger_ext_config_t config = {
+            .pModuleName = RFCMGRLOG,                 /* Module name */
+            .loglevel = RDK_LOG_INFO,                 /* Default log level */
+            .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
+            .format = RDKLOG_FORMAT_WITH_TS,          /* Timestamped format */
+            .pFilePolicy = NULL                       /* Not using file output, so NULL */
+        };
 
-        rdk_logger_init(0 == access(OVERIDE_DEBUG_INI_FILE, R_OK) ? OVERIDE_DEBUG_INI_FILE : DEBUG_INI_FILE);	    
-
+        if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
+            printf("RFC : ERROR - Extended logger init failed\n");
+        }
+#endif		
+#endif
         /* Initialize IARM Bus */
         InitializeIARM();
     }
