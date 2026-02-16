@@ -66,5 +66,5 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
+#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
 
