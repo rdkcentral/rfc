@@ -52,12 +52,12 @@ namespace rfc {
             .format = RDKLOG_FORMAT_WITH_TS,          /* Timestamped format */
             .pFilePolicy = NULL                       /* Not using file output, so NULL */
         };
-    
+
         if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
             printf("RFC : ERROR - Extended logger init failed\n");
         }
 #endif		
-#endif		
+#endif
         /* Initialize IARM Bus */
         InitializeIARM();
     }
