@@ -26,6 +26,7 @@ import subprocess
 RFC_MGR_PATH: str = "/usr/bin/rfcMgr"
 RFC_LOCK_FILE: str = "/tmp/.rfcServiceLock"
 RFC_LOG_FILE: str = "/opt/logs/rfcscript.txt"
+LOG_FILE: str = "/opt/logs/rfcscript.txt.1"
 SWUPDATE_LOG_FILE: str = "/opt/logs/swupdate.txt"
 RFC_ROUTE_FILE: str = "/tmp/route_available"
 RFC_DNS_FILE: str = "/etc/resolv.dnsmasq"
