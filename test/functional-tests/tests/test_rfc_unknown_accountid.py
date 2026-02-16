@@ -77,16 +77,16 @@ def test_xconf_request_response():
         RFC_PARAM = f"Checking Config Value changed for tr181 param"
         XCONF_RESP_RECEIVED_ACTID_UNKNOWN = f"RFC: AccountId received from Xconf is Unknown"
         XCONF_RESP_CMP_MSG = f"RFC: Comparing Xconfvalue='Unknown' with Unknown"
-        ACTID_REPLACE_AUTHSERVICE = f"RFC: AccountId Unknown is replaced with Authservice 412370664406228514"
-        ACTID_UPDATE = f"RFC: AccountId Updated Value is 412370664406228514 and Xconf value is 412370664406228514"
+        ACTID_REPLACE_AUTHSERVICE = f"RFC: AccountId Unknown is replaced with Authservice 3064488088886635972"
+        ACTID_UPDATE = f"RFC: AccountId Updated Value is 3064488088886635972 and Xconf value is 3064488088886635972"
 
         
-        assert grep_log_file(RFC_LOG_FILE, FEATURE_NAME_VALUE), f"Expected '{FEATURE_NAME_VALUE}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, RFC_PARAM), f"Expected '{RFC_PARAM}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_RECEIVED_ACTID_UNKNOWN), f"Expected '{XCONF_RESP_RECEIVED_ACTID_UNKNOWN}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, XCONF_RESP_CMP_MSG), f"Expected '{XCONF_RESP_CMP_MSG}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, ACTID_REPLACE_AUTHSERVICE), f"Expected '{ACTID_REPLACE_AUTHSERVICE}' in log file."
-        assert grep_log_file(RFC_LOG_FILE, ACTID_UPDATE), f"Expected '{ACTID_UPDATE}' in log file."
+        assert grep_log_file(LOG_FILE, FEATURE_NAME_VALUE), f"Expected '{FEATURE_NAME_VALUE}' in log file."
+        assert grep_log_file(LOG_FILE, RFC_PARAM), f"Expected '{RFC_PARAM}' in log file."
+        assert grep_log_file(LOG_FILE, XCONF_RESP_RECEIVED_ACTID_UNKNOWN), f"Expected '{XCONF_RESP_RECEIVED_ACTID_UNKNOWN}' in log file."
+        assert grep_log_file(LOG_FILE, XCONF_RESP_CMP_MSG), f"Expected '{XCONF_RESP_CMP_MSG}' in log file."
+        assert grep_log_file(LOG_FILE, ACTID_REPLACE_AUTHSERVICE), f"Expected '{ACTID_REPLACE_AUTHSERVICE}' in log file."
+        assert grep_log_file(LOG_FILE, ACTID_UPDATE), f"Expected '{ACTID_UPDATE}' in log file."
     except Exception as e:
         print(f"Exception during Validate the XConf request and response: {e}")
         assert False, f"Exception during Validate the XConf request and response: {e}"
