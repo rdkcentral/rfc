@@ -33,15 +33,18 @@
 
 #define RDK_SUCCESS 0
 
-typedef enum {
+typedef enum 
+{
      RDKLOG_OUTPUT_CONSOLE =0;
 } rdk_logger_ext_output_t;
 
-typedef enum {
+typedef enum
+{
      RDKLOG_FORMAT_WITH_TS =0;
 } rdk_logger_ext_format_t;
 
-typedef struct {
+typedef struct
+{
      const char* pModuleName;
      int loglevel;
      rdk_logger_ext_output_t output;
