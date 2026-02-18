@@ -21,7 +21,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 # Define the program name and the source files
 bin_PROGRAMS = rfcMgr_gtest rfcapi_gtest tr181api_gtest utils_gtest
 
-COMMON_CPPFLAGS = -std=c++17 -DGTEST_ENABLE  -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
+COMMON_CPPFLAGS = -std=c++17 -DGTEST_ENABLE -DRDK_LOGGER -DUSE_IARMBUS -I${TOP_DIR}/rfcMgr/ -I${TOP_DIR}/rfcapi/ -I/usr/include -I/usr/include/cjson -I${TOP_DIR}/rfcMgr/gtest/mocks/ -I${TOP_DIR}/rfcMgr/gtest/mocks/wdmp-c/ -I$(TOP_DIR)/tr181api/ -I$(TOP_DIR)/utils/
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage
 
 COMMON_LDADD =  -lgtest -lgtest_main -lgmock_main -lgmock -lgcov -lcjson -lcurl
