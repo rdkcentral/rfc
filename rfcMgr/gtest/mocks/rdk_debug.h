@@ -31,7 +31,30 @@
 #define RDK_LOG_WARN 4
 #define RDK_LOG_ERROR 5
 
+#define RDK_SUCCESS 0
+
+typedef enum {
+     RDKLOG_OUTPUT_CONSOLE =0;
+} rdk_logger_ext_output_t;
+
+typedef enum {
+     RDKLOG_FORMAT_WITH_TS =0;
+} rdk_logger_ext_format_t;
+
+typedef struct {
+     const char* pModuleName;
+     int loglevel;
+     rdk_logger_ext_output_t output;
+     rdk_logger_ext_format_t format;
+     void* pFilePolicy;
+} rdk_logger_ext_config_t;
+
 #define rdk_logger_init(DEBUG_INI_NAME) ;
+
+static inline int rdk_logger_ext_init(const rdk_logger_ext_config_t* /*config*/)
+{
+   return RDK_SUCCESS;
+}
 
 // The macro to convert RDK_LOG to printf
 #define RDK_LOG(level, module, ...) \
