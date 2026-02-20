@@ -1892,7 +1892,6 @@ void RuntimeFeatureControlProcessor::InitDownloadData(DownloadData *pDwnData)
 int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str) 
 {
     int ret_value = FAILURE;
-    void *curl = nullptr;
     hashParam_t *hashParam = nullptr;
     
 	int curl_ret_code = -1;
@@ -1910,6 +1909,9 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Memory allocation Failed\n",__FUNCTION__, __LINE__);
         return ret_value;
     }
+    
+    hashParam->hashvalue = nullptr;
+    hashParam->hashtime = nullptr;
 
     if((pDwnLoc->pvOut != NULL) && (pHeaderDwnLoc->pvOut != NULL))
     {
@@ -1948,7 +1950,8 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
                 if (thisCertSel == NULL) {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization failed\n", __FUNCTION__, __LINE__);
-                    return cert_ret_code;
+                    ret_value = cert_ret_code;
+                    goto cleanup;
                 } else {
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Cert selector initialization successful\n", __FUNCTION__, __LINE__);
                 }
@@ -1964,10 +1967,12 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
                     if (ret == MTLS_CERT_FETCH_FAILURE) {
 	                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
-                        return cert_ret_code;
+                        ret_value = cert_ret_code;
+                        goto cleanup;
                     } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
                         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
-                        return cert_ret_code;
+                        ret_value = cert_ret_code;
+                        goto cleanup;
                     } else {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
 	                NotifyTelemetry2Count("SYS_INFO_MTLS_enable");
@@ -1984,25 +1989,19 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             CURLcode curl_code = (CURLcode)curl_ret_code;
             const char *error_msg = curl_easy_strerror(curl_code);
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] curl_easy_strerror =%s\n", __FUNCTION__, __LINE__, error_msg);
-
-            if(curl)
-            {
-                doStopDownload(curl);
-                curl = nullptr;
-            }
-            if(file_dwnl.hashData != nullptr)
-            {
-                free(file_dwnl.hashData);
-            }
 	    
 	    if (_url_validation_in_progress)
 	    {
 		_url_validation_in_progress = false;
 		if((httpCode == 304) || (httpCode == 200))
 		{
-		    return SUCCESS;
+		    ret_value = SUCCESS;
 		}
-		return FAILURE;
+		else
+		{
+		    ret_value = FAILURE;
+		}
+		goto cleanup;
 	    }
 	    
             switch(curl_ret_code)
@@ -2059,6 +2058,21 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 ret_value= SUCCESS;
             }
     }
+
+cleanup:
+    if (hashParam != nullptr)
+    {
+        if (hashParam->hashvalue != nullptr)
+        {
+            free(hashParam->hashvalue);
+        }
+        if (hashParam->hashtime != nullptr)
+        {
+            free(hashParam->hashtime);
+        }
+        free(hashParam);
+    }
+    
     return ret_value;
 }
 
