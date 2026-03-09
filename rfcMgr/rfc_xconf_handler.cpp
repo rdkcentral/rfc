@@ -84,9 +84,10 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
                     {
 	                   RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
                                "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
-	                   RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
-                               "[%s][%d] dbgServices=%s, deviceType=%d, LABSIGNED_ENABLED=%s\n", __FUNCTION__, __LINE__,dbgServices ? "true" : "false", deviceType, pBuf);
+	                   
 	                }
+					RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, 
+                               "[%s][%d] dbgServices=%s, deviceType=%d, %s\n", __FUNCTION__, __LINE__,dbgServices ? "true" : "false", deviceType, value);
                 }
              }
              devicePropertyFile.close();
