@@ -2133,7 +2133,7 @@ void RuntimeFeatureControlProcessor::GetValidAccountId()
     }
     else
     {
-        _valid_accountId = value;
+        _valid_accountId = std::move(value);
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] NEW valid Account ID: %s\n", __FUNCTION__, __LINE__, _valid_accountId.c_str());
 
         std::string unknown_str = "Unknown";
@@ -2185,7 +2185,7 @@ void RuntimeFeatureControlProcessor::GetValidPartnerId()
        }
        else
        {
-            _valid_partnerId = value;
+            _valid_partnerId = std::move(value);
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] NEW valid Partner ID: %s\n", __FUNCTION__, __LINE__, _valid_partnerId.c_str());
 
             std::string unknown_str = "Unknown";
@@ -2480,7 +2480,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         std::string data = "TR181: " + newKey + " " + newValue;
 
-        paramList.push_back(data);
+        paramList.push_back(std::move(data));
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
@@ -2887,7 +2887,7 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     std::string FQDN = _xconf_server_url;
     _xconf_server_url = std::string(XconfUrl) + "/featureControl/getSettings"; 
     std::stringstream url = CreateXconfHTTPUrl();
-    _xconf_server_url = FQDN;
+    _xconf_server_url =  std::move(FQDN);
 
     DownloadData DwnLoc, HeaderDwnLoc;
     InitDownloadData(&DwnLoc);
