@@ -50,7 +50,7 @@ extern "C" {
 bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool dbgServices = isDebugServicesEnabled();  // check debug services enabled from RFC
      eDeviceType deviceType = getDeviceTypeRFC();  // check if device type is TEST from RFC
-     //bool isDebugServicesUnlocked = false;         // return value
+     bool isDebugServicesUnlocked = false;         // return value
      const std::string dev_prop_file = DEVICE_PROPERTIES_FILE;
      std::ifstream devicePropertyFile;
 	 
