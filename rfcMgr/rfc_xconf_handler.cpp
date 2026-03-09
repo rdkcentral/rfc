@@ -53,7 +53,6 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool isDebugServicesUnlocked = false;         // return value
      const std::string dev_prop_file = DEVICE_PROPERTIES_FILE;
      std::ifstream devicePropertyFile;
-     bool found = false;
 	 
 	 if (_ebuild_type == eDEV) {
         isDebugServicesUnlocked = true;
