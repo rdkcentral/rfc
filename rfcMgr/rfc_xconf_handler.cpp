@@ -50,31 +50,28 @@ extern "C" {
 bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool dbgServices = isDebugServicesEnabled();  // check debug services enabled from RFC
      eDeviceType deviceType = getDeviceTypeRFC();  // check if device type is TEST from RFC
-     bool isDebugServicesUnlocked = false;         // return value
+     //bool isDebugServicesUnlocked = false;         // return value
      const std::string dev_prop_file = DEVICE_PROPERTIES_FILE;
      std::ifstream devicePropertyFile;
 	 
 	 if (_ebuild_type == eDEV) {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
         isDebugServicesUnlocked = true;
+		return isDebugServicesUnlocked;
      }
 
 	 else if (_ebuild_type == ePROD) 
 	 {
-         devicePropertyFile.open(dev_prop_file.c_str());
-         if(!devicePropertyFile.is_open())
-         {
-            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d]Failed to open file.\n", __FUNCTION__, __LINE__);
+	     char value[8] = {0};
+         int ret = getDevicePropertyData("LABSIGNED_ENABLED", value, sizeof(value));
+         if (ret != 1) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED property. Status: %d\n", __FUNCTION__, __LINE__, ret);
             return isDebugServicesUnlocked;
-         }
-
-         std::string value;
-
-         while (std::getline(devicePropertyFile, value))
-         {
-            if (value == "LABSIGNED_ENABLED=true")
-            {
-                if ((deviceType == DEVICE_TYPE_TEST) && dbgServices)
+        }
+		bool check = (strcasecmp(value, "true") == 0);\
+		if(check)
+		{
+		    if ((deviceType == DEVICE_TYPE_TEST) && dbgServices)
                 {
                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
                    isDebugServicesUnlocked = true;
@@ -84,20 +81,13 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
 	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
 	                
 	            }
-            }
-			else
-			{
-				RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
-			}
-         }
-		 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] dbgServices=%s, deviceType=%d, %s\n", __FUNCTION__, __LINE__,dbgServices ? "true" : "false", deviceType, value);
-         devicePropertyFile.close();
-     }
-	 else
-	 {
-	     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
+        }
+	    else
+	    {
+	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
+	    }
 	 }
-	 return isDebugServicesUnlocked;
+     return isDebugServicesUnlocked;
 }
 
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
