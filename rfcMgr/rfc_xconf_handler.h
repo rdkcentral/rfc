@@ -73,7 +73,6 @@ extern "C" {
 #define RFC_VIDEO_VOD_ID                   15660
 #define RFC_CHANNEL_MAP_ID                 2345
 #define RETRY_DELAY                        10
-#define URL_MAX_LEN                        512
 
 #define RFC_SYNC_DONE                      "/tmp/.rfcSyncDone"
 
@@ -214,7 +213,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         int ProcessXconfUrl(const char *XconfUrl);
 	bool isDebugServicesEnabled(void);
     eDeviceType getDeviceTypeRFC(void);
-    bool isSecureDbgSrvUnlocked(void)
+    bool isSecureDbgSrvUnlocked(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
