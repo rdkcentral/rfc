@@ -23,6 +23,7 @@
 #include "rfc_common.h"
 #include "rfcapi.h"
 #include "rfc_mgr_json.h"
+#include <errno.h>
 #include "mtlsUtils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -1509,7 +1510,10 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
             if (remove(DIRECT_BLOCK_FILENAME) != 0)
             {
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
+				if (errno != ENOENT)
+				{
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s,errno=%d\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME,errno);
+				}
             }
         }
     }
