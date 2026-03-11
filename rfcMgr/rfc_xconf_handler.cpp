@@ -1302,7 +1302,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTime: %s\n", __FUNCTION__,__LINE__,ConfigChangeTime.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] ConfigChangeTimeKey: %s\n", __FUNCTION__,__LINE__,ConfigChangeTimeKey.c_str());
 
 #else
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
