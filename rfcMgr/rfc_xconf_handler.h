@@ -93,7 +93,6 @@ typedef enum {
 } WDMP_STATUS;
 #endif
 
-
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
         public :
