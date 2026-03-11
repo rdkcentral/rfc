@@ -48,44 +48,34 @@ extern "C" {
 #endif
 
 bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
-     bool dbgServices = isDebugServicesEnabled();  // check debug services enabled from RFC
-     eDeviceType deviceType = getDeviceTypeRFC();  // check if device type is TEST from RFC
-     bool isDebugServicesUnlocked = false;         // return value
-     const std::string dev_prop_file = DEVICE_PROPERTIES_FILE;
-     std::ifstream devicePropertyFile;
+     bool isDebugServicesUnlocked = false; // return value
 	 
 	 if (_ebuild_type == eDEV) {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
         isDebugServicesUnlocked = true;
-		return isDebugServicesUnlocked;
      }
 
 	 else if (_ebuild_type == ePROD) 
 	 {
+		 char deviceType[16] = {0};
 	     char value[8] = {0};
+ 		 bool dbgServices = isDebugServicesEnabled();  // check debug services enabled from RFC
+		 getDeviceTypeRFC(deviceType, sizeof(deviceType));
          int ret = getDevicePropertyData("LABSIGNED_ENABLED", value, sizeof(value));
          if (ret != 1) {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get LABSIGNED_ENABLED property. Status: %d\n", __FUNCTION__, __LINE__, ret);
             return isDebugServicesUnlocked;
         }
-		bool check = (strcasecmp(value, "true") == 0);\
-		if(check)
-		{
-		    if ((deviceType == DEVICE_TYPE_TEST) && dbgServices)
-                {
+		if ((strcasecmp(value, "true") == 0) &&(strcasecmp(deviceType, "test") == 0) && dbgServices)
+           {
                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
                    isDebugServicesUnlocked = true;
-                }
-	            else
-                {
+           }
+	    else
+           {
 	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
 	                
-	            }
-        }
-	    else
-	    {
-	        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
-	    }
+	       }
 	 }
      return isDebugServicesUnlocked;
 }
@@ -163,24 +153,32 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 }
 
 
-eDeviceType RuntimeFeatureControlProcessor:: getDeviceTypeRFC(void) {
+void RuntimeFeatureControlProcessor:: getDeviceTypeRFC(char *deviceType, size_t size) 
+{
+	if (deviceType == NULL || size == 0){
+		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Error, invalid arguments passed!!!\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+	const char* type = "unknown";
     char rfc_data[RFC_VALUE_BUF_SIZE] = {0};
     int ret = read_RFCProperty("LABSGND", RFC_DEVICETYPE, rfc_data, sizeof(rfc_data));
 
     if (ret == -1) {
 		RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] rfc device type =%s failed Status %d\n", __FUNCTION__, __LINE__, RFC_DEVICETYPE, ret);
-        return DEVICE_TYPE_UNKNOWN;
+        return;
     }
 	
 	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] rfc device type = %s\n", __FUNCTION__, __LINE__, rfc_data);
 	
     if (strncasecmp(rfc_data, "prod", 4) == 0) {
-        return DEVICE_TYPE_PROD;
+        type = "prod";
     } else if (strncasecmp(rfc_data, "test", 4) == 0) {
-        return DEVICE_TYPE_TEST;
+        type = "test";
     }
 	
-    return DEVICE_TYPE_UNKNOWN;
+    strncpy(deviceType, type, size - 1);
+	deviceType[size - 1] = '\0';
 }
 
 
