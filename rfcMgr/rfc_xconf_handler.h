@@ -93,11 +93,6 @@ typedef enum {
 } WDMP_STATUS;
 #endif
 
-typedef enum {
-    DEVICE_TYPE_UNKNOWN = 0,
-    DEVICE_TYPE_PROD,
-    DEVICE_TYPE_TEST
-} eDeviceType;
 
 class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 {
