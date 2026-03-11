@@ -2050,7 +2050,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
                 ret_value= SUCCESS;
             }
     }
-	else
+    else
     {
         free(hashParam);
     }
