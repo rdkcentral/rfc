@@ -22,7 +22,7 @@
 ##################################################################
 ## Script to perform Remote Feature Control
 ## Updates the following information in the settop box
-##    list of features that are neabled or disabled
+##    list of features that are enabled or disabled
 ##    if feature configuration is effective immediately
 ##    updates startup parameters for each feature
 ##    updates the list of variables in a single file
@@ -30,12 +30,7 @@
 ##################################################################
 
 . /etc/include.properties
-
-if [ "$BUILD_TYPE" != "prod" ] && [ -f /opt/rfc.properties ]; then
-      . /opt/rfc.properties
-else
-      . /etc/rfc.properties
-fi
+. /etc/rfc.properties
 
 if [ -z $LOG_PATH ]; then
     LOG_PATH="/opt/logs/"
