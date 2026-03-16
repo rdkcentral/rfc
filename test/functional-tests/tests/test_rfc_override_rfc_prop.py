@@ -55,8 +55,6 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
-import os
-
 def modify_labsigned_value() -> None:
     original_content = None
     file_existed = os.path.exists(DEVICE_PROPERTIES)
