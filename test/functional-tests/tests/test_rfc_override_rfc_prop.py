@@ -88,15 +88,28 @@ def modify_labsigned_value(DEVICE_PROPERTIES) -> None:
             dev_props.write('\n'.join(lines) + '\n')
             print("Modified existing content to: LABSIGNED_ENABLED=true")
 
-def test_Set_DeviceType_value():
+def modify_devicetype_test():
     command_to_check = "tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
     result = run_shell_command(command_to_check)
     assert "Set operation success" in result, '"Set operation success" not found in the output'
 
-def test_Set_DbgServices_value():
+def enable_dbg_services():
     command_to_check = "tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
     result = run_shell_command(command_to_check)
     assert "Set operation success" in result, '"Set operation success" not found in the output'
+
+ def set_secure_dbgsrv_preconditions():
+    """
+    Set all required TR-181 preconditions for isSecureDbgSrvUnlocked() in PROD builds
+    """
+    modify_devicetype_test()
+    enable_dbg_services()
+
+def test_Set_DeviceType_value():
+    modify_devicetype_test()
+
+def test_set_enable_dbg_services():
+    enable_dbg_services()
 
 def test_rfc_override_rfc_prop():
     """
@@ -116,6 +129,7 @@ def test_rfc_override_rfc_prop():
     if os.path.exists(DEVICE_PROPERTIES):
         rename_file(DEVICE_PROPERTIES, DEVICE_PROPERTIES + "_bak")
     try:
+	    set_secure_dbgsrv_preconditions()
         modify_labsigned_value(DEVICE_PROPERTIES)
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
