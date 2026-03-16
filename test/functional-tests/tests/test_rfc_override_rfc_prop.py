@@ -98,7 +98,7 @@ def enable_dbg_services():
     result = run_shell_command(command_to_check)
     assert "Set operation success" in result, '"Set operation success" not found in the output'
 
- def set_secure_dbgsrv_preconditions():
+def set_secure_dbgsrv_preconditions():
     """
     Set all required TR-181 preconditions for isSecureDbgSrvUnlocked() in PROD builds
     """
