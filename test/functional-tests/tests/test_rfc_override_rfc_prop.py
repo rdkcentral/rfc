@@ -129,7 +129,7 @@ def test_rfc_override_rfc_prop():
     if os.path.exists(DEVICE_PROPERTIES):
         rename_file(DEVICE_PROPERTIES, DEVICE_PROPERTIES + "_bak")
     try:
-	    set_secure_dbgsrv_preconditions()
+        set_secure_dbgsrv_preconditions()
         modify_labsigned_value(DEVICE_PROPERTIES)
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
