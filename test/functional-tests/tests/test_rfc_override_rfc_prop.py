@@ -56,40 +56,33 @@ def modify_rfc_url(new_url: str) -> None:
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
 def modify_labsigned_value():
-	    """
+    """
     Modifies the LABSIGNED_ENABLED value in device.properties file to TRUE.
 
-    If the properties file does not exist, it creates one with the LABSIGNED_ENABLED
-	value set to true.
-    If the file exists but is empty, it adds the field with set to true.
-	If the file already contains LABSIGNED_ENABLED, it sets the parameter to TRUE.
-
-    Args:
-        None
-
-    Returns:
-        None
+    If the properties file does not exist, it creates one with LABSIGNED_ENABLED set to true.
+    If the file exists but is empty, it adds the field as true.
+    If it already contains LABSIGNED_ENABLED, it sets the parameter to TRUE.
     """
-	if not os.path.exists(DEVICE_PROPERTIES):
-        with open(RFC_PROPERTIES_PERSISTENCE_FILE, "w") as dev_props:
-            dev_props.write(f'LABSIGNED_ENABLED=true\n')
+    if not os.path.exists(DEVICE_PROPERTIES):
+        with open(DEVICE_PROPERTIES, "w") as dev_props:
+            dev_props.write('LABSIGNED_ENABLED=true\n')
         return None
     with open(DEVICE_PROPERTIES, "r+") as dev_props:
         content = dev_props.read()
         if not content.strip():
-            dev_props.write(f'LABSIGNED_ENABLED=true\n')
+            dev_props.write('LABSIGNED_ENABLED=true\n')
         else:
             lines = content.splitlines()
             for i in range(len(lines)):
                 if lines[i].startswith('LABSIGNED_ENABLED='):
-                    lines[i] = f'LABSIGNED_ENABLED=true'
+                    lines[i] = 'LABSIGNED_ENABLED=true'
                     break
 
             # Write back the modified content
             dev_props.seek(0)
-            dev_props.truncate()  # Clear the current contents of the file
+            dev_props.truncate()  # Clear current contents
             dev_props.write('\n'.join(lines) + '\n')
-            print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
+            print("Modified existing content to: LABSIGNED_ENABLED=true")
 
 def test_Set_DeviceType_value():
     command_to_check = "tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
