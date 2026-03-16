@@ -111,8 +111,6 @@ def test_rfc_override_rfc_prop():
 
     try:
         modify_labsigned_value()
-        test_Set_DeviceType_value()
-        test_Set_DbgServices_value()
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
