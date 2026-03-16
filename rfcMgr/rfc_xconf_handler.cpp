@@ -162,6 +162,8 @@ void RuntimeFeatureControlProcessor:: getDeviceTypeRFC(char *deviceType, size_t 
 
 	const char* type = "unknown";
     char rfc_data[RFC_VALUE_BUF_SIZE] = {0};
+	strncpy(deviceType, type, size - 1);
+	deviceType[size - 1] = '\0';
     int ret = read_RFCProperty("LABSGND", RFC_DEVICETYPE, rfc_data, sizeof(rfc_data));
 
     if (ret == -1) {
