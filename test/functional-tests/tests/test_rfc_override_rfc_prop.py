@@ -73,10 +73,14 @@ def modify_labsigned_value():
             dev_props.write('LABSIGNED_ENABLED=true\n')
         else:
             lines = content.splitlines()
+            labsigned_found = False
             for i in range(len(lines)):
                 if lines[i].startswith('LABSIGNED_ENABLED='):
                     lines[i] = 'LABSIGNED_ENABLED=true'
+                    labsigned_found = True
                     break
+            if not labsigned_found:
+                lines.append('LABSIGNED_ENABLED=true')
 
             # Write back the modified content
             dev_props.seek(0)
