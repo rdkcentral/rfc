@@ -1594,12 +1594,13 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
+    bool isDebugServicesUnlocked = isSecureDbgSrvUnlocked();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isSecureDbgSrvUnlocked()))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && isDebugServicesUnlocked)
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());
