@@ -55,6 +55,46 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
+def modify_labsigned_value():
+	    """
+    Modifies the LABSIGNED_ENABLED value in device.properties file to TRUE.
+
+    If the properties file does not exist, it creates one with the LABSIGNED_ENABLED
+	value set to true.
+    If the file exists but is empty, it adds the field with set to true.
+	If the file already contains LABSIGNED_ENABLED, it sets the parameter to TRUE.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
+	if not os.path.exists(DEVICE_PROPERTIES):
+        with open(RFC_PROPERTIES_PERSISTENCE_FILE, "w") as dev_props:
+            dev_props.write(f'LABSIGNED_ENABLED=true\n')
+        return None
+    with open(DEVICE_PROPERTIES, "r+") as dev_props:
+        content = dev_props.read()
+        if not content.strip():
+            dev_props.write(f'LABSIGNED_ENABLED=true\n')
+        else:
+            lines = content.splitlines()
+            for i in range(len(lines)):
+                if lines[i].startswith('LABSIGNED_ENABLED='):
+                    lines[i] = f'LABSIGNED_ENABLED=true'
+                    break
+
+            # Write back the modified content
+            dev_props.seek(0)
+            dev_props.truncate()  # Clear the current contents of the file
+            dev_props.write('\n'.join(lines) + '\n')
+            print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
+
+def test_Set_DeviceType_value():
+    command_to_check = "tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
+    result = run_shell_command(command_to_check)
+    assert "Set operation success" in result, '"Set operation success" not found in the output'
 
 def test_Set_DbgServices_value():
     command_to_check = "tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
@@ -77,6 +117,9 @@ def test_rfc_override_rfc_prop():
     modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
 
     try:
+        modify_labsigned_value()
+        test_Set_DeviceType_value()
+        test_Set_DbgServices_value()
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
