@@ -618,6 +618,22 @@ TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_DbgSrv_false) {
     EXPECT_EQ(result, false);
 }
 
+TEST(rfcMgrTest, isSecureDbgSrvUnlocked_vbn) {
+    writeToTr181storeFile("BUILD_TYPE", "vbn", "/tmp/device.properties", Plain);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isSecureDbgSrvUnlocked();
+    delete rfcObj;
+    EXPECT_EQ(result, false);
+}
+
+TEST(rfcMgrTest, isSecureDbgSrvUnlocked_qa) {
+    writeToTr181storeFile("BUILD_TYPE", "qa", "/tmp/device.properties", Plain);
+    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    bool result = rfcObj->isSecureDbgSrvUnlocked();
+    delete rfcObj;
+    EXPECT_EQ(result, false);
+}
+
 TEST(rfcMgrTest, isDebugServicesEnabled) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);    
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
