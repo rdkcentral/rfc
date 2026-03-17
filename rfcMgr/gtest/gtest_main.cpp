@@ -572,6 +572,7 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
 TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dev) {
     writeToTr181storeFile("BUILD_TYPE", "dev", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->initializeXconfHandler();
     bool result = rfcObj->isSecureDbgSrvUnlocked();
     delete rfcObj;
     EXPECT_EQ(result, true);
@@ -583,6 +584,7 @@ TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_true) {
 	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType", "test", "/opt/secure/RFC/tr181store.ini", Quoted);
 	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->initializeXconfHandler();
     bool result = rfcObj->isSecureDbgSrvUnlocked();
     delete rfcObj;
     EXPECT_EQ(result, true);
@@ -592,6 +594,7 @@ TEST(rfcMgrTest, isSecureDbgSrvUnlocked_prod) {
     writeToTr181storeFile("BUILD_TYPE", "prod", "/tmp/device.properties", Plain);
 	writeToTr181storeFile("LABSIGNED_ENABLED", "false", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+    rfcObj->initializeXconfHandler();
     bool result = rfcObj->isSecureDbgSrvUnlocked();
     delete rfcObj;
     EXPECT_EQ(result, false);
