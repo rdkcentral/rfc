@@ -50,7 +50,7 @@ extern "C" {
 bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool isDebugServicesUnlocked = false; // return value
 	 
-	 if (_ebuild_type == eDEV) {
+	 if (_ebuild_type != ePROD) {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
         isDebugServicesUnlocked = true;
      }
