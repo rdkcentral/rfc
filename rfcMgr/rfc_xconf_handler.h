@@ -230,6 +230,13 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dev);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_true);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_prod);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dType_prod);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_DbgSrv_false);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_vbn);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_qa);
     FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
     FRIEND_TEST(rfcMgrTest, GetOsClass);
