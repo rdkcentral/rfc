@@ -55,7 +55,7 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
-def modify_labsigned_value(DEVICE_PROPERTIES: str) -> None:
+def modify_labsigned_value(device_properties_path: str) -> None:
     """
     Modifies the LABSIGNED_ENABLED value in device.properties file to true.
 
@@ -63,12 +63,12 @@ def modify_labsigned_value(DEVICE_PROPERTIES: str) -> None:
     If the file exists but is empty, it adds the field as true.
     If it already contains LABSIGNED_ENABLED, it sets the parameter to true.
     """
-    if not os.path.exists(DEVICE_PROPERTIES):
-        with open(DEVICE_PROPERTIES, "w") as dev_props:
+    if not os.path.exists(device_properties_path):
+        with open(device_properties_path, "w") as dev_props:
             dev_props.write("LABSIGNED_ENABLED=true\n")
         return
 
-    with open(DEVICE_PROPERTIES, "r+") as dev_props:
+    with open(device_properties_path, "r+") as dev_props:
         content = dev_props.read()
 
         if not content.strip():
