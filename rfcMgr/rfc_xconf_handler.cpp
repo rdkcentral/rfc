@@ -74,7 +74,6 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
 	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);                
 	       }
 	 }
-	 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] dbgServices=%s, deviceType=%s, LABSIGNED_ENABLED=%s\n", __FUNCTION__, __LINE__, dbgServices, deviceType, value);
 	 if (isDebugServicesUnlocked) {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
 		NotifyTelemetry2Count("SYST_INFO_RFC_DbgSrv");
