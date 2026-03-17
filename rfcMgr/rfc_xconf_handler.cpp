@@ -51,7 +51,6 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool isDebugServicesUnlocked = false; // return value
 
 	 if ((_ebuild_type != ePROD) && (_ebuild_type != eUNKNOWN)) {
-		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
         isDebugServicesUnlocked = true;
      }
 
@@ -68,14 +67,17 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
         }
 		if ((strcasecmp(value, "true") == 0) &&(strcasecmp(deviceType, "test") == 0) && dbgServices)
            {
-                   RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
                    isDebugServicesUnlocked = true;
            }
 	    else
            {
-	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);
-	                
+	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);                
 	       }
+	 }
+	 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] dbgServices=%s, deviceType=%s, LABSIGNED_ENABLED=%s\n", __FUNCTION__, __LINE__, dbgServices, deviceType, value);
+	 if (isDebugServicesUnlocked) {
+		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
+		NotifyTelemetry2Count("SYST_INFO_RFC_DbgSrv");
 	 }
      return isDebugServicesUnlocked;
 }
