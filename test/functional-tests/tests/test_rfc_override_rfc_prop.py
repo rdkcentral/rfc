@@ -129,8 +129,10 @@ def test_rfc_override_rfc_prop():
 
     modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
 
+    device_props_backed_up = False
     if os.path.exists(DEVICE_PROPERTIES):
-        rename_file(DEVICE_PROPERTIES, DEVICE_PROPERTIES + "_bak")
+        shutil.copy2(DEVICE_PROPERTIES, DEVICE_PROPERTIES + "_bak")
+        device_props_backed_up = True
     try:
         set_secure_dbgsrv_preconditions()
         modify_labsigned_value(DEVICE_PROPERTIES)
@@ -147,3 +149,7 @@ def test_rfc_override_rfc_prop():
     except Exception as e:
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
         assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
+    finally:
+        if device_props_backed_up and os.path.exists(DEVICE_PROPERTIES + "_bak"):
+            shutil.copy2(DEVICE_PROPERTIES + "_bak", DEVICE_PROPERTIES)
+            os.remove(DEVICE_PROPERTIES + "_bak")
