@@ -129,7 +129,9 @@ def test_rfc_override_rfc_prop():
 
     modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
 
-    if os.path.exists(DEVICE_PROPERTIES):
+    device_properties_existed = os.path.exists(DEVICE_PROPERTIES)
+    original_content = ""
+    if device_properties_existed:
         with open(DEVICE_PROPERTIES, "r") as f:
             original_content = f.read()
     try:
@@ -149,6 +151,10 @@ def test_rfc_override_rfc_prop():
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
         assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
     finally:
-        if os.path.exists(DEVICE_PROPERTIES):
-            with open(DEVICE_PROPERTIES, "w") as f:
-                f.write(original_content)
+        if device_properties_existed:
+            if os.path.exists(DEVICE_PROPERTIES):
+                with open(DEVICE_PROPERTIES, "w") as f:
+                    f.write(original_content)
+        else:
+            if os.path.exists(DEVICE_PROPERTIES):
+                os.remove(DEVICE_PROPERTIES)
