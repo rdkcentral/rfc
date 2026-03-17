@@ -49,8 +49,9 @@ extern "C" {
 
 bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
      bool isDebugServicesUnlocked = false; // return value
-	 
-	 if (_ebuild_type != ePROD) {
+
+	 f((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isSecureDbgSrvUnlocked()))
+	 if ((_ebuild_type != ePROD) && (_ebuild_type != eUNKNOWN)) {
 		RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Enabling Debug Services\n", __FUNCTION__, __LINE__);
         isDebugServicesUnlocked = true;
      }
