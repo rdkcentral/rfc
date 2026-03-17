@@ -155,6 +155,3 @@ def test_rfc_override_rfc_prop():
             if os.path.exists(DEVICE_PROPERTIES):
                 with open(DEVICE_PROPERTIES, "w") as f:
                     f.write(original_content)
-        else:
-            if os.path.exists(DEVICE_PROPERTIES):
-                os.remove(DEVICE_PROPERTIES)
