@@ -55,7 +55,7 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
-def modify_labsigned_value(DEVICE_PROPERTIES) -> None:
+def modify_labsigned_value(DEVICE_PROPERTIES: str) -> None:
     """
     Modifies the LABSIGNED_ENABLED value in device.properties file to true.
 
