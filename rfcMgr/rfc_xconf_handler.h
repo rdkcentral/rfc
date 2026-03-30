@@ -67,6 +67,7 @@ extern "C" {
 #define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini" 
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
 #define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
+#define RFC_DEVICETYPE                     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
@@ -205,6 +206,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
 	bool isDebugServicesEnabled(void);
+    void getDeviceTypeRFC(char *deviceType, size_t size);
+    bool isSecureDbgSrvUnlocked(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
@@ -227,6 +230,11 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dev);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_true);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_prod);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dType_prod);
+    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_DbgSrv_false);
     FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
     FRIEND_TEST(rfcMgrTest, GetOsClass);
