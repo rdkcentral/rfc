@@ -26,6 +26,10 @@
 
 ## Overview
 
+The RFC (Remote Feature Control) module enables dynamic configuration of RDK device features at runtime by fetching policy updates from an XConf server and applying them as TR181 data-model parameters. It ships as a daemon (`rfcMgr`) plus two reusable libraries (`librfcapi`, `libtr181api`) consumed by other RDK components.
+
+Licensed under the Apache License 2.0. Copyright 2016–2024 RDK Management.
+
 **rfcMgr** is a C++ daemon that replaces the legacy shell-based `RFCbase.sh` for Remote Feature Control. It:
 
 1. **Detects** when the device is online
@@ -48,6 +52,24 @@ The **rfcapi** library provides a public C API (`getRFCParameter`, `setRFCParame
 | **RDKC** | `-DRDKC` | RDK Camera (XHC1/XCAM2) — flat-file parameter storage, mfrApi for device identity |
 
 All platform-specific code is behind `#ifdef` guards, ensuring a single codebase builds cleanly for all targets.
+
+---
+
+## Quick Start
+
+```bash
+# Build (inside the native-platform container)
+autoreconf -i
+./configure --prefix=/usr --enable-rfctool=yes --enable-tr181set=yes
+make && make install
+
+# Run unit tests
+sh run_ut.sh
+
+# Run L2 functional tests
+sh run_l2.sh
+sh run_l2_reboot_trigger.sh
+```
 
 ---
 
@@ -188,6 +210,10 @@ make check
 | `--enable-gtestapp` | Enable Google Test unit tests |
 | `--enable-rdkcertselector` | Use `librdkcertselector` for mTLS |
 | `--enable-mountutils` | Use `librdkconfig` for configuration |
+| `--enable-rfctool=yes` | Build `librfcapi` (default: yes) |
+| `--enable-tr181set=yes` | Build `libtr181api` |
+| `--enable-rdkcertselector=yes` | Enable `librdkcertselector` for dynamic mTLS cert selection |
+| `--enable-iarmbus=yes` | Enable IARM bus integration |
 
 ---
 
@@ -205,6 +231,46 @@ Runtime configuration is read from `rfc.properties`:
 | `TR181_STORE_FILENAME` | Persistent parameter storage file |
 | `RFC_POSTPROCESS` | Post-processing script path |
 | `RFC_SERVICE_LOCK` | Lock file to prevent concurrent runs |
+
+---
+
+## Platform Notes
+
+### RDK-V (Video — default)
+- TR181 store at `/opt/secure/RFC/`
+- Debug ini override at `/opt/debug.ini`
+- IARM bus integration via `USE_IARMBUS`
+- Maintenance manager events (`EN_MAINTENANCE_MANAGER`)
+
+### RDK-B (Broadband — `--enable-rdkb`)
+- Debug ini at `/nvram/debug.ini`
+- Log file at `/rdklogs/logs/dcmrfc.log.0`
+- rbus integration in addition to IARM
+- `waitForRfcCompletion()` synchronization at startup
+
+### RDK-C (Camera — `--enable-rdkc`)
+- Simplified `getRFCParameter` without WDMP/tr69hostif
+- File-based lookup only
+
+---
+
+## Key Files and Paths
+
+| Path | Purpose |
+|------|---------|
+| `/opt/secure/RFC/tr181store.ini` | Persisted TR181 parameter values from XConf |
+| `/opt/secure/RFC/rfcVariable.ini` | Legacy RFC variable store |
+| `/opt/secure/RFC/bootstrap.ini` | Bootstrap XConf URL and OsClass |
+| `/opt/secure/RFC/tr181localstore.ini` | Local (non-XConf) TR181 parameter store |
+| `/opt/secure/RFC/.version` | Last processed firmware version |
+| `/opt/rfc.properties` | Runtime RFC server URL override |
+| `/etc/rfc.properties` | Default RFC server properties |
+| `/tmp/.rfcServiceLock` | PID lock file (prevents multiple instances) |
+| `/tmp/.rfcSyncDone` | Signals RFC sync completion |
+| `/etc/rfcdefaults/` | Component default INI files |
+| `/tmp/rfcdefaults.ini` | Merged defaults file (generated at runtime) |
+
+---
 
 ### RDKC Device Files
 
@@ -249,6 +315,24 @@ if (isRFCEnabled("AccountInfo")) {
     // Feature is active
 }
 ```
+| `librfcapi` | `rfcapi/rfcapi.cpp` | Public C API for RFC parameter get/set used by all RDK components |
+| `libtr181api` | `tr181api/tr181api.cpp` | Higher-level TR181 API with typed parameters, local store, and defaults |
+| `jsonhandler` | `utils/jsonhandler.cpp` | Parses XConf JSON response payloads |
+| `tr181utils` | `utils/tr181utils.cpp` | TR181 store manipulation utilities |
+
+---
+
+## Error Codes
+
+| Code | Value | Meaning |
+|------|-------|---------|
+| `SUCCESS` | 0 | Operation succeeded |
+| `FAILURE` | -1 | Operation failed |
+| `NO_RFC_UPDATE_REQUIRED` | 1 | Settings unchanged; no write needed |
+| `WRITE_RFC_SUCCESS` | 1 | TR181 write succeeded |
+| `WRITE_RFC_FAILURE` | -1 | TR181 write failed |
+| `READ_RFC_SUCCESS` | 1 | TR181 read succeeded |
+| `READ_RFC_FAILURE` | -1 | TR181 read failed |
 
 ---
 
@@ -269,6 +353,12 @@ Test coverage is tracked via GitHub Actions workflows:
 - `L1-Test.yaml` — Unit test execution
 - `L2-tests.yml` — Integration test execution
 - `code-coverage.yml` — Coverage reporting
+
+# Individual binaries
+./rfcMgr/gtest/rfcMgr_gtest      # RFCManager / XConf handler tests
+./rfcMgr/gtest/rfcapi_gtest      # RFC API get/set tests
+./rfcMgr/gtest/tr181api_gtest    # TR181 API tests
+./rfcMgr/gtest/utils_gtest       # JSON handler / TR181 utils tests
 
 ---
 
@@ -301,3 +391,12 @@ Copyright 2018-2026 RDK Management
 
 Licensed under the Apache License, Version 2.0
 ```
+---
+
+## See Also
+
+- [rfcapi API Reference](rfcapi/docs/README.md)
+- [tr181api API Reference](tr181api/docs/README.md)
+- [Build System Instructions](.github/instructions/build-system.instructions.md)
+- [C Embedded Standards](.github/instructions/c-embedded.instructions.md)
+- [L2 Test Runner Agent](.github/agents/l2-test-runner.agent.md)
