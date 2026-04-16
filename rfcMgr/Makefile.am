@@ -30,7 +30,7 @@ rfcMgr_SOURCES      += rdkc_rfc_xconf_handler.cpp
 if ENABLE_XCAM2
 rfcMgr_CPPFLAGS     += -DRDKC -I${RDK_FSROOT_PATH}/usr/include/
 AM_LDFLAGS +=  -L${RDK_FSROOT_PATH}/usr/lib/ -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl -lrfcapi
-AM_LDFLAGS +=  -L${RDK_FSROOT_PATH}/rfcapi/.libs/ -lrfcapi
+AM_LDFLAGS +=  -L${RDK_SOURCE_PATH}/rfcapi/.libs/ -lrfcapi
 else
 rfcMgr_CPPFLAGS     += -DRDKC -I${STAGING_DIR_TARGET}/usr/include/
 AM_LDFLAGS +=  -L${STAGING_DIR_TARGET}/usr/lib/ -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl -lrfcapi
