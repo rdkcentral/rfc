@@ -26,7 +26,6 @@ AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
 AM_LDFLAGS += -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl
 
 if ENABLE_RDKC
-rfcMgr_SOURCES      += rdkc_rfc_xconf_handler.cpp
 if ENABLE_XCAM2
 rfcMgr_CPPFLAGS     += -DRDKC -I${RDK_FSROOT_PATH}/usr/include/
 AM_LDFLAGS +=  -L${RDK_FSROOT_PATH}/usr/lib/ -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl -lrfcapi

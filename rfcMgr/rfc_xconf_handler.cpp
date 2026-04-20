@@ -3184,6 +3184,137 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     return rc;
 }
 
+#ifdef RDKC
+/* =========================================================================
+ * RDKC (camera) subclass overrides
+ * ====================================================================== */
+
+/** TR181 parameter holding the MD5 account hash on camera devices. */
+#define RFC_MD5_ACCOUNT_HASH \
+    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MD5AccountHash"
+
+/** RAM-backed directory used for transient RFC state on all platforms. */
+#define RFC_RAM_PATH "/tmp/RFC"
+
+/**
+ * Read the MD5 account hash from /opt/usr_config/accounthash.txt.
+ * Called once (lazily) from CreateXconfHTTPUrl() before building the URL.
+ */
+void RdkcRuntimeFeatureControlProcessor::GetAccountHash()
+{
+    if (!_accountHash.empty())
+        return;
+
+    std::ifstream ifs("/opt/usr_config/accounthash.txt");
+    if (ifs.is_open())
+    {
+        std::getline(ifs, _accountHash);
+        ifs.close();
+        if (!_accountHash.empty())
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                    "[%s][%d] RDKC AccountHash: %s\n",
+                    __FUNCTION__, __LINE__, _accountHash.c_str());
+            return;
+        }
+    }
+
+    RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR,
+            "[%s][%d] RDKC: /opt/usr_config/accounthash.txt not found or empty\n",
+            __FUNCTION__, __LINE__);
+}
+
+/**
+ * Build the Xconf HTTP request URL for camera (XHC1) devices.
+ * Adds accountHash, omits manufacturer/ecmMacAddress/osClass.
+ */
+std::stringstream RdkcRuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
+{
+    GetAccountHash();
+
+    std::stringstream url;
+    url << _xconf_server_url       << "?";
+    url << "estbMacAddress="       << _estb_mac_address << "&";
+    url << "firmwareVersion="      << _firmware_version << "&";
+    url << "env="                  << _build_type_str   << "&";
+    url << "model="                << _model_number     << "&";
+    url << "accountHash="          << _accountHash      << "&";
+    url << "partnerId="            << _partner_id       << "&";
+    url << "accountId="            << _accountId        << "&";
+    url << "experience="           << _experience       << "&";
+    url << "version=2";
+
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+            "[%s][%d] RDKC Xconf request URL built\n",
+            __FUNCTION__, __LINE__);
+
+    return url;
+}
+
+/**
+ * Read configSetHash and configSetTime from RAM-backed files.
+ * RDKC devices never use the TR181 parameter database for hash/time storage.
+ */
+void RdkcRuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(
+    std::string &valueHash, std::string &valueTime)
+{
+    valueHash = "UPGRADE_HASH";
+    valueTime = "0";
+
+    const std::string hashFile = std::string(RFC_RAM_PATH) + "/.hashValue";
+    if (access(hashFile.c_str(), R_OK) == 0)
+    {
+        std::ifstream ifs(hashFile);
+        if (ifs.is_open())
+        {
+            std::getline(ifs, valueHash);
+            ifs.close();
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                    "[%s][%d] RDKC ConfigSetHash: %s\n",
+                    __FUNCTION__, __LINE__, valueHash.c_str());
+        }
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
+                "[%s][%d] RDKC: hash file not found, using default\n",
+                __FUNCTION__, __LINE__);
+    }
+
+    const std::string timeFile = std::string(RFC_RAM_PATH) + "/.timeValue";
+    if (access(timeFile.c_str(), R_OK) == 0)
+    {
+        std::ifstream ifs(timeFile);
+        if (ifs.is_open())
+        {
+            std::getline(ifs, valueTime);
+            ifs.close();
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                    "[%s][%d] RDKC ConfigSetTime: %s\n",
+                    __FUNCTION__, __LINE__, valueTime.c_str());
+        }
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
+                "[%s][%d] RDKC: time file not found, using default\n",
+                __FUNCTION__, __LINE__);
+    }
+
+    bkup_hash = valueHash;
+}
+
+/**
+ * No-op — RDKC devices must NOT persist XconfSelector/XconfUrl.
+ */
+void RdkcRuntimeFeatureControlProcessor::StoreXconfEndpointMetadata()
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+            "[%s][%d] RDKC (XHC1): skipping XconfSelector/XconfUrl storage\n",
+            __FUNCTION__, __LINE__);
+}
+#endif /* RDKC */
+
 #ifdef __cplusplus
 }
 #endif

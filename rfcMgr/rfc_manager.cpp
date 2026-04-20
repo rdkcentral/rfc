@@ -24,9 +24,6 @@
 #include "rfc_common.h"
 #include "rfc_mgr_iarm.h"
 #include "rfc_xconf_handler.h"
-#ifdef RDKC
-#include "rdkc_rfc_xconf_handler.h"
-#endif
 #include <fstream>
 #include <array>
 #include <unistd.h>

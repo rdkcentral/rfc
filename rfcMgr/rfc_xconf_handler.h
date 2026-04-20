@@ -408,4 +408,44 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 #endif
 };
 
+#ifdef RDKC
+/**
+ * @class RdkcRuntimeFeatureControlProcessor
+ * @brief RDKC camera-specific RFC processor subclass.
+ *
+ * Inherits all common RFC logic from RuntimeFeatureControlProcessor
+ * and overrides only platform-specific methods.
+ */
+class RdkcRuntimeFeatureControlProcessor : public RuntimeFeatureControlProcessor
+{
+public:
+    /** @brief Default constructor. */
+    RdkcRuntimeFeatureControlProcessor() = default;
+
+    RdkcRuntimeFeatureControlProcessor(const RdkcRuntimeFeatureControlProcessor&) = delete;            /**< Copy disabled. */
+    RdkcRuntimeFeatureControlProcessor& operator=(const RdkcRuntimeFeatureControlProcessor&) = delete; /**< Assignment disabled. */
+
+protected:
+    /** @brief Build RDKC-specific Xconf URL (adds accountHash, omits manufacturer). */
+    std::stringstream CreateXconfHTTPUrl() override;
+
+    /**
+     * @brief Read configSetHash/Time from RAM files (/tmp/RFC/).
+     * @param[out] valueHash  Retrieved hash string.
+     * @param[out] valueTime  Retrieved time string.
+     */
+    void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
+                                                std::string &valueTime) override;
+
+    /** @brief No-op — RDKC must not persist XconfSelector/XconfUrl. */
+    void StoreXconfEndpointMetadata() override;
+
+private:
+    std::string _accountHash; /**< MD5 account hash, XHC1-specific query param. */
+
+    /** @brief Lazy-fetch the MD5 account hash from the RFC parameter store. */
+    void GetAccountHash();
+};
+#endif /* RDKC */
+
 #endif
