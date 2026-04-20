@@ -94,6 +94,13 @@ int main()
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create RFC directory\n", __FUNCTION__, __LINE__);
         exit(EXIT_FAILURE);
     }
+
+#if defined(RDKB_SUPPORT) || defined(RDKC)
+    /* Create /tmp/RFC/ for hash/time RAM files (RDKB & RDKC only) */
+    if (!createDirectoryIfNotExists("/tmp/RFC")) {
+        RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RFC: Failed to create /tmp/RFC directory\n", __FUNCTION__, __LINE__);
+    }
+#endif
 	
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);
 

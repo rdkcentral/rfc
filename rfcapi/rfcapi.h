@@ -31,13 +31,13 @@ extern "C"
 {
 #endif
 
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
 #include <wdmp-c/wdmp-c.h>
 #endif
 
 #define MAX_PARAM_LEN     (2*1024)
 
-#if defined(RDKB_SUPPORT) 
+#if defined(RDKB_SUPPORT) || defined(RDKC)
 typedef enum
 {
   SUCCESS=0,
@@ -61,7 +61,7 @@ typedef struct _RFC_Param_t {
 } RFC_ParamData_t;
 #endif
 
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #else
 WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName, RFC_ParamData_t *pstParamData);

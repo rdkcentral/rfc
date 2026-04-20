@@ -21,10 +21,19 @@
 #include "rfc_common.h"
 #include "rfc_mgr_iarm.h"
 #include "rfc_xconf_handler.h"
+#ifdef RDKC
+#include "rdkc_rfc_xconf_handler.h"
+#endif
 #include <fstream>
+#include <array>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef RDKC
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 
 namespace rfc {
 #if defined(USE_IARMBUS)
@@ -40,7 +49,7 @@ namespace rfc {
 #endif
     RFCManager ::RFCManager() {
 #if defined(RDK_LOGGER)
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
         RDK_LOGGER_INIT();
 #else		
         /* Initialize RDK Logger */
@@ -334,7 +343,57 @@ namespace rfc {
     {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
         rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
-#if !defined(RDKB_SUPPORT)
+#ifdef RDKC
+        /* Camera (XHC1) IP acquisition — matches waitForIpAcquisition() in
+         * RFCbase.sh.  Poll until a non-loopback IP address appears on any
+         * interface.  The shell loops with 10s sleep; we do the same. */
+        {
+            char ipBuf[INET6_ADDRSTRLEN] = {0};
+            while (true)
+            {
+                struct ifaddrs *ifap = nullptr;
+                if (getifaddrs(&ifap) == 0)
+                {
+                    for (struct ifaddrs *ifa = ifap; ifa; ifa = ifa->ifa_next)
+                    {
+                        if (!ifa->ifa_addr) continue;
+                        int family = ifa->ifa_addr->sa_family;
+                        if (family == AF_INET)
+                        {
+                            struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                            /* Skip loopback 127.x.x.x */
+                            if ((ntohl(sa->sin_addr.s_addr) >> 24) == 127) continue;
+                            inet_ntop(AF_INET, &sa->sin_addr, ipBuf, sizeof(ipBuf));
+                            result = RFCMGR_DEVICE_ONLINE;
+                            break;
+                        }
+                        else if (family == AF_INET6)
+                        {
+                            struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+                            /* Skip loopback ::1 and link-local fe80:: */
+                            if (IN6_IS_ADDR_LOOPBACK(&sa6->sin6_addr)) continue;
+                            if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr)) continue;
+                            inet_ntop(AF_INET6, &sa6->sin6_addr, ipBuf, sizeof(ipBuf));
+                            result = RFCMGR_DEVICE_ONLINE;
+                            break;
+                        }
+                    }
+                    freeifaddrs(ifap);
+                }
+                if (result == RFCMGR_DEVICE_ONLINE)
+                {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                            "[%s][%d] RDKC: Acquired IP address: %s\n",
+                            __FUNCTION__, __LINE__, ipBuf);
+                    break;
+                }
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
+                        "[%s][%d] RDKC: Waiting for IP address...\n",
+                        __FUNCTION__, __LINE__);
+                sleep(10);
+            }
+        }
+#elif !defined(RDKB_SUPPORT) && !defined(RDKC)
         if (true == CheckIProuteConnectivity(GATEWAYIP_FILE))
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
@@ -412,10 +471,26 @@ namespace rfc {
 
     int RFCManager::RFCManagerProcess()
     {
-        /* Create Object for Xconf Handler */
+        /* Create the appropriate RFC processor for the target platform.
+         * On camera (RDKC/XHC1) use the derived class that overrides
+         * URL building, hash/time retrieval, and endpoint metadata storage.
+         * All shared RFC logic is inherited from RuntimeFeatureControlProcessor. */
+#ifdef RDKC
+        RuntimeFeatureControlProcessor *rfcObj = new RdkcRuntimeFeatureControlProcessor();
+#else
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+#endif
 
         int reqStatus = FAILURE;
+
+#ifdef RDKC
+        /* Camera devices wait 120 seconds before first Xconf query.
+         * Shell equivalent: sleep 120  (RFCbase.sh XHC1 branch) */
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                "[%s][%d] RDKC: Waiting 120 seconds before querying xconf\n",
+                __FUNCTION__, __LINE__);
+        sleep(120);
+#endif
 
         /* Initialize xconf Hanlder */
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();
@@ -431,6 +506,7 @@ namespace rfc {
 #if !defined(RDKB_SUPPORT)
         if(result == SUCCESS)
         {
+#ifndef RDKC
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_COMPLETE);
 
             bool isRebootRequired = rfcObj->getRebootRequirement();
@@ -441,13 +517,39 @@ namespace rfc {
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_CRITICAL_UPDATE);
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_REBOOT_REQUIRED);
             }
+#endif /* !RDKC */
             reqStatus = SUCCESS;
         }
         else
         {
+#ifndef RDKC
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
             rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
+#endif /* !RDKC */
+        }
+#endif
+
+#ifdef RDKC
+        /* Camera reboot scheduling — equivalent to:
+         * if [ "$RfcRebootCronNeeded" = "1" ]; then
+         *     sh /lib/rdk/RfcRebootCronschedule.sh &
+         * fi */
+        if (rfcObj->getRfcRebootCronNeeded())
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                    "[%s][%d] RDKC: RfcRebootCronNeeded=true, scheduling reboot in maintenance window\n",
+                    __FUNCTION__, __LINE__);
+            if (access("/lib/rdk/RfcRebootCronschedule.sh", F_OK) == 0)
+            {
+                v_secure_system("sh /lib/rdk/RfcRebootCronschedule.sh &");
+            }
+            else
+            {
+                RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR,
+                        "[%s][%d] RDKC: RfcRebootCronschedule.sh not found\n",
+                        __FUNCTION__, __LINE__);
+            }
         }
 #endif
         int post_process_result = RFCManagerPostProcess();
@@ -528,7 +630,12 @@ namespace rfc {
 
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
 
+#ifdef RDKC
+        /* Camera cron entry omits log redirect (matches XHC1 shell behaviour) */
+        std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr";
+#else
         std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
+#endif
 
         // Export existing crontab using popen to avoid redirection issues
         std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";

@@ -170,6 +170,33 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
     }
 
     rbus_close(handle);
+#elif defined(RDKC)
+    RFC_ParamData_t param;
+    memset(&param, 0, sizeof(RFC_ParamData_t));
+    (void)type;
+
+    int data_len;
+    int status = getRFCParameter(key, &param);
+    if(status == SUCCESS)
+    {
+        data_len = strlen(param.value);
+        if(data_len >= 2 && (param.value[0] == '"') && (param.value[data_len - 1] == '"'))
+        {
+            snprintf(out_value, datasize, "%s", &param.value[1]);
+            *(out_value + data_len - 2) = 0;
+        }
+        else
+        {
+            snprintf(out_value, datasize, "%s", param.value);
+        }
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC name=%s,type=%d,value=%s,status=%d\n", __FUNCTION__, __LINE__, param.name, param.type, param.value, status);
+        ret = READ_RFC_SUCCESS;
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC Read status= %d\n", __FUNCTION__, __LINE__, status);
+        *out_value = 0;
+    }
 #else
     RFC_ParamData_t param;
     memset(&param, 0, sizeof(RFC_ParamData_t));

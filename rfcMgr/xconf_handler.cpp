@@ -20,6 +20,11 @@
 
 #include "xconf_handler.h"
 
+#if defined(RDKC)
+#include "rdk_debug.h"
+#define LOG_RFCMGR "LOG.RDK.RFCMGR"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,6 +63,24 @@ int XconfHandler:: initializeXconfHandler()
             strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
             tmpbuf[sizeof(tmpbuf) - 1] = '\0';
             len = strlen(tmpbuf);
+        }
+#elif defined(RDKC)
+        /* Camera: get MAC address via MFR API (mfrApi_test 3 9).
+         * This matches the shell's getEstbMacAddress() for XHC1. */
+        {
+            FILE *fp = popen("mfrApi_test 3 9", "r");
+            if (fp)
+            {
+                if (fgets(tmpbuf, sizeof(tmpbuf), fp))
+                {
+                    size_t mlen = strlen(tmpbuf);
+                    if (mlen > 0 && tmpbuf[mlen - 1] == '\n') tmpbuf[mlen - 1] = '\0';
+                    len = strlen(tmpbuf);
+                }
+                pclose(fp);
+            }
+            if (len == 0)
+                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Camera: mfrApi_test failed to get MAC\n", __FUNCTION__, __LINE__);
         }
 #else
         len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
@@ -102,7 +125,7 @@ int XconfHandler:: initializeXconfHandler()
         {
              _ecm_mac_address = tmpbuf;
         }
-#else
+#elif !defined(RDKC)
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
@@ -110,6 +133,25 @@ int XconfHandler:: initializeXconfHandler()
              _manufacturer = tmpbuf;
         }
 #endif
+#ifdef RDKC
+      /* Camera: read partner ID from /opt/usr_config/partnerid.txt */
+      {
+          FILE *fp = fopen("/opt/usr_config/partnerid.txt", "r");
+          if (fp)
+          {
+              memset(tmpbuf, '\0', sizeof(tmpbuf));
+              if (fgets(tmpbuf, sizeof(tmpbuf), fp))
+              {
+                  size_t plen = strlen(tmpbuf);
+                  if (plen > 0 && tmpbuf[plen - 1] == '\n') tmpbuf[plen - 1] = '\0';
+                  _partner_id = tmpbuf;
+              }
+              fclose(fp);
+          }
+          if (_partner_id.empty())
+              _partner_id = "Unknown";
+      }
+#else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
@@ -118,8 +160,9 @@ int XconfHandler:: initializeXconfHandler()
 	}
 	else
 	{
-	    _partner_id="Unkown";
+	    _partner_id="Unknown";
 	}
+#endif
 	
     return 0;
 }

@@ -25,6 +25,10 @@
 #include "rfc_mgr_key.h"
 #include "rfc_mgr_json.h"
 
+#ifdef RDKC
+#include <set>
+#endif
+
 #if defined(GTEST_ENABLE)
 #include <gtest/gtest.h>
 #endif
@@ -37,6 +41,10 @@ extern "C" {
 #include <json_parse.h>
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifndef GTEST_ENABLE
 #define BOOTSTRAP_FILE          "/opt/secure/RFC/bootstrap.ini"
@@ -86,7 +94,7 @@ typedef enum
    Finish
 } RfcState;
 
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
 typedef enum {
     WDMP_SUCCESS = 0,
     WDMP_FAILURE,
@@ -101,14 +109,70 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         {
             isRebootRequired = false;
         }
-        // We do not allow this class to be copied !!
-        RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete;
-        
+#ifdef RDKC
+        virtual ~RuntimeFeatureControlProcessor() = default;
+#else
+        ~RuntimeFeatureControlProcessor() = default;
+#endif
+        RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete; /**< Copy disabled. */
         int  InitializeRuntimeFeatureControlProcessor(void);
         int ProcessRuntimeFeatureControlReq();
         bool getRebootRequirement();
+#ifdef RDKC
+        /** @brief On RDKC, query if the reboot cron job should be scheduled. */
+        bool getRfcRebootCronNeeded() const { return _rfcRebootCronNeeded; }
+#endif
         void NotifyTelemetry2Count(std ::string markerName);
         void NotifyTelemetry2Value(std ::string markerName, std ::string value);
+
+#ifdef RDKC
+    protected:
+#else
+    private:
+#endif
+        /* ---------------------------------------------------------------
+         * Members and methods accessible to platform-specific subclasses.
+         * Subclasses (e.g. RdkcRuntimeFeatureControlProcessor) override
+         * the virtual methods below to handle device-specific behaviour
+         * without duplicating the shared RFC request/response logic.
+         * --------------------------------------------------------------- */
+
+        std::string _accountId;        /**< Device Account ID. */
+        std::string _experience;        /**< Device experience string. */
+        std::string _osclass;           /**< OS class identifier. */
+        std::string _xconf_server_url;  /**< Active Xconf server URL. */
+        std::string rfcSelectOpt;       /**< Xconf selector option. */
+        std::string bkup_hash;          /**< Backup configSetHash. */
+#ifdef RDKC
+        bool _rfcRebootCronNeeded = false;                 /**< RDKC: schedule reboot cron. */
+        std::set<std::string> _effectiveImmediateParams;   /**< RDKC: params with effectiveImmediate=true. */
+#endif
+
+        /** Build the full HTTP query URL sent to the Xconf server.
+         *  Override to change device-specific query parameters. */
+#ifdef RDKC
+        virtual std::stringstream CreateXconfHTTPUrl();
+#else
+        std::stringstream CreateXconfHTTPUrl();
+#endif
+
+        /** Read configSetHash / configSetTime from the backing store.
+         *  Override to use a different storage medium (e.g. RAM files). */
+#ifdef RDKC
+        virtual void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
+                                                            std::string &valueTime);
+#else
+        void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
+                                                    std::string &valueTime);
+#endif
+
+        /** Persist XconfSelector and XconfUrl after a successful sync.
+         *  Override as a no-op for platforms that must not write these. */
+#ifdef RDKC
+        virtual void StoreXconfEndpointMetadata();
+#else
+        void StoreXconfEndpointMetadata();
+#endif
 
 	private:
 
@@ -172,9 +236,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	void rfcStashRetrieveParams(void);
 
 
-        std::stringstream CreateXconfHTTPUrl(); 
         void GetStoredHashAndTime( std ::string &valueHash, std::string &valueTime ); 
-        void RetrieveHashAndTimeFromPreviousDataSet(std ::string &valueHash, std::string &valueTime); 
         void InitDownloadData(DownloadData *pDwnData);
         int DownloadRuntimeFeatutres(DownloadData *pDwnLoc, DownloadData *pHeaderDwnLoc, const std::string& url_str); 
         void NotifyTelemetry2ErrorCode(int CurlReturn);
@@ -313,7 +375,4 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 #endif
 };
 
-#ifdef __cplusplus
-}
-#endif
 #endif

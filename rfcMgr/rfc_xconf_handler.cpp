@@ -24,6 +24,7 @@
 #include "rfcapi.h"
 #include "rfc_mgr_json.h"
 #include <errno.h>
+#include <fstream>
 #include "mtlsUtils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -85,10 +86,11 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
 {
      std::string rfc_file;
 	
+#ifndef RDKC
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
     if(rc != 0)
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to get XCONF_BS_URL from Bootstrap config.\n", __FUNCTION__, __LINE__);
-
+#endif
      if(0 != initializeXconfHandler())
      {
 	return FAILURE;
@@ -874,6 +876,21 @@ void RuntimeFeatureControlProcessor::rfcCheckAccountId()
 
 void RuntimeFeatureControlProcessor::GetAccountID() 
 {
+#ifdef RDKC
+    /* Camera: read account ID (service number) from
+     * /opt/usr_config/service_number.txt. */
+    {
+        std::ifstream ifs("/opt/usr_config/service_number.txt");
+        if (ifs.is_open())
+        {
+            std::getline(ifs, _accountId);
+            ifs.close();
+        }
+        if (_accountId.empty())
+            _accountId = "Unknown";
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: Camera AccountID = %s\n", _accountId.c_str());
+    }
+#else
     int i = 0;
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
@@ -906,6 +923,7 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     }
 
     return;
+#endif
 }
 
 void RuntimeFeatureControlProcessor::GetRFCPartnerID()
@@ -1409,8 +1427,10 @@ void RuntimeFeatureControlProcessor::rfcStashRetrieveParams(void)
         WDMP_STATUS status = set_RFCProperty(std::move(name), RFC_ACCOUNT_ID_KEY_STR, stashAccountId);
         if (status != WDMP_SUCCESS)
         {
-#if !defined(RDKB_SUPPORT)		
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to restore AccountID: %s\n", __FUNCTION__, __LINE__, getRFCErrorString(status));
+#else
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to restore AccountID: status=%d\n", __FUNCTION__, __LINE__, status);
 #endif	    
         }
         else
@@ -1448,7 +1468,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Config Set Hash = %s\n", __FUNCTION__, __LINE__, configSetHash.c_str());
 
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     std::string ConfigSetHashName = "ConfigSetHash";
     std::string ConfigSetHash_key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetHash";
     set_RFCProperty(std::move(ConfigSetHashName), std::move(ConfigSetHash_key), configSetHash);
@@ -1476,7 +1496,7 @@ void RuntimeFeatureControlProcessor::updateHashInDB(std::string configSetHash)
 
 void RuntimeFeatureControlProcessor::updateTimeInDB(std::string timestampString)
 {
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     std::string ConfigSetTimeName = "ConfigSetTime";
     std::string ConfigSetTime_Key = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime";
     set_RFCProperty(std::move(ConfigSetTimeName), std::move(ConfigSetTime_Key), timestampString);
@@ -1683,8 +1703,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
 #endif		    
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] COMPLETED RFC PASS\n", __FUNCTION__, __LINE__);
    	            NotifyTelemetry2Count("SYST_INFO_RFC_Complete");
-                    set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
-                    set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
+                    StoreXconfEndpointMetadata();
                     
                     break;
                 }
@@ -1738,6 +1757,14 @@ void EncodeString(const std::string& key, const std::string& value, std::strings
             output << appender;
         }
     }
+}
+
+void RuntimeFeatureControlProcessor::StoreXconfEndpointMetadata()
+{
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Storing XconfSelector=%s and XconfUrl\n",
+            __FUNCTION__, __LINE__, rfcSelectOpt.c_str());
+    set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
+    set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
 }
 
 std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl() 
@@ -1834,6 +1861,11 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
     {
 	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         /*Both the input strings are equal.*/
+#ifdef RDKC
+        /* Camera (XHC1) always retrieves hash/time from RAM files —
+         * it never checks XconfSelector slot. */
+        RetrieveHashAndTimeFromPreviousDataSet(valueHash, valueTime);
+#else
         if((rfc_state == Init) && (isXconfSelectorSlotProd() == false))
         {
 	    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Received XconfSelector as Non Prod for RFC state as INIT \n", __FUNCTION__, __LINE__);
@@ -1844,6 +1876,7 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
         {
             RetrieveHashAndTimeFromPreviousDataSet(valueHash, valueTime);
         }
+#endif
     }
     else
     {
@@ -2038,6 +2071,20 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);
+#elif defined(RDKC)
+            {
+                MtlsAuth_t sec;
+                memset(&sec, '\0', sizeof(MtlsAuth_t));
+                int ret = getMtlscert(&sec);
+                if (ret == MTLS_SUCCESS) {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RDKC mTLS creds fetched successfully\n", __FUNCTION__, __LINE__);
+                    curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
+                } else {
+                    RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RDKC mTLS creds not available, proceeding without mTLS\n", __FUNCTION__, __LINE__);
+                    curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
+                }
+            }
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
 #else
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Executing request without cert selector\n", __FUNCTION__, __LINE__);
             curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
@@ -2453,8 +2500,48 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
         return;    
     }
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     clearDB();
+#endif    
+
+#ifdef RDKC
+    /* Build a set of config param names whose parent feature has
+     * effectiveImmediate=true.  Used later for camera reboot evaluation. */
+    _effectiveImmediateParams.clear();
+    _rfcRebootCronNeeded = false;
+    {
+        int nf = GetJsonArraySize(features);
+        for (int idx = 0; idx < nf; idx++)
+        {
+            JSON *feat = GetJsonArrayItem(features, idx);
+            if (!feat) continue;
+            char effImmStr[] = RFC_FEATURE_EFF_IMMD_STR;
+            char buf[6] = {0};
+            int sz = GetJsonVal(feat, effImmStr, buf, sizeof(buf));
+            if (sz && (strcasecmp(buf, "true") == 0 || strcmp(buf, "1") == 0))
+            {
+                char cdStr[] = "configData";
+                JSON *cd = GetJsonItem(feat, cdStr);
+                if (cd)
+                {
+                    JSON *ch = cd->child;
+                    while (ch)
+                    {
+                        if (ch->string)
+                        {
+                            std::string k = ch->string;
+                            RemoveSubstring(k, "tr181.");
+                            _effectiveImmediateParams.insert(k);
+                        }
+                        ch = ch->next;
+                    }
+                }
+            }
+        }
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                "[%s][%d] RDKC: %zu params with effectiveImmediate=true\n",
+                __FUNCTION__, __LINE__, _effectiveImmediateParams.size());
+    }
 #endif    
 
     std::string newKey;
@@ -2478,7 +2565,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         }
         else
         {
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
             if (newValue.empty())
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] EMPTY value for %s is rejected\n", __FUNCTION__, __LINE__, newKey.c_str());
@@ -2499,7 +2586,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
             WDMP_STATUS status = set_RFCProperty(name, newKey, newValue);
             if (status != WDMP_SUCCESS)
             {
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%s\n", __FUNCTION__, __LINE__, newKey.c_str(), getRFCErrorString(status));
 #else	
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s][%d] SET failed for key=%s with status=%d\n", __FUNCTION__, __LINE__, newKey.c_str(), status);
@@ -2530,10 +2617,42 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                     {
                         NotifyTelemetry2Count("SYST_INFO_ACCID_set");
                     }
-#if !defined(RDKB_SUPPORT)		    
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
                     if (isMaintenanceEnabled())
                     {
                         isRebootRequired = true;
+                    }
+#endif
+#ifdef RDKC
+                    /* Camera reboot evaluation:
+                     * Schedule reboot if effectiveImmediate is true for this param's
+                     * parent feature, the device is provisioned, and the param
+                     * is not AccountID or MD5AccountHash. */
+                    {
+                        bool isEffImm = (_effectiveImmediateParams.count(newKey) > 0);
+                        if (isEffImm)
+                        {
+                            char provBuf[16] = {0};
+                            int provRet = getDevicePropertyData("RDKC_DEVICE_PROVISION_STATUS", provBuf, sizeof(provBuf));
+                            bool provisioned = (provRet == 1 && strcmp(provBuf, "1") == 0);
+                            if (provisioned)
+                            {
+                                std::string accountHashKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MD5AccountHash";
+                                if (newKey != RFC_ACCOUNT_ID_KEY_STR && newKey != accountHashKey)
+                                {
+                                    _rfcRebootCronNeeded = true;
+                                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                                            "[%s][%d] RDKC: Enabling RfcRebootCronNeeded for %s old=%s new=%s\n",
+                                            __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
+                                }
+                                else
+                                {
+                                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                                            "[%s][%d] RDKC: Skip scheduling reboot for Account Id/Hash change\n",
+                                            __FUNCTION__, __LINE__);
+                                }
+                            }
+                        }
                     }
 #endif		    
                 }
@@ -2549,7 +2668,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
     }
 
     updateTR181File(TR181_FILE_LIST, paramList);
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     clearDBEnd();
 #endif     
 }
@@ -2736,6 +2855,65 @@ WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, st
     rbus_close(handle);
 
     return status;
+#elif defined(RDKC)
+    /* Camera (XHC1) writes parameters directly to the tr181store.ini
+     * flat file. Format: key=value (one per line) */
+    (void)name;
+    WDMP_STATUS status = WDMP_FAILURE;
+
+    std::string storePath = TR181STOREFILE;
+    std::ifstream inFile(storePath);
+    std::vector<std::string> lines;
+    bool found = false;
+    std::string targetLine = key + "=" + value;
+
+    if (inFile.is_open())
+    {
+        std::string line;
+        while (std::getline(inFile, line))
+        {
+            size_t eq = line.find('=');
+            if (eq != std::string::npos)
+            {
+                std::string existingKey = line.substr(0, eq);
+                if (existingKey == key)
+                {
+                    lines.push_back(targetLine);
+                    found = true;
+                    continue;
+                }
+            }
+            lines.push_back(line);
+        }
+        inFile.close();
+    }
+
+    if (!found)
+    {
+        lines.push_back(targetLine);
+    }
+
+    std::ofstream outFile(storePath, std::ios::trunc);
+    if (outFile.is_open())
+    {
+        for (const auto &l : lines)
+        {
+            outFile << l << "\n";
+        }
+        outFile.close();
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
+                "[%s][%d] RDKC: set_RFCProperty key=%s value=%s\n",
+                __FUNCTION__, __LINE__, key.c_str(), value.c_str());
+        status = WDMP_SUCCESS;
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,
+                "[%s][%d] RDKC: Failed to open %s for writing\n",
+                __FUNCTION__, __LINE__, storePath.c_str());
+    }
+
+    return status;
 #else
     RFC_ParamData_t param;
     param.type = WDMP_NONE;
@@ -2808,7 +2986,11 @@ void RuntimeFeatureControlProcessor::NotifyTelemetry2RemoteFeatures(const char *
     if (rfcstatus == "STAGING") {
         v_secure_system("/usr/bin/telemetry2_0_client rfc_staging_split %s", line.c_str());
     } else {
+#ifndef RDKC
         v_secure_system("/usr/bin/telemetry2_0_client rfc_split %s", line.c_str());
+#else
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RDKC: Skipping rfc_split telemetry notification\n", __FUNCTION__, __LINE__);
+#endif
     }
 }
 
