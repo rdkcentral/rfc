@@ -1,21 +1,23 @@
-/*##############################################################################
- # If not stated otherwise in this file or this component's LICENSE file the
- # following copyright and licenses apply:
- #
- # Copyright 2024 RDK Management
- #
- # Licensed under the Apache License, Version 2.0 (the "License");
- # you may not use this file except in compliance with the License.
- # You may obtain a copy of the License at
- #
- # http://www.apache.org/licenses/LICENSE-2.0
- #
- # Unless required by applicable law or agreed to in writing, software
- # distributed under the License is distributed on an "AS IS" BASIS,
- # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- # See the License for the specific language governing permissions and
- # limitations under the License.
- ##############################################################################
+/**
+ * @file rfc_common.cpp
+ * @brief Common RFC utility functions — parameter reading, string helpers.
+ *
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2024 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 
@@ -28,7 +30,11 @@
 #include <rbus/rbus.h>
 #endif	
 
-
+/**
+ * @brief Query a sysevent key via the CLI.
+ * @param[in] key  Sysevent key name.
+ * @return Value string, or empty on failure.
+ */
 std::string getSyseventValue(const std::string& key)
 {
     std::string cmd = "sysevent get " + key;
@@ -52,6 +58,12 @@ std::string getSyseventValue(const std::string& key)
     return result;
 }
 
+/**
+ * @brief Block until webconfig RFC blob processing completes (RDKB).
+ *
+ * Polls the "rfc_blob_processing" sysevent with 100 s retries
+ * (up to ~10 min total) before proceeding.
+ */
 void waitForRfcCompletion()
 {
     // Check RFC blob processing status
@@ -90,12 +102,14 @@ void waitForRfcCompletion()
     }
 }
 
-/* Description: Reading rfc data
- * @param type : rfc type
- * @param key: rfc key
- * @param data : Store rfc value
- * @return int 1 READ_RFC_SUCCESS on success and READ_RFC_FAILURE -1 on failure
- * */
+/**
+ * @brief Read an RFC parameter from the data store.
+ * @param[in]  type       Caller ID / namespace (may be NULL on RDKB/RDKC).
+ * @param[in]  key        TR181 parameter name.
+ * @param[out] out_value  Buffer to receive the value.
+ * @param[in]  datasize   Size of @p out_value buffer.
+ * @return READ_RFC_SUCCESS (1) or READ_RFC_FAILURE (-1).
+ */
 int read_RFCProperty(const char* type, const char* key, char *out_value, int datasize)
 {
     int ret = READ_RFC_FAILURE;

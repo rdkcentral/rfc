@@ -1,4 +1,7 @@
 /**
+ * @file rfc_manager.cpp
+ * @brief RFC Manager implementation — device connectivity, IARM, Xconf lifecycle.
+ *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
  *
@@ -15,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 #include "rfc_manager.h"
 #include "rfc_common.h"
@@ -37,9 +40,12 @@
 
 namespace rfc {
 #if defined(USE_IARMBUS)
+    /**
+     * @brief IARM event handler for RFC Manager events.
+     * @note Placeholder for future implementation.
+     */
     void rfcMgrEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len) 
     {
-        /* This is place holder for future */
         owner = owner;
         eventId = eventId;
         data = data;
@@ -47,14 +53,15 @@ namespace rfc {
         return;
     }
 #endif
+    /** @brief Construct and initialise the RFC Manager (logger + IARM). */
     RFCManager ::RFCManager() {
 #if defined(RDK_LOGGER)
 #if defined(RDKB_SUPPORT) || defined(RDKC)
         RDK_LOGGER_INIT();
-#else		
+#else
         /* Initialize RDK Logger */
         static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
-		rdk_logger_ext_config_t config = {
+            rdk_logger_ext_config_t config = {
             .pModuleName = RFCMGRLOG,                 /* Module name */
             .loglevel = RDK_LOG_INFO,                 /* Default log level */
             .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
@@ -65,17 +72,17 @@ namespace rfc {
         if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
             printf("RFC : ERROR - Extended logger init failed\n");
         }
-#endif		
 #endif
+#endif
+
         /* Initialize IARM Bus */
         InitializeIARM();
     }
 
-    /** Description: Check if Module is connected to IARM
-     *
-     *  @param cur_event_name: event name.
-     *  @param event_status: Status Of the event.
-     *  @return void.
+    /**
+     * @brief Check if the IARM bus is connected.
+     * @retval true  IARM bus is registered.
+     * @retval false IARM bus not available.
      */
     bool RFCManager ::IsIarmBusConnected() {
 #if defined(USE_IARMBUS)
@@ -137,11 +144,9 @@ namespace rfc {
 #endif
     }
 
-    /** Description: This API UnRegister IARM event handlers in order to release
-     * bus-facing resources.
-     *
-     *  @param void
-     *  @return 0.
+    /**
+     * @brief Unregister IARM event handlers and clean up bus resources.
+     * @return 0 always.
      */
     int term_event_handler(void) {
 #if defined(USE_IARMBUS)
@@ -154,6 +159,10 @@ namespace rfc {
         return 0;
     }
 
+    /**
+     * @brief Retrieve the eRouter WAN address (IPv6 preferred, IPv4 fallback).
+     * @return IP address string, or empty on failure.
+     */
     std::string RFCManager::getErouterIPAddress() {
         std::string address;
 
@@ -190,6 +199,11 @@ namespace rfc {
         return address;
     }
 
+    /**
+     * @brief Check eRouter IP availability.
+     * @retval true  eRouter IP address obtained.
+     * @retval false No IP address available.
+     */
     bool RFCManager::CheckIPConnectivity(void)
     {
         bool ip_status = false;
@@ -210,12 +224,12 @@ namespace rfc {
         return ip_status;
     }
 
-    /* Description: Checking IP route address and device is online or not.
-     *              Use IARM event provided by net service manager to check either
-     *              device is online or not.
-     * @param: file_name : pointer to gateway iproute config file name
-     * return :true = success
-     * return :false = failure */
+    /**
+     * @brief Verify IP route connectivity via a gateway config file.
+     * @param[in] file_name  Path to the gateway IP route file.
+     * @retval true   IP route entry found.
+     * @retval false  File missing or no valid IP entry.
+     */
     bool RFCManager ::CheckIProuteConnectivity(const char *file_name) {
         bool ip_status = false;
         bool string_check = false;
@@ -292,10 +306,12 @@ namespace rfc {
         return ip_status;
     }
 
-    /* Description: Checking dns nameserver ip is present or not.
-     * @param: dns_file_name : pointer to dns config file name
-     * return :true = success
-     * return :false = failure */
+    /**
+     * @brief Check if DNS nameserver entries are present.
+     * @param[in] dns_file_name  Path to the DNS resolver file.
+     * @retval true   At least one nameserver found.
+     * @retval false  File missing or no nameserver entry.
+     */
     bool isDnsResolve(const char *dns_file_name)
     {
         bool dns_status = false;
@@ -426,11 +442,10 @@ namespace rfc {
     }
 
 #if !defined(RDKB_SUPPORT)
-    /** Description: Send event to iarm event manager
-     *
-     *  @param cur_event_name: event name.
-     *  @param main_mgr_event: Status Of the event.
-     *  @return void.
+    /**
+     * @brief Broadcast an IARM event to the Maintenance Manager.
+     * @param[in] cur_event_name  IARM event owner name.
+     * @param[in] main_mgr_event  Maintenance manager event code.
      */
     void RFCManager::SendEventToMaintenanceManager(const char *cur_event_name, unsigned int main_mgr_event)
     {
@@ -452,6 +467,10 @@ namespace rfc {
     }
 #endif
 
+    /**
+     * @brief Run post-processing scripts after RFC parameters are applied.
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager::RFCManagerPostProcess()
     {
         // Check if the script exists before executing it
@@ -469,6 +488,15 @@ namespace rfc {
         return SUCCESS;
     }
 
+    /**
+     * @brief Core RFC fetch-and-apply logic.
+     *
+     * Creates the platform-appropriate RuntimeFeatureControlProcessor,
+     * initialises the Xconf handler, processes the feature-control request,
+     * and triggers reboot scheduling or maintenance-manager events.
+     *
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager::RFCManagerProcess()
     {
         /* Create the appropriate RFC processor for the target platform.
@@ -567,6 +595,10 @@ namespace rfc {
         return reqStatus;
     }
 
+    /**
+     * @brief Entry point — run the full RFC Xconf request cycle.
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager ::RFCManagerProcessXconfRequest() 
     {
         int ret_status = FAILURE;
@@ -576,6 +608,15 @@ namespace rfc {
         return ret_status;
     }
 
+    /**
+     * @brief Configure the periodic cron job for rfcMgr execution.
+     *
+     * Parses a five-field cron string, adjusts the schedule back by
+     * three minutes, replaces any existing rfcMgr/RFCbase cron entry,
+     * and applies the new crontab.
+     *
+     * @param[in] cron  Five-field cron schedule string from DCM.
+     */
     void rfc::RFCManager::manageCronJob(const std::string& cron)
     {
         std::string tempFile = "/tmp/cron_tab_tmp_file";
