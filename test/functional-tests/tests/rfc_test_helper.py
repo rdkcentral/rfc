@@ -50,6 +50,7 @@ DEFAULTS_CONTENT: str = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.ThunderT
 PARODUS_LOG_FILE: str = "/opt/logs/parodus.log"
 RFC_PROPERTIES_PERSISTENCE_FILE: str = "/opt/rfc.properties"
 RFC_XCONF_OVERRIDE_URL: str = "https://mockxconf_opt_rfc_properties/featureControl/getSettings"
+DEVICE_PROPERTIES: str = "/etc/device.properties"
 
 def write_on_file(file: str, content: str) -> None:
     """

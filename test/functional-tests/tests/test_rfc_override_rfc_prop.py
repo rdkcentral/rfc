@@ -55,11 +55,64 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
+def modify_labsigned_value(device_properties_path: str) -> None:
+    """
+    Modifies the LABSIGNED_ENABLED value in device.properties file to true.
 
-def test_Set_DbgServices_value():
+    If the properties file does not exist, it creates one with LABSIGNED_ENABLED set to true.
+    If the file exists but is empty, it adds the field as true.
+    If it already contains LABSIGNED_ENABLED, it sets the parameter to true.
+    """
+    if not os.path.exists(device_properties_path):
+        with open(device_properties_path, "w") as dev_props:
+            dev_props.write("LABSIGNED_ENABLED=true\n")
+        return
+
+    with open(device_properties_path, "r+") as dev_props:
+        content = dev_props.read()
+
+        if not content.strip():
+            dev_props.write("LABSIGNED_ENABLED=true\n")
+            return
+
+        lines = content.splitlines()
+        labsigned_found = False
+
+        for i in range(len(lines)):
+            if lines[i].startswith("LABSIGNED_ENABLED="):
+                lines[i] = "LABSIGNED_ENABLED=true"
+                labsigned_found = True
+                break
+
+        if not labsigned_found:
+            lines.append("LABSIGNED_ENABLED=true")
+
+        dev_props.seek(0)
+        dev_props.truncate()
+        dev_props.write("\n".join(lines) + "\n")
+
+def modify_devicetype_test():
+    command_to_check = "tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
+    result = run_shell_command(command_to_check)
+    assert "Set operation success" in result, '"Set operation success" not found in the output'
+
+def enable_dbg_services():
     command_to_check = "tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
     result = run_shell_command(command_to_check)
     assert "Set operation success" in result, '"Set operation success" not found in the output'
+
+def set_secure_dbgsrv_preconditions():
+    """
+    Set all required TR-181 preconditions for isSecureDbgSrvUnlocked() in PROD builds
+    """
+    modify_devicetype_test()
+    enable_dbg_services()
+
+def test_Set_DeviceType_value():
+    modify_devicetype_test()
+
+def test_set_enable_dbg_services():
+    enable_dbg_services()
 
 def test_rfc_override_rfc_prop():
     """
@@ -76,7 +129,14 @@ def test_rfc_override_rfc_prop():
 
     modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
 
+    device_properties_existed = os.path.exists(DEVICE_PROPERTIES)
+    original_content = ""
+    if device_properties_existed:
+        with open(DEVICE_PROPERTIES, "r") as f:
+            original_content = f.read()
     try:
+        set_secure_dbgsrv_preconditions()
+        modify_labsigned_value(DEVICE_PROPERTIES)
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
@@ -90,3 +150,8 @@ def test_rfc_override_rfc_prop():
     except Exception as e:
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
         assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
+    finally:
+        if device_properties_existed:
+            if os.path.exists(DEVICE_PROPERTIES):
+                with open(DEVICE_PROPERTIES, "w") as f:
+                    f.write(original_content)
