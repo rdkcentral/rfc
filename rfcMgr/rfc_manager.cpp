@@ -377,8 +377,11 @@ namespace rfc {
                         if (family == AF_INET)
                         {
                             struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                            uint32_t ip = ntohl(sa->sin_addr.s_addr);
                             /* Skip loopback 127.x.x.x */
-                            if ((ntohl(sa->sin_addr.s_addr) >> 24) == 127) continue;
+                            if ((ip >> 24) == 127) continue;
+                            /* Skip link-local / APIPA 169.254.x.x */
+                            if ((ip >> 16) == 0xA9FE) continue;
                             inet_ntop(AF_INET, &sa->sin_addr, ipBuf, sizeof(ipBuf));
                             result = RFCMGR_DEVICE_ONLINE;
                             break;
