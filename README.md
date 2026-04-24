@@ -1,10 +1,57 @@
-# RFC — Remote Feature Control Module
+# RFC — Remote Feature Control
+
+[![Build](https://img.shields.io/badge/build-autotools-blue)](#building)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-STB%20%7C%20RDKB%20%7C%20RDKC-orange)](#platform-support)
+
+> C++ daemon and API library for fetching, applying, and managing Remote Feature Control (RFC) settings from an Xconf configuration server across RDK device platforms.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Platform Support](#platform-support)
+- [Repository Structure](#repository-structure)
+- [Architecture Overview](#architecture-overview)
+- [Building](#building)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Testing](#testing)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Overview
 
 The RFC (Remote Feature Control) module enables dynamic configuration of RDK device features at runtime by fetching policy updates from an XConf server and applying them as TR181 data-model parameters. It ships as a daemon (`rfcMgr`) plus two reusable libraries (`librfcapi`, `libtr181api`) consumed by other RDK components.
 
 Licensed under the Apache License 2.0. Copyright 2016–2024 RDK Management.
+
+**rfcMgr** is a C++ daemon that replaces the legacy shell-based `RFCbase.sh` for Remote Feature Control. It:
+
+1. **Detects** when the device is online
+2. **Collects** device identity (MAC, firmware, model, partner ID, account ID)
+3. **Queries** the Xconf server for feature-control configuration
+4. **Applies** RFC parameters to the local device
+5. **Evaluates** whether a reboot is needed for `effectiveImmediate` features
+6. **Schedules** periodic re-checks via cron
+
+The **rfcapi** library provides a public C API (`getRFCParameter`, `setRFCParameter`, `isRFCEnabled`) for other RDK components to read/write RFC parameters.
+
+---
+
+## Platform Support
+
+| Platform | Define Flag | Description |
+|----------|-------------|-------------|
+| **STB** | *(default)* | Set-Top Box — uses hostif/WDMP APIs, TR-181 data model |
+| **RDKB** | `-DRDKB_SUPPORT` | RDK Broadband — uses rbus for TR-181 access |
+| **RDKC** | `-DRDKC` | RDK Camera (XHC1/XCAM2) — flat-file parameter storage, mfrApi for device identity |
+
+All platform-specific code is behind `#ifdef` guards, ensuring a single codebase builds cleanly for all targets.
 
 ---
 
@@ -29,150 +76,161 @@ sh run_l2_reboot_trigger.sh
 ## Repository Structure
 
 ```
-rfc/
-├── configure.ac              # Autoconf build configuration
-├── Makefile.am               # Top-level automake
-├── rfc.properties            # Default RFC server properties
-├── rfcMgr/                   # RFC manager daemon
-│   ├── rfc_main.cpp          # Entry point, fork, signal handling
-│   ├── rfc_manager.cpp/.h    # RFCManager class — orchestrates fetch/apply
-│   ├── rfc_common.cpp/.h     # Shared utilities, macros, error codes
-│   ├── rfc_xconf_handler.cpp/.h   # RuntimeFeatureControlProcessor
-│   ├── xconf_handler.cpp/.h       # XconfHandler — HTTP device metadata
-│   ├── mtlsUtils.cpp/.h           # mTLS certificate selection
-│   ├── rfc_mgr_key.h              # TR181 key string constants
-│   ├── rfc_mgr_json.h             # JSON payload processing
-│   ├── rfc_mgr_iarm.h             # IARM bus definitions
-│   └── gtest/                     # Unit tests + mocks
-├── rfcapi/                   # Public RFC get/set API library
-│   ├── rfcapi.cpp/.h         # getRFCParameter / setRFCParameter
-│   └── docs/                 # rfcapi documentation
-├── tr181api/                 # TR181 parameter store API library
-│   ├── tr181api.cpp/.h       # getParam / setParam / clearParam
-│   └── docs/                 # tr181api documentation
-├── utils/                    # Shared JSON and TR181 utilities
-│   ├── jsonhandler.cpp/.h
-│   ├── tr181utils.cpp
-│   └── trsetutils.cpp/.h
-└── test/                     # L2 functional tests
-    └── functional-tests/
+rfc-fork/
+├── rfcMgr/                        # RFC Manager daemon (core component)
+│   ├── rfc_main.cpp               # Entry point — daemonize, init directories
+│   ├── rfc_manager.h/cpp          # Lifecycle orchestrator
+│   ├── xconf_handler.h/cpp        # Base device-identity collector
+│   ├── rfc_xconf_handler.h/cpp    # Core RFC state machine & Xconf logic
+│   ├── rdkc_rfc_xconf_handler.h/cpp  # RDKC camera-specific overrides
+│   ├── mtlsUtils.h/cpp            # mTLS certificate handling
+│   ├── rfc_common.h/cpp           # Shared utilities
+│   ├── rfc_mgr_iarm.h             # IARM bus integration
+│   ├── rfc_mgr_json.h             # JSON field constants
+│   ├── rfc_mgr_key.h              # Configuration key constants
+│   └── gtest/                     # Unit & L2 integration tests
+│       └── mocks/                 # Test doubles
+├── rfcapi/                        # Public RFC parameter API library
+│   ├── rfcapi.h                   # C API header
+│   └── rfcapi.cpp                 # Implementation
+├── tr181api/                      # TR-181 data model API
+│   ├── tr181api.h
+│   └── tr181api.cpp
+├── utils/                         # Utility libraries
+│   ├── jsonhandler.h/cpp          # JSON parsing helpers
+│   ├── trsetutils.h/cpp           # TR-181 set utilities
+│   └── tr181utils.cpp             # TR-181 access utilities
+├── test/                          # Functional test suite
+│   └── functional-tests/
+├── documentation/                 # Architecture & design docs
+│   ├── architecture.md            # Component architecture & class diagrams
+│   ├── sequence-diagrams.md       # End-to-end sequence flows
+│   └── data-processing-flow.md    # Data processing & parameter flow
+├── .github/                       # CI/CD workflows
+│   ├── workflows/
+│   └── CODEOWNERS
+├── configure.ac                   # Autotools build configuration
+├── Makefile.am                    # Top-level Automake
+├── rfc.properties                 # Runtime configuration
+├── getRFC.sh                      # Legacy shell wrapper
+├── isFeatureEnabled.sh            # Feature check script
+├── CHANGELOG.md                   # Release history
+├── CONTRIBUTING.md                # Contribution guidelines
+├── LICENSE / COPYING / NOTICE     # Legal
+└── run_ut.sh / run_l2.sh         # Test runners
 ```
 
 ---
 
-## System Architecture
+## Architecture Overview
 
 ```mermaid
 graph TB
-    subgraph Device
-        main["rfc_main.cpp\n(fork + signals)"]
-        mgr["RFCManager\n(rfc_manager.cpp)"]
-        rfcp["RuntimeFeatureControlProcessor\n(rfc_xconf_handler.cpp)"]
-        xconf["XconfHandler\n(xconf_handler.cpp)"]
-        mtls["mtlsUtils\n(cert selection)"]
-        rfcapi["librfcapi\n(rfcapi.cpp)"]
-        tr181api["libtr181api\n(tr181api.cpp)"]
-        store["/opt/secure/RFC/\ntr181store.ini\nrfcVariable.ini\nbootstrap.ini"]
-        iarm["IARM Bus\n(optional)"]
+    subgraph "rfcMgr Daemon"
+        MAIN["rfc_main.cpp<br/>Daemonize & Init"]
+        MGR["RFCManager<br/>Orchestrator"]
+        XCONF["XconfHandler<br/>Device Identity"]
+        RFC["RuntimeFeatureControl<br/>Processor"]
+        CAM["RdkcRuntimeFeatureControl<br/>Processor"]
+        MTLS["mtlsUtils<br/>Certificate Handling"]
     end
 
-    XConfServer["XConf Server\n(HTTPS + mTLS)"]
-    RDKComponent["RDK Component\n(consumer)"]
+    subgraph "Libraries"
+        API["rfcapi<br/>Public C API"]
+        TR181["tr181api<br/>TR-181 Access"]
+        UTILS["utils<br/>JSON & Set Helpers"]
+    end
 
-    main --> mgr
-    mgr --> rfcp
-    rfcp --> xconf
-    xconf --> mtls
-    xconf -->|"HTTP GET (mTLS)"| XConfServer
-    XConfServer -->|"JSON response"| rfcp
-    rfcp --> rfcapi
-    rfcapi --> store
-    rfcp --> tr181api
-    tr181api --> store
-    mgr --> iarm
-    RDKComponent --> rfcapi
-    RDKComponent --> tr181api
+    subgraph "External"
+        SERVER["Xconf Server"]
+        FS["File System<br/>tr181store.ini"]
+    end
+
+    MAIN --> MGR
+    MGR --> RFC
+    RFC --> XCONF
+    RFC -.->|RDKC| CAM
+    RFC --> MTLS
+    RFC --> SERVER
+    RFC --> API
+    API --> FS
+    API --> TR181
+    TR181 --> UTILS
 ```
+
+**Class Hierarchy:**
+
+```
+XconfHandler (device identity collection)
+  └── RuntimeFeatureControlProcessor (Xconf query, parse, apply)
+        └── RdkcRuntimeFeatureControlProcessor (camera-specific overrides)
+```
+
+For detailed architecture diagrams, see [documentation/architecture.md](documentation/architecture.md).
 
 ---
 
-## Key Workflows
+## Building
 
-### RFC Fetch and Apply Workflow
+### Prerequisites
 
-```mermaid
-sequenceDiagram
-    participant main as rfc_main.cpp
-    participant mgr as RFCManager
-    participant rfcp as RuntimeFeatureControlProcessor
-    participant xconf as XconfHandler
-    participant mtls as mtlsUtils
-    participant server as XConf Server
-    participant store as /opt/secure/RFC/
+- GNU Autotools (`autoconf`, `automake`, `libtool`)
+- C++11 compiler
+- `libcurl`, `libcjson`
+- Platform-specific: `librbus` (RDKB), `libhostif` (STB), `libmfrapi` (RDKC)
 
-    main->>mgr: new RFCManager()
-    main->>mgr: CheckDeviceIsOnline()
-    mgr-->>main: RFCMGR_DEVICE_ONLINE
-    main->>mgr: RFCManagerProcessXconfRequest()
-    mgr->>rfcp: InitializeRuntimeFeatureControlProcessor()
-    rfcp->>rfcp: GetAccountID(), GetRFCPartnerID()
-    rfcp->>xconf: initializeXconfHandler()
-    xconf->>xconf: Populate device metadata\n(MAC, firmware, model, partner)
-    rfcp->>mtls: getMtlscert()
-    mtls-->>rfcp: MtlsAuth_t (cert + key paths)
-    rfcp->>xconf: ExecuteRequest(FileDwnl_t, MtlsAuth_t)
-    xconf->>server: HTTPS GET /featureControl/settings?...
-    server-->>xconf: HTTP 200 + JSON payload
-    rfcp->>rfcp: ProcessRuntimeFeatureControlReq()
-    rfcp->>store: Write rfcVariable.ini / tr181store.ini
-    rfcp-->>mgr: SUCCESS / rebootRequired
+### Build Commands
+
+```bash
+# Generate build system
+autoreconf -i
+
+# Configure for target platform
+./configure                          # STB (default)
+./configure --enable-rdkc            # RDK Camera
+./configure --enable-rdkb            # RDK Broadband
+
+# Build
+make
+
+# Install
+make install    # Installs /usr/bin/rfcMgr and librfcapi
+
+# Unit tests
+./configure --enable-gtestapp
+make check
 ```
 
-### RFC State Machine
+### Build Flags
 
-```mermaid
-stateDiagram-v2
-    [*] --> Init : daemon start
-    Init --> Local : check ConfigSetHash\n(no change needed)
-    Init --> Redo : new firmware detected
-    Init --> Redo_With_Valid_Data : accountId valid
-    Local --> Finish : settings already current
-    Redo --> Redo_With_Valid_Data : XConf fetch OK
-    Redo --> Finish : fetch failed (offline)
-    Redo_With_Valid_Data --> Finish : parameters applied
-    Finish --> [*] : cleanup + optional reboot
-```
-
----
-
-## Component Descriptions
-
-| Component | Location | Role |
-|-----------|----------|------|
-| `rfc_main.cpp` | `rfcMgr/` | Entry point — forks daemon, manages PID lock, handles SIGTERM |
-| `RFCManager` | `rfcMgr/rfc_manager.cpp` | Orchestrates online-check, IARM init, XConf request cycle |
-| `RuntimeFeatureControlProcessor` | `rfcMgr/rfc_xconf_handler.cpp` | Extends XconfHandler; owns RFC state machine and parameter apply |
-| `XconfHandler` | `rfcMgr/xconf_handler.cpp` | Populates device metadata; executes HTTPS request via libcurl |
-| `mtlsUtils` | `rfcMgr/mtlsUtils.cpp` | Selects dynamic or static mTLS certificate; optionally uses librdkcertselector |
-| `librfcapi` | `rfcapi/rfcapi.cpp` | Public C API for RFC parameter get/set used by all RDK components |
-| `libtr181api` | `tr181api/tr181api.cpp` | Higher-level TR181 API with typed parameters, local store, and defaults |
-| `jsonhandler` | `utils/jsonhandler.cpp` | Parses XConf JSON response payloads |
-| `tr181utils` | `utils/tr181utils.cpp` | TR181 store manipulation utilities |
-
----
-
-## Build Options
-
-| `configure` flag | Effect |
-|-----------------|--------|
+| Option | Description |
+|--------|-------------|
+| `--enable-rdkc` | Enable RDKC camera platform support |
+| `--enable-rdkb` | Enable RDKB broadband platform support |
+| `--enable-gtestapp` | Enable Google Test unit tests |
+| `--enable-rdkcertselector` | Use `librdkcertselector` for mTLS |
+| `--enable-mountutils` | Use `librdkconfig` for configuration |
 | `--enable-rfctool=yes` | Build `librfcapi` (default: yes) |
 | `--enable-tr181set=yes` | Build `libtr181api` |
-| `--enable-gtestapp=yes` | Build gtest binaries in `rfcMgr/gtest/` |
 | `--enable-rdkcertselector=yes` | Enable `librdkcertselector` for dynamic mTLS cert selection |
-| `--enable-mountutils=yes` | Enable `librdkconfig` for config mount utilities |
-| `--enable-rdkb=yes` | Enable RDK-B (broadband) platform adaptations |
-| `--enable-rdkc=yes` | Enable RDK-C (camera) platform adaptations |
 | `--enable-iarmbus=yes` | Enable IARM bus integration |
+
+---
+
+## Configuration
+
+### rfc.properties
+
+Runtime configuration is read from `rfc.properties`:
+
+| Property | Description |
+|----------|-------------|
+| `RFC_CONFIG_SERVER_URL` | Primary Xconf server endpoint |
+| `RFC_CONFIG_SERVER_URL_EU` | EU region Xconf server endpoint |
+| `RFC_RAM_PATH` | Temporary storage path (`/tmp/RFC`) |
+| `TR181_STORE_FILENAME` | Persistent parameter storage file |
+| `RFC_POSTPROCESS` | Post-processing script path |
+| `RFC_SERVICE_LOCK` | Lock file to prevent concurrent runs |
 
 ---
 
@@ -214,6 +272,56 @@ stateDiagram-v2
 
 ---
 
+### RDKC Device Files
+
+| File | Purpose |
+|------|---------|
+| `/opt/usr_config/partnerid.txt` | Syndication partner ID |
+| `/opt/usr_config/service_number.txt` | Account ID |
+| `/opt/usr_config/accounthash.txt` | MD5 account hash |
+| `/opt/secure/RFC/tr181store.ini` | Persisted RFC parameters |
+| `/tmp/RFC/.hashValue` | Configuration hash (RAM) |
+| `/tmp/RFC/.timeValue` | Last update timestamp (RAM) |
+
+---
+
+## Usage
+
+```bash
+# Run the RFC manager daemon
+/usr/bin/rfcMgr
+
+# Check if a feature is enabled
+./isFeatureEnabled.sh <feature_name>
+
+# Query RFC settings (legacy shell)
+./getRFC.sh
+```
+
+### rfcapi Library
+
+```c
+#include "rfcapi.h"
+
+// Read a parameter
+RFC_ParamData_t param;
+int ret = getRFCParameter("module", "Device.X_RDK.Feature.Enable", &param);
+if (ret == 0) {
+    printf("Value: %s, Type: %d\n", param.value, param.type);
+}
+
+// Check feature status
+if (isRFCEnabled("AccountInfo")) {
+    // Feature is active
+}
+```
+| `librfcapi` | `rfcapi/rfcapi.cpp` | Public C API for RFC parameter get/set used by all RDK components |
+| `libtr181api` | `tr181api/tr181api.cpp` | Higher-level TR181 API with typed parameters, local store, and defaults |
+| `jsonhandler` | `utils/jsonhandler.cpp` | Parses XConf JSON response payloads |
+| `tr181utils` | `utils/tr181utils.cpp` | TR181 store manipulation utilities |
+
+---
+
 ## Error Codes
 
 | Code | Value | Meaning |
@@ -230,28 +338,59 @@ stateDiagram-v2
 
 ## Testing
 
-### Unit Tests (`rfcMgr/gtest/`)
-
 ```bash
-# Build and run all unit tests
-sh run_ut.sh
+# Unit tests (L1)
+./run_ut.sh
+
+# L2 integration tests
+./run_l2.sh
+
+# L2 reboot trigger tests
+./run_l2_reboot_trigger.sh
+```
+
+Test coverage is tracked via GitHub Actions workflows:
+- `L1-Test.yaml` — Unit test execution
+- `L2-tests.yml` — Integration test execution
+- `code-coverage.yml` — Coverage reporting
 
 # Individual binaries
 ./rfcMgr/gtest/rfcMgr_gtest      # RFCManager / XConf handler tests
 ./rfcMgr/gtest/rfcapi_gtest      # RFC API get/set tests
 ./rfcMgr/gtest/tr181api_gtest    # TR181 API tests
 ./rfcMgr/gtest/utils_gtest       # JSON handler / TR181 utils tests
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](documentation/architecture.md) | Component architecture, class hierarchy, build system |
+| [Sequence Diagrams](documentation/sequence-diagrams.md) | End-to-end execution flows with Mermaid diagrams |
+| [Data Processing Flow](documentation/data-processing-flow.md) | Parameter lifecycle, storage strategies, data transformations |
+| [Changelog](CHANGELOG.md) | Release history and version changes |
+| [Contributing](CONTRIBUTING.md) | How to contribute to this project |
+
+---
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on the contribution process, coding standards, and how to submit pull requests.
+
+Before RDK accepts your code, you must sign the [RDK Contributor License Agreement (CLA)](https://wiki.rdkcentral.com/display/DOC/Contributor+License+Agreement).
+
+---
+
+## License
+
+This project is licensed under the Apache License, Version 2.0 — see the [LICENSE](LICENSE) file for details.
+
 ```
+Copyright 2018-2026 RDK Management
 
-### L2 Functional Tests (`test/functional-tests/`)
-
-```bash
-sh run_l2.sh                  # Main L2 test suite (XConf, TR181, feature flags)
-sh run_l2_reboot_trigger.sh   # Reboot trigger / unknown-accountId flow
+Licensed under the Apache License, Version 2.0
 ```
-
-Results land in `/tmp/rfc_test_report/` as JSON files.
-
 ---
 
 ## See Also

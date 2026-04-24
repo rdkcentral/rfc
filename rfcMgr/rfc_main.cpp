@@ -1,4 +1,7 @@
 /**
+ * @file rfc_main.cpp
+ * @brief RFC Manager daemon entry point.
+ *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
  *
@@ -15,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 #include "rfc_common.h"
 #include "rfc_manager.h"
@@ -32,14 +35,14 @@ extern "C" {
 
 #include <signal.h>
 
-// Cleanup function
+/** @brief Remove the service lock file on exit. */
 void cleanup_lock_file(void)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Completed service, deleting lock\n", __FUNCTION__, __LINE__);
     unlink(RFC_MGR_SERVICE_LOCK_FILE);
 }
 
-// Signal handler for graceful shutdown
+/** @brief Signal handler — clean up and exit gracefully. */
 void signal_handler(int sig)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
@@ -47,6 +50,12 @@ void signal_handler(int sig)
     exit(0);
 }
 
+/**
+ * @brief Create a directory if it does not already exist.
+ * @param[in] path  Absolute directory path.
+ * @retval true   Directory exists or was created.
+ * @retval false  Creation failed.
+ */
 bool createDirectoryIfNotExists(const char* path) {
     if (!path || *path == '\0') {
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid path\n", __FUNCTION__, __LINE__);
@@ -94,7 +103,14 @@ int main()
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] RFC: Failed to create RFC directory\n", __FUNCTION__, __LINE__);
         exit(EXIT_FAILURE);
     }
-	
+
+#if defined(RDKB_SUPPORT) || defined(RDKC)
+    /* Create /tmp/RFC/ for hash/time RAM files (RDKB & RDKC only) */
+    if (!createDirectoryIfNotExists("/tmp/RFC")) {
+        RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RFC: Failed to create /tmp/RFC directory\n", __FUNCTION__, __LINE__);
+    }
+#endif
+
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);
 
 #if defined(RDKB_SUPPORT)
