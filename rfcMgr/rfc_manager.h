@@ -138,6 +138,9 @@ class RFCManager {
         bool CheckIProuteConnectivity(const char *);      /**< Verify IP route via gateway file. */
 	std::string getErouterIPAddress();                /**< Retrieve the eRouter WAN address. */
 	bool CheckIPConnectivity(void);                   /**< Check eRouter IP availability. */
+#ifdef RDKC
+	bool WaitForIpAcquisition(void);                  /**< Poll for a routable IP on any interface. */
+#endif
         bool IsIarmBusConnected();                        /**< Query IARM connection state. */
         int RFCManagerProcess();                          /**< Core RFC fetch-and-apply logic. */
         int RFCManagerPostProcess();                      /**< Post-processing scripts (iptables, etc.). */

@@ -63,6 +63,10 @@ extern "C" {
 #if defined(RDKB_SUPPORT)
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/nvram/rfc.properties"
 #define RDKB_RETRY_DELAY                   30
+#define RFC_REBOOT_CRON_SCRIPT             "/etc/RfcRebootCronschedule.sh"
+#elif defined(RDKC)
+#define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
+#define RFC_REBOOT_CRON_SCRIPT             "/lib/rdk/RfcRebootCronschedule.sh"
 #else	
 #define RFC_PROPERTIES_PERSISTENCE_FILE    "/opt/rfc.properties"
 #endif		
@@ -114,9 +118,8 @@ typedef enum {
  * @class RuntimeFeatureControlProcessor
  * @brief Queries Xconf, parses feature JSON, and applies RFC parameters.
  *
- * Inherits device-identity primitives from XconfHandler.  On RDKC builds,
- * virtual methods allow the RdkcRuntimeFeatureControlProcessor subclass
- * to override URL building, hash/time storage, and endpoint metadata.
+ * Inherits device-identity primitives from XconfHandler.  Platform-specific
+ * behaviour is handled via compile-time #ifdef guards (RDKB_SUPPORT, RDKC).
  *
  * Non-copyable.
  */
@@ -129,11 +132,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         {
             isRebootRequired = false;
         }
-#ifdef RDKC
-        virtual ~RuntimeFeatureControlProcessor() = default;
-#else
         ~RuntimeFeatureControlProcessor() = default;
-#endif
         RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete; /**< Copy disabled. */
         
         /**
@@ -163,16 +162,9 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         /** @brief Send a telemetry-2 key/value marker. */
         void NotifyTelemetry2Value(std ::string markerName, std ::string value);
 
-#ifdef RDKC
-    protected:
-#else
     private:
-#endif
         /* ---------------------------------------------------------------
-         * Members and methods accessible to platform-specific subclasses.
-         * Subclasses (e.g. RdkcRuntimeFeatureControlProcessor) override
-         * the virtual methods below to handle device-specific behaviour
-         * without duplicating the shared RFC request/response logic.
+         * Internal members and methods.
          * --------------------------------------------------------------- */
 
         std::string _accountId;        /**< Device Account ID. */
@@ -186,31 +178,15 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         std::set<std::string> _effectiveImmediateParams;   /**< RDKC: params with effectiveImmediate=true. */
 #endif
 
-        /** Build the full HTTP query URL sent to the Xconf server.
-         *  Override to change device-specific query parameters. */
-#ifdef RDKC
-        virtual std::stringstream CreateXconfHTTPUrl();
-#else
+        /** Build the full HTTP query URL sent to the Xconf server. */
         std::stringstream CreateXconfHTTPUrl();
-#endif
 
-        /** Read configSetHash / configSetTime from the backing store.
-         *  Override to use a different storage medium (e.g. RAM files). */
-#ifdef RDKC
-        virtual void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
-                                                            std::string &valueTime);
-#else
+        /** Read configSetHash / configSetTime from the backing store. */
         void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
                                                     std::string &valueTime);
-#endif
 
-        /** Persist XconfSelector and XconfUrl after a successful sync.
-         *  Override as a no-op for platforms that must not write these. */
-#ifdef RDKC
-        virtual void StoreXconfEndpointMetadata();
-#else
+        /** Persist XconfSelector and XconfUrl after a successful sync. */
         void StoreXconfEndpointMetadata();
-#endif
 
        private:
 
@@ -281,6 +257,8 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         void saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType);
         std::string readAccountIdFromFile();
         void rfcCheckAccountId();
+#endif
+#if defined(RDKB_SUPPORT) || defined(RDKC)
         void HandleScheduledReboot(bool rfcRebootCronNeeded);
 #endif	
         void GetValidAccountId();
@@ -407,45 +385,5 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 
 #endif
 };
-
-#ifdef RDKC
-/**
- * @class RdkcRuntimeFeatureControlProcessor
- * @brief RDKC camera-specific RFC processor subclass.
- *
- * Inherits all common RFC logic from RuntimeFeatureControlProcessor
- * and overrides only platform-specific methods.
- */
-class RdkcRuntimeFeatureControlProcessor : public RuntimeFeatureControlProcessor
-{
-public:
-    /** @brief Default constructor. */
-    RdkcRuntimeFeatureControlProcessor() = default;
-
-    RdkcRuntimeFeatureControlProcessor(const RdkcRuntimeFeatureControlProcessor&) = delete;            /**< Copy disabled. */
-    RdkcRuntimeFeatureControlProcessor& operator=(const RdkcRuntimeFeatureControlProcessor&) = delete; /**< Assignment disabled. */
-
-protected:
-    /** @brief Build RDKC-specific Xconf URL (adds accountHash, omits manufacturer). */
-    std::stringstream CreateXconfHTTPUrl() override;
-
-    /**
-     * @brief Read configSetHash/Time from RAM files (/tmp/RFC/).
-     * @param[out] valueHash  Retrieved hash string.
-     * @param[out] valueTime  Retrieved time string.
-     */
-    void RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash,
-                                                std::string &valueTime) override;
-
-    /** @brief No-op — RDKC must not persist XconfSelector/XconfUrl. */
-    void StoreXconfEndpointMetadata() override;
-
-private:
-    std::string _accountHash; /**< MD5 account hash, XHC1-specific query param. */
-
-    /** @brief Lazy-fetch the MD5 account hash from the RFC parameter store. */
-    void GetAccountHash();
-};
-#endif /* RDKC */
 
 #endif

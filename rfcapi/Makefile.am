@@ -24,13 +24,8 @@ librfcapi_la_SOURCES = rfcapi.cpp
 librfcapi_la_includedir = $(includedir)
 librfcapi_la_include_HEADERS = rfcapi.h
 if ENABLE_RDKC
-if ENABLE_XCAM2
-librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${RDK_FSROOT_PATH}/usr/include/
-librfcapi_la_LIBADD = -L${RDK_FSROOT_PATH}/usr/lib/ -lrdkloggers
-else
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -DRDKC -I${STAGING_DIR_TARGET}/usr/include/
 librfcapi_la_LIBADD = -L${STAGING_DIR_TARGET}/usr/lib/ -lrdkloggers
-endif
 else
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
 librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers

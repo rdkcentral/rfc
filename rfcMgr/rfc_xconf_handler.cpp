@@ -31,7 +31,7 @@
 #include "mtlsUtils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
 #endif
@@ -780,18 +780,6 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
     return SUCCESS;
 }
 
-void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNeeded)
-{
-    if (rfcRebootCronNeeded) {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: RfcRebootCronNeeded=true. Calling script to schedule reboot in maintenance window\n");
-
-        // Execute the reboot cron schedule script
-        std::string cmd = "sh /etc/RfcRebootCronschedule.sh &";
-        std::string output;
-        ExecuteCommand(cmd, output);
-    }
-}
-
 void RuntimeFeatureControlProcessor::saveAccountIdToFile(const std::string& accountId, const std::string& paramName, const std::string& paramType)
 {
     std::ofstream paramFile("/tmp/.paramRFC");
@@ -877,23 +865,18 @@ void RuntimeFeatureControlProcessor::rfcCheckAccountId()
 
 #endif
 
+#if defined(RDKB_SUPPORT) || defined(RDKC)
+void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNeeded)
+{
+    if (rfcRebootCronNeeded) {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: RfcRebootCronNeeded=true. Calling script to schedule reboot in maintenance window\n");
+        v_secure_system("sh " RFC_REBOOT_CRON_SCRIPT " &");
+    }
+}
+#endif
+
 void RuntimeFeatureControlProcessor::GetAccountID() 
 {
-#ifdef RDKC
-    /* Camera: read account ID (service number) from
-     * /opt/usr_config/service_number.txt. */
-    {
-        std::ifstream ifs("/opt/usr_config/service_number.txt");
-        if (ifs.is_open())
-        {
-            std::getline(ifs, _accountId);
-            ifs.close();
-        }
-        if (_accountId.empty())
-            _accountId = "Unknown";
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "GetAccountID: Camera AccountID = %s\n", _accountId.c_str());
-    }
-#else
     int i = 0;
     char tempbuf[1024] = {0};
     int szBufSize = sizeof(tempbuf);
@@ -926,7 +909,6 @@ void RuntimeFeatureControlProcessor::GetAccountID()
     }
 
     return;
-#endif
 }
 
 void RuntimeFeatureControlProcessor::GetRFCPartnerID()
@@ -1764,10 +1746,16 @@ void EncodeString(const std::string& key, const std::string& value, std::strings
 
 void RuntimeFeatureControlProcessor::StoreXconfEndpointMetadata()
 {
+#ifndef RDKC
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Storing XconfSelector=%s and XconfUrl\n",
             __FUNCTION__, __LINE__, rfcSelectOpt.c_str());
     set_RFCProperty(XCONF_SELECTOR_NAME, XCONF_SELECTOR_KEY_STR, rfcSelectOpt.c_str());
     set_RFCProperty(XCONF_URL_TR181_NAME, XCONF_URL_KEY_STR, _xconf_server_url.c_str());
+#else
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+            "[%s][%d] RDKC: skipping XconfSelector/XconfUrl storage\n",
+            __FUNCTION__, __LINE__);
+#endif
 }
 
 std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl() 
@@ -1787,14 +1775,22 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
 #elif defined(RDKB_SUPPORT)
     url << "ecmMacAddress=" << _ecm_mac_address << "&";   
 #endif
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
      url << "manufacturer=" << _manufacturer << "&";
 #endif
+#ifdef RDKC
+    {
+        std::string accountHash = getAccountHashFromFile();
+        url << "accountHash=" << accountHash << "&";
+    }
+#endif
+#if !defined(RDKC)
     url << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     url << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     url << "VodId=" << RFC_VIDEO_VOD_ID << "&";
+#endif
     url << "partnerId=" << _partner_id << "&";
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
      url << "osClass=" << _osclass << "&";
 #endif
     url << "accountId=" << _accountId << "&";
@@ -1802,7 +1798,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     url << "accountMgmt=" << "xpc" << "&";
     url << "serialNum=" << _serialNumber << "&";
 #endif    
-#if defined(RDKB_SUPPORT)	
+#if defined(RDKB_SUPPORT) || defined(RDKC)
     url << "experience=" << _experience << "&";
 #else
 	url << "Experience=" << _experience << "&";
@@ -1826,16 +1822,23 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
 #elif defined(RDKB_SUPPORT)
     EncodeString("ecmMacAddress=", _ecm_mac_address, encodedUrl, "&");
 #endif
-#if !defined(RDKB_SUPPORT)	
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
      EncodeString("manufacturer=", _manufacturer, encodedUrl, "&");
 #endif
-
+#ifdef RDKC
+    {
+        std::string accountHash = getAccountHashFromFile();
+        EncodeString("accountHash=", accountHash, encodedUrl, "&");
+    }
+#endif
+#if !defined(RDKC)
     encodedUrl << "controllerId=" << RFC_VIDEO_CONTROL_ID << "&";
     encodedUrl << "channelMapId=" << RFC_CHANNEL_MAP_ID << "&";
     encodedUrl << "VodId=" << RFC_VIDEO_VOD_ID << "&";
+#endif
 
     EncodeString("partnerId=", _partner_id, encodedUrl, "&");
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
      EncodeString("osClass=", _osclass, encodedUrl, "&");
 #endif
     EncodeString("accountId=", _accountId, encodedUrl, "&");
@@ -1843,7 +1846,7 @@ std::stringstream RuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
     EncodeString("accountMgmt=", "xpc", encodedUrl, "&");
     EncodeString("serialNum=", _serialNumber, encodedUrl, "&");
 #endif    
-#if !defined(RDKB_SUPPORT)	
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     EncodeString("Experience=", _experience, encodedUrl, "&");
 #else
 	EncodeString("experience=", _experience, encodedUrl, "&");
@@ -1901,7 +1904,7 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 
 void RuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(std::string &valueHash, std::string &valueTime)
 {
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
     const std::string RFC_RAM_PATH = "/tmp/RFC";
 
     // Initialize default values
@@ -2503,7 +2506,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
         return;    
     }
-#if !defined(RDKB_SUPPORT) && !defined(RDKC)
+#if !defined(RDKB_SUPPORT)
     clearDB();
 #endif    
 
@@ -2673,7 +2676,11 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
     updateTR181File(TR181_FILE_LIST, paramList);
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
     clearDBEnd();
-#endif     
+#endif
+
+#ifdef RDKC
+    HandleScheduledReboot(_rfcRebootCronNeeded);
+#endif
 }
 
 void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
@@ -2775,7 +2782,7 @@ bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std 
 
 WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, std::string key, std::string value)
 {
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
     rbusHandle_t handle;
     rbusValue_t rbusValue;
     rbusError_t rc;
@@ -2856,65 +2863,6 @@ WDMP_STATUS RuntimeFeatureControlProcessor::set_RFCProperty(std::string name, st
 
     // Close the rbus connection
     rbus_close(handle);
-
-    return status;
-#elif defined(RDKC)
-    /* Camera (XHC1) writes parameters directly to the tr181store.ini
-     * flat file. Format: key=value (one per line) */
-    (void)name;
-    WDMP_STATUS status = WDMP_FAILURE;
-
-    std::string storePath = TR181STOREFILE;
-    std::ifstream inFile(storePath);
-    std::vector<std::string> lines;
-    bool found = false;
-    std::string targetLine = key + "=" + value;
-
-    if (inFile.is_open())
-    {
-        std::string line;
-        while (std::getline(inFile, line))
-        {
-            size_t eq = line.find('=');
-            if (eq != std::string::npos)
-            {
-                std::string existingKey = line.substr(0, eq);
-                if (existingKey == key)
-                {
-                    lines.push_back(targetLine);
-                    found = true;
-                    continue;
-                }
-            }
-            lines.push_back(line);
-        }
-        inFile.close();
-    }
-
-    if (!found)
-    {
-        lines.push_back(targetLine);
-    }
-
-    std::ofstream outFile(storePath, std::ios::trunc);
-    if (outFile.is_open())
-    {
-        for (const auto &l : lines)
-        {
-            outFile << l << "\n";
-        }
-        outFile.close();
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
-                "[%s][%d] RDKC: set_RFCProperty key=%s value=%s\n",
-                __FUNCTION__, __LINE__, key.c_str(), value.c_str());
-        status = WDMP_SUCCESS;
-    }
-    else
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,
-                "[%s][%d] RDKC: Failed to open %s for writing\n",
-                __FUNCTION__, __LINE__, storePath.c_str());
-    }
 
     return status;
 #else
@@ -3183,137 +3131,6 @@ int RuntimeFeatureControlProcessor::ProcessXconfUrl(const char *XconfUrl)
     }
     return rc;
 }
-
-#ifdef RDKC
-/* =========================================================================
- * RDKC (camera) subclass overrides
- * ====================================================================== */
-
-/** TR181 parameter holding the MD5 account hash on camera devices. */
-#define RFC_MD5_ACCOUNT_HASH \
-    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MD5AccountHash"
-
-/** RAM-backed directory used for transient RFC state on all platforms. */
-#define RFC_RAM_PATH "/tmp/RFC"
-
-/**
- * Read the MD5 account hash from /opt/usr_config/accounthash.txt.
- * Called once (lazily) from CreateXconfHTTPUrl() before building the URL.
- */
-void RdkcRuntimeFeatureControlProcessor::GetAccountHash()
-{
-    if (!_accountHash.empty())
-        return;
-
-    std::ifstream ifs("/opt/usr_config/accounthash.txt");
-    if (ifs.is_open())
-    {
-        std::getline(ifs, _accountHash);
-        ifs.close();
-        if (!_accountHash.empty())
-        {
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                    "[%s][%d] RDKC AccountHash: %s\n",
-                    __FUNCTION__, __LINE__, _accountHash.c_str());
-            return;
-        }
-    }
-
-    RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR,
-            "[%s][%d] RDKC: /opt/usr_config/accounthash.txt not found or empty\n",
-            __FUNCTION__, __LINE__);
-}
-
-/**
- * Build the Xconf HTTP request URL for camera (XHC1) devices.
- * Adds accountHash, omits manufacturer/ecmMacAddress/osClass.
- */
-std::stringstream RdkcRuntimeFeatureControlProcessor::CreateXconfHTTPUrl()
-{
-    GetAccountHash();
-
-    std::stringstream url;
-    url << _xconf_server_url       << "?";
-    url << "estbMacAddress="       << _estb_mac_address << "&";
-    url << "firmwareVersion="      << _firmware_version << "&";
-    url << "env="                  << _build_type_str   << "&";
-    url << "model="                << _model_number     << "&";
-    url << "accountHash="          << _accountHash      << "&";
-    url << "partnerId="            << _partner_id       << "&";
-    url << "accountId="            << _accountId        << "&";
-    url << "experience="           << _experience       << "&";
-    url << "version=2";
-
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-            "[%s][%d] RDKC Xconf request URL built\n",
-            __FUNCTION__, __LINE__);
-
-    return url;
-}
-
-/**
- * Read configSetHash and configSetTime from RAM-backed files.
- * RDKC devices never use the TR181 parameter database for hash/time storage.
- */
-void RdkcRuntimeFeatureControlProcessor::RetrieveHashAndTimeFromPreviousDataSet(
-    std::string &valueHash, std::string &valueTime)
-{
-    valueHash = "UPGRADE_HASH";
-    valueTime = "0";
-
-    const std::string hashFile = std::string(RFC_RAM_PATH) + "/.hashValue";
-    if (access(hashFile.c_str(), R_OK) == 0)
-    {
-        std::ifstream ifs(hashFile);
-        if (ifs.is_open())
-        {
-            std::getline(ifs, valueHash);
-            ifs.close();
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                    "[%s][%d] RDKC ConfigSetHash: %s\n",
-                    __FUNCTION__, __LINE__, valueHash.c_str());
-        }
-    }
-    else
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
-                "[%s][%d] RDKC: hash file not found, using default\n",
-                __FUNCTION__, __LINE__);
-    }
-
-    const std::string timeFile = std::string(RFC_RAM_PATH) + "/.timeValue";
-    if (access(timeFile.c_str(), R_OK) == 0)
-    {
-        std::ifstream ifs(timeFile);
-        if (ifs.is_open())
-        {
-            std::getline(ifs, valueTime);
-            ifs.close();
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                    "[%s][%d] RDKC ConfigSetTime: %s\n",
-                    __FUNCTION__, __LINE__, valueTime.c_str());
-        }
-    }
-    else
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
-                "[%s][%d] RDKC: time file not found, using default\n",
-                __FUNCTION__, __LINE__);
-    }
-
-    bkup_hash = valueHash;
-}
-
-/**
- * No-op — RDKC devices must NOT persist XconfSelector/XconfUrl.
- */
-void RdkcRuntimeFeatureControlProcessor::StoreXconfEndpointMetadata()
-{
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-            "[%s][%d] RDKC (XHC1): skipping XconfSelector/XconfUrl storage\n",
-            __FUNCTION__, __LINE__);
-}
-#endif /* RDKC */
 
 #ifdef __cplusplus
 }

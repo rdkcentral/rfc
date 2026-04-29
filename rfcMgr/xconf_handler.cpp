@@ -67,22 +67,13 @@ int XconfHandler:: initializeXconfHandler()
             len = strlen(tmpbuf);
         }
 #elif defined(RDKC)
-        /* Camera: get MAC address via MFR API (mfrApi_test 3 9).
-         * This matches the shell's getEstbMacAddress() for XHC1. */
         {
-            FILE *fp = popen("mfrApi_test 3 9", "r");
-            if (fp)
-            {
-                if (fgets(tmpbuf, sizeof(tmpbuf), fp))
-                {
-                    size_t mlen = strlen(tmpbuf);
-                    if (mlen > 0 && tmpbuf[mlen - 1] == '\n') tmpbuf[mlen - 1] = '\0';
-                    len = strlen(tmpbuf);
-                }
-                pclose(fp);
+            std::string mac = getEstbMacAddress();
+            if (!mac.empty()) {
+                strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
+                tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+                len = strlen(tmpbuf);
             }
-            if (len == 0)
-                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Camera: mfrApi_test failed to get MAC\n", __FUNCTION__, __LINE__);
         }
 #else
         len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
@@ -136,23 +127,7 @@ int XconfHandler:: initializeXconfHandler()
         }
 #endif
 #ifdef RDKC
-      /* Camera: read partner ID from /opt/usr_config/partnerid.txt */
-      {
-          FILE *fp = fopen("/opt/usr_config/partnerid.txt", "r");
-          if (fp)
-          {
-              memset(tmpbuf, '\0', sizeof(tmpbuf));
-              if (fgets(tmpbuf, sizeof(tmpbuf), fp))
-              {
-                  size_t plen = strlen(tmpbuf);
-                  if (plen > 0 && tmpbuf[plen - 1] == '\n') tmpbuf[plen - 1] = '\0';
-                  _partner_id = tmpbuf;
-              }
-              fclose(fp);
-          }
-          if (_partner_id.empty())
-              _partner_id = "Unknown";
-      }
+      _partner_id = getPartnerIdFromFile();
 #else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
