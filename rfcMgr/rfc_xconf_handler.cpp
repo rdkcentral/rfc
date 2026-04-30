@@ -875,6 +875,65 @@ void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNee
 }
 #endif
 
+#ifdef RDKC
+bool RuntimeFeatureControlProcessor::isDeviceProvisioned()
+{
+    /* Mirrors shell checkCameraProvisionStatus():
+     * 1. If live_video.conf exists and is non-empty, check "enabled=1"
+     * 2. Else if wpa_supplicant.conf backup exists and is non-empty, provisioned
+     * 3. Else not provisioned
+     * Check secure partition path first (matches setConfigFilesPath logic). */
+    const char* SECURE_EVO_FILE = "/opt/SecurePartition/usr_config/live_video.conf";
+    const char* EVO_FILE = "/opt/usr_config/live_video.conf";
+    const char* WPA_CONFIG_BKP_ENV_PATH = "/mnt/ramdisk/env/wpa_supplicant.conf";
+
+    struct stat st;
+    const char* evoPath = nullptr;
+
+    // Determine which provisioning file to use (secure partition preferred)
+    if (stat(SECURE_EVO_FILE, &st) == 0 && st.st_size > 0)
+    {
+        evoPath = SECURE_EVO_FILE;
+    }
+    else if (stat(EVO_FILE, &st) == 0 && st.st_size > 0)
+    {
+        evoPath = EVO_FILE;
+    }
+
+    if (evoPath)
+    {
+        std::ifstream file(evoPath);
+        if (file.is_open())
+        {
+            std::string line;
+            while (std::getline(file, line))
+            {
+                // Match shell: grep -w "enabled" | cut -d "=" -f2
+                if (line.find("enabled") != std::string::npos)
+                {
+                    size_t pos = line.find('=');
+                    if (pos != std::string::npos)
+                    {
+                        std::string value = line.substr(pos + 1);
+                        value.erase(0, value.find_first_not_of(" \t\r\n"));
+                        value.erase(value.find_last_not_of(" \t\r\n") + 1);
+                        return (value == "1");
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    // Fallback: device is provisioned if WPA config backup exists and is non-empty
+    else if (stat(WPA_CONFIG_BKP_ENV_PATH, &st) == 0 && st.st_size > 0)
+    {
+        return true;
+    }
+
+    return false;
+}
+#endif
+
 void RuntimeFeatureControlProcessor::GetAccountID() 
 {
     int i = 0;
@@ -2511,43 +2570,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 #endif    
 
 #ifdef RDKC
-    /* Build a set of config param names whose parent feature has
-     * effectiveImmediate=true.  Used later for camera reboot evaluation. */
-    _effectiveImmediateParams.clear();
     _rfcRebootCronNeeded = false;
-    {
-        int nf = GetJsonArraySize(features);
-        for (int idx = 0; idx < nf; idx++)
-        {
-            JSON *feat = GetJsonArrayItem(features, idx);
-            if (!feat) continue;
-            char effImmStr[] = RFC_FEATURE_EFF_IMMD_STR;
-            char buf[6] = {0};
-            int sz = GetJsonVal(feat, effImmStr, buf, sizeof(buf));
-            if (sz && (strcasecmp(buf, "true") == 0 || strcmp(buf, "1") == 0))
-            {
-                char cdStr[] = "configData";
-                JSON *cd = GetJsonItem(feat, cdStr);
-                if (cd)
-                {
-                    JSON *ch = cd->child;
-                    while (ch)
-                    {
-                        if (ch->string)
-                        {
-                            std::string k = ch->string;
-                            RemoveSubstring(k, "tr181.");
-                            _effectiveImmediateParams.insert(k);
-                        }
-                        ch = ch->next;
-                    }
-                }
-            }
-        }
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                "[%s][%d] RDKC: %zu params with effectiveImmediate=true\n",
-                __FUNCTION__, __LINE__, _effectiveImmediateParams.size());
-    }
 #endif
 
     std::string newKey;
@@ -2638,9 +2661,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                         bool isEffImm = (_effectiveImmediateParams.count(newKey) > 0);
                         if (isEffImm)
                         {
-                            char provBuf[16] = {0};
-                            int provRet = getDevicePropertyData("RDKC_DEVICE_PROVISION_STATUS", provBuf, sizeof(provBuf));
-                            bool provisioned = (provRet == 1 && strcmp(provBuf, "1") == 0);
+                            bool provisioned = isDeviceProvisioned();
                             if (provisioned)
                             {
                                 std::string accountHashKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MD5AccountHash";
@@ -2689,11 +2710,28 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
     char configData[]="configData";
     int numFeatures = GetJsonArraySize(features);
 
+#ifdef RDKC
+    _effectiveImmediateParams.clear();
+#endif
+
     for (int index = 0; index < numFeatures; index++) 
     {
         JSON* feature = GetJsonArrayItem(features, index);
         if(feature)
         {
+#ifdef RDKC
+            /* Check if this feature has effectiveImmediate=true */
+            bool featureEffImm = false;
+            {
+                char effImmStr[] = RFC_FEATURE_EFF_IMMD_STR;
+                char buf[6] = {0};
+                int sz = GetJsonVal(feature, effImmStr, buf, sizeof(buf));
+                if (sz && (strcasecmp(buf, "true") == 0 || strcmp(buf, "1") == 0))
+                {
+                    featureEffImm = true;
+                }
+            }
+#endif
             pConfigData = GetJsonItem(feature,configData);
             if(!pConfigData)
             {
@@ -2708,10 +2746,22 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
                  std::string value = child->valuestring;
                  RemoveSubstring(key, "tr181.");
                  _RFCKeyAndValueMap[key] =  child->valuestring;
+#ifdef RDKC
+                 if (featureEffImm)
+                 {
+                     _effectiveImmediateParams.insert(key);
+                 }
+#endif
                  child = child->next;
             }
         }
     }
+
+#ifdef RDKC
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+            "[%s][%d] RDKC: %zu params with effectiveImmediate=true\n",
+            __FUNCTION__, __LINE__, _effectiveImmediateParams.size());
+#endif
     return;
 }
 bool RuntimeFeatureControlProcessor::isConfigValueChange(std ::string name, std ::string key, std ::string &value, std ::string &currentValue)
