@@ -21,8 +21,8 @@ from rfc_test_helper import *
 
 def test_WebPA_Set_ACC_Id():
     print("Starting parodus mock process")
-    payload = '{"command":"SET","parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID","dataType":0,"value":"412370664406228514"}]}'
-    command = ["/usr/local/bin/parodus", payload]
+    payload = '{"command":"SET","parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareToDownload","dataType":0,"value":"TESTIMAGE_DEV.bin"}]}'
+    command = ["/tmp/parodus", payload]
 
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode == 0, f"Command failed with error: {result.stderr}"
@@ -36,7 +36,7 @@ def test_WebPA_Set_ACC_Id():
 def test_WebPA_Get_ACC_Id():
     print("Starting parodus mock process")
     payload ='{"command":"GET","names":["Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID"]}'
-    command = ["/usr/local/bin/parodus", payload]
+    command = ["/tmp/parodus", payload]
 
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode == 0, f"Command failed with error: {result.stderr}"
