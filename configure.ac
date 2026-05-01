@@ -158,6 +158,19 @@ AC_ARG_ENABLE([rdkc],
 
 AM_CONDITIONAL([ENABLE_RDKC], [test x$ENABLE_RDKC = xtrue])
 
+AC_ARG_ENABLE([xcam2],
+              AS_HELP_STRING([--enable-xcam2],[enable xcam2 (default is no)]),
+              [
+                case "${enableval}" in
+                 yes) ENABLE_XCAM2=true;;
+                  no) AC_MSG_ERROR([XCAM2 is disabled]) ;;
+                   *) AC_MSG_ERROR([bad value ${enableval} for --enable-xcam2]) ;;
+                esac
+              ],
+              [echo "xcam2 is disabled"])
+
+AM_CONDITIONAL([ENABLE_XCAM2], [test x$ENABLE_XCAM2 = xtrue])
+
 AC_ARG_ENABLE([rdkb],
               AS_HELP_STRING([--enable-rdkb],[enable rdkb (default is no)]),
               [

@@ -1,4 +1,7 @@
 /**
+ * @file rfc_manager.h
+ * @brief RFC Manager — orchestrates the RFC feature-control lifecycle.
+ *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
  *
@@ -15,14 +18,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 #ifndef RFC_MGR_H
 #define RFC_MGR_H
 
-/*----------------------------------------------------------------------------*/
-/*                                   Header File                              */
-/*----------------------------------------------------------------------------*/
+/** @addtogroup rfcMgr
+ *  @{ */
 #include "rfc_mgr_iarm.h"
 #include "rfc_common.h"
 #include <stdint.h>
@@ -31,9 +33,8 @@
 #include "maintenanceMGR.h"
 #endif
 
-/*----------------------------------------------------------------------------*/
-/*                                   Macros                                   */
-/*----------------------------------------------------------------------------*/
+/** @name Macros
+ *  @{ */
 #define DEBUG_INI_FILE "/etc/debug.ini"
 #if !defined(RDKB_SUPPORT)
 #define OVERIDE_DEBUG_INI_FILE "/opt/debug.ini"
@@ -50,25 +51,26 @@
 #include <gtest/gtest.h>
 #endif
 
+/** @} */ /* end Macros */
 
-/*----------------------------------------------------------------------------*/
-/*                                   Namespace                                */
-/*----------------------------------------------------------------------------*/
 namespace rfc {
-/*----------------------------------------------------------------------------*/
-/*                                   Enum                                     */
-/*----------------------------------------------------------------------------*/
+
+/**
+ * @brief Device network connectivity status.
+ */
 enum DeviceStatus {
     RFCMGR_DEVICE_ONLINE,
     RFCMGR_DEVICE_OFFLINE
 };
 
-/* Maintenance Manager Events */
-#define MAINT_RFC_ERROR         3
-#define MAINT_RFC_INPROGRESS    14
-#define MAINT_RFC_COMPLETE      2
-#define MAINT_CRITICAL_UPDATE   11
-#define MAINT_REBOOT_REQUIRED   12
+/** @name Maintenance Manager Event Codes
+ *  @{ */
+#define MAINT_RFC_ERROR         3   /**< RFC processing encountered an error. */
+#define MAINT_RFC_INPROGRESS    14  /**< RFC processing is in progress. */
+#define MAINT_RFC_COMPLETE      2   /**< RFC processing completed successfully. */
+#define MAINT_CRITICAL_UPDATE   11  /**< A critical firmware update is available. */
+#define MAINT_REBOOT_REQUIRED   12  /**< A device reboot is required. */
+/** @} */
 
 #if !defined(RDKB_SUPPORT)
 #define RFC_MGR_IPTBLE_INIT_SCRIPT      "/lib/rdk/iptables_init"
@@ -83,20 +85,47 @@ enum DeviceStatus {
 bool isDnsResolve(const char *);
 #endif
 
-/*----------------------------------------------------------------------------*/
-/*                                   Class                                    */
-/*----------------------------------------------------------------------------*/
+/**
+ * @class RFCManager
+ * @brief Manages the Remote Feature Control (RFC) lifecycle.
+ *
+ * Coordinates device-online checks, Xconf feature queries, post-processing,
+ * maintenance-manager event notifications, and periodic cron scheduling.
+ * This class is non-copyable.
+ */
 class RFCManager {
     public:
+        /** @brief Construct and initialise RDK Logger + IARM bus. */
         RFCManager();
-        // We do not allow this class to be copied !!
-        RFCManager(const RFCManager &) = delete;
-        RFCManager &operator=(const RFCManager &) = delete;
+
+        RFCManager(const RFCManager &) = delete;            /**< Copy construction disabled. */
+        RFCManager &operator=(const RFCManager &) = delete;  /**< Copy assignment disabled. */
+
+        /**
+         * @brief Entry point — run the full RFC Xconf request cycle.
+         * @return SUCCESS (0) on success, FAILURE (-1) on error.
+         */
         int RFCManagerProcessXconfRequest();
+
+        /**
+         * @brief Check whether the device has IP connectivity.
+         * @return RFCMGR_DEVICE_ONLINE or RFCMGR_DEVICE_OFFLINE.
+         */
         rfc::DeviceStatus CheckDeviceIsOnline(void);
+
 #if !defined(RDKB_SUPPORT)	
+        /**
+         * @brief Broadcast an IARM event to the Maintenance Manager.
+         * @param[in] cur_event_name  IARM event owner name.
+         * @param[in] main_mgr_event  Maintenance manager event code.
+         */
         void SendEventToMaintenanceManager(const char *, unsigned int);
 #endif
+
+        /**
+         * @brief Configure a periodic cron job for rfcMgr execution.
+         * @param[in] cron  Five-field cron schedule string.
+         */
         void manageCronJob(const std::string& cron);	
 
 #if defined(GTEST_ENABLE)
@@ -104,15 +133,17 @@ class RFCManager {
 #else
     private:
 #endif
-        void InitializeIARM(void);
-        bool isConnectedToInternet();
-        bool CheckIProuteConnectivity(const char *);
-	std::string getErouterIPAddress();
-	bool CheckIPConnectivity(void);
-        bool IsIarmBusConnected();
-        int RFCManagerProcess();
-        int RFCManagerPostProcess();
+        void InitializeIARM(void);                       /**< Register on the IARM bus. */
+        bool isConnectedToInternet();                     /**< Quick internet-reachability probe. */
+        bool CheckIProuteConnectivity(const char *);      /**< Verify IP route via gateway file. */
+	std::string getErouterIPAddress();                /**< Retrieve the eRouter WAN address. */
+	bool CheckIPConnectivity(void);                   /**< Check eRouter IP availability. */
+        bool IsIarmBusConnected();                        /**< Query IARM connection state. */
+        int RFCManagerProcess();                          /**< Core RFC fetch-and-apply logic. */
+        int RFCManagerPostProcess();                      /**< Post-processing scripts (iptables, etc.). */
     }; // end of RFCManager Class
+
+/** @} */ /* end rfcMgr group */
 } // end of namespace RFC
 
 #endif

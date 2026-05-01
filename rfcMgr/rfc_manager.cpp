@@ -1,4 +1,7 @@
 /**
+ * @file rfc_manager.cpp
+ * @brief RFC Manager implementation — device connectivity, IARM, Xconf lifecycle.
+ *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
  *
@@ -15,22 +18,34 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 #include "rfc_manager.h"
 #include "rfc_common.h"
 #include "rfc_mgr_iarm.h"
 #include "rfc_xconf_handler.h"
+#ifdef RDKC
+#include "rdkc_rfc_xconf_handler.h"
+#endif
 #include <fstream>
+#include <array>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef RDKC
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 
 namespace rfc {
 #if defined(USE_IARMBUS)
+    /**
+     * @brief IARM event handler for RFC Manager events.
+     * @note Placeholder for future implementation.
+     */
     void rfcMgrEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len) 
     {
-        /* This is place holder for future */
         owner = owner;
         eventId = eventId;
         data = data;
@@ -38,14 +53,15 @@ namespace rfc {
         return;
     }
 #endif
+    /** @brief Construct and initialise the RFC Manager (logger + IARM). */
     RFCManager ::RFCManager() {
 #if defined(RDK_LOGGER)
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
         RDK_LOGGER_INIT();
-#else		
+#else
         /* Initialize RDK Logger */
         static char RFCMGRLOG[] = "LOG.RDK.RFCMGR";
-		rdk_logger_ext_config_t config = {
+            rdk_logger_ext_config_t config = {
             .pModuleName = RFCMGRLOG,                 /* Module name */
             .loglevel = RDK_LOG_INFO,                 /* Default log level */
             .output = RDKLOG_OUTPUT_CONSOLE,          /* Output to console (stdout/stderr) */
@@ -56,17 +72,17 @@ namespace rfc {
         if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
             printf("RFC : ERROR - Extended logger init failed\n");
         }
-#endif		
 #endif
+#endif
+
         /* Initialize IARM Bus */
         InitializeIARM();
     }
 
-    /** Description: Check if Module is connected to IARM
-     *
-     *  @param cur_event_name: event name.
-     *  @param event_status: Status Of the event.
-     *  @return void.
+    /**
+     * @brief Check if the IARM bus is connected.
+     * @retval true  IARM bus is registered.
+     * @retval false IARM bus not available.
      */
     bool RFCManager ::IsIarmBusConnected() {
 #if defined(USE_IARMBUS)
@@ -128,11 +144,9 @@ namespace rfc {
 #endif
     }
 
-    /** Description: This API UnRegister IARM event handlers in order to release
-     * bus-facing resources.
-     *
-     *  @param void
-     *  @return 0.
+    /**
+     * @brief Unregister IARM event handlers and clean up bus resources.
+     * @return 0 always.
      */
     int term_event_handler(void) {
 #if defined(USE_IARMBUS)
@@ -145,6 +159,10 @@ namespace rfc {
         return 0;
     }
 
+    /**
+     * @brief Retrieve the eRouter WAN address (IPv6 preferred, IPv4 fallback).
+     * @return IP address string, or empty on failure.
+     */
     std::string RFCManager::getErouterIPAddress() {
         std::string address;
 
@@ -181,6 +199,11 @@ namespace rfc {
         return address;
     }
 
+    /**
+     * @brief Check eRouter IP availability.
+     * @retval true  eRouter IP address obtained.
+     * @retval false No IP address available.
+     */
     bool RFCManager::CheckIPConnectivity(void)
     {
         bool ip_status = false;
@@ -201,12 +224,12 @@ namespace rfc {
         return ip_status;
     }
 
-    /* Description: Checking IP route address and device is online or not.
-     *              Use IARM event provided by net service manager to check either
-     *              device is online or not.
-     * @param: file_name : pointer to gateway iproute config file name
-     * return :true = success
-     * return :false = failure */
+    /**
+     * @brief Verify IP route connectivity via a gateway config file.
+     * @param[in] file_name  Path to the gateway IP route file.
+     * @retval true   IP route entry found.
+     * @retval false  File missing or no valid IP entry.
+     */
     bool RFCManager ::CheckIProuteConnectivity(const char *file_name) {
         bool ip_status = false;
         bool string_check = false;
@@ -283,10 +306,12 @@ namespace rfc {
         return ip_status;
     }
 
-    /* Description: Checking dns nameserver ip is present or not.
-     * @param: dns_file_name : pointer to dns config file name
-     * return :true = success
-     * return :false = failure */
+    /**
+     * @brief Check if DNS nameserver entries are present.
+     * @param[in] dns_file_name  Path to the DNS resolver file.
+     * @retval true   At least one nameserver found.
+     * @retval false  File missing or no nameserver entry.
+     */
     bool isDnsResolve(const char *dns_file_name)
     {
         bool dns_status = false;
@@ -334,7 +359,60 @@ namespace rfc {
     {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration\n", __FUNCTION__,__LINE__);
         rfc::DeviceStatus result = RFCMGR_DEVICE_OFFLINE;
-#if !defined(RDKB_SUPPORT)
+#ifdef RDKC
+        /* Camera (XHC1) IP acquisition — matches waitForIpAcquisition() in
+         * RFCbase.sh.  Poll until a non-loopback IP address appears on any
+         * interface.  The shell loops with 10s sleep; we do the same. */
+        {
+            char ipBuf[INET6_ADDRSTRLEN] = {0};
+            while (true)
+            {
+                struct ifaddrs *ifap = nullptr;
+                if (getifaddrs(&ifap) == 0)
+                {
+                    for (struct ifaddrs *ifa = ifap; ifa; ifa = ifa->ifa_next)
+                    {
+                        if (!ifa->ifa_addr) continue;
+                        int family = ifa->ifa_addr->sa_family;
+                        if (family == AF_INET)
+                        {
+                            struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                            uint32_t ip = ntohl(sa->sin_addr.s_addr);
+                            /* Skip loopback 127.x.x.x */
+                            if ((ip >> 24) == 127) continue;
+                            /* Skip link-local / APIPA 169.254.x.x */
+                            if ((ip >> 16) == 0xA9FE) continue;
+                            inet_ntop(AF_INET, &sa->sin_addr, ipBuf, sizeof(ipBuf));
+                            result = RFCMGR_DEVICE_ONLINE;
+                            break;
+                        }
+                        else if (family == AF_INET6)
+                        {
+                            struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+                            /* Skip loopback ::1 and link-local fe80:: */
+                            if (IN6_IS_ADDR_LOOPBACK(&sa6->sin6_addr)) continue;
+                            if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr)) continue;
+                            inet_ntop(AF_INET6, &sa6->sin6_addr, ipBuf, sizeof(ipBuf));
+                            result = RFCMGR_DEVICE_ONLINE;
+                            break;
+                        }
+                    }
+                    freeifaddrs(ifap);
+                }
+                if (result == RFCMGR_DEVICE_ONLINE)
+                {
+                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                            "[%s][%d] RDKC: Acquired IP address: %s\n",
+                            __FUNCTION__, __LINE__, ipBuf);
+                    break;
+                }
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
+                        "[%s][%d] RDKC: Waiting for IP address...\n",
+                        __FUNCTION__, __LINE__);
+                sleep(10);
+            }
+        }
+#elif !defined(RDKB_SUPPORT) && !defined(RDKC)
         if (true == CheckIProuteConnectivity(GATEWAYIP_FILE))
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] Checking IP and Route configuration found\n", __FUNCTION__,__LINE__);
@@ -367,11 +445,10 @@ namespace rfc {
     }
 
 #if !defined(RDKB_SUPPORT)
-    /** Description: Send event to iarm event manager
-     *
-     *  @param cur_event_name: event name.
-     *  @param main_mgr_event: Status Of the event.
-     *  @return void.
+    /**
+     * @brief Broadcast an IARM event to the Maintenance Manager.
+     * @param[in] cur_event_name  IARM event owner name.
+     * @param[in] main_mgr_event  Maintenance manager event code.
      */
     void RFCManager::SendEventToMaintenanceManager(const char *cur_event_name, unsigned int main_mgr_event)
     {
@@ -393,6 +470,10 @@ namespace rfc {
     }
 #endif
 
+    /**
+     * @brief Run post-processing scripts after RFC parameters are applied.
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager::RFCManagerPostProcess()
     {
         // Check if the script exists before executing it
@@ -410,12 +491,37 @@ namespace rfc {
         return SUCCESS;
     }
 
+    /**
+     * @brief Core RFC fetch-and-apply logic.
+     *
+     * Creates the platform-appropriate RuntimeFeatureControlProcessor,
+     * initialises the Xconf handler, processes the feature-control request,
+     * and triggers reboot scheduling or maintenance-manager events.
+     *
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager::RFCManagerProcess()
     {
-        /* Create Object for Xconf Handler */
+        /* Create the appropriate RFC processor for the target platform.
+         * On camera (RDKC/XHC1) use the derived class that overrides
+         * URL building, hash/time retrieval, and endpoint metadata storage.
+         * All shared RFC logic is inherited from RuntimeFeatureControlProcessor. */
+#ifdef RDKC
+        RuntimeFeatureControlProcessor *rfcObj = new RdkcRuntimeFeatureControlProcessor();
+#else
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
+#endif
 
         int reqStatus = FAILURE;
+
+#ifdef RDKC
+        /* Camera devices wait 120 seconds before first Xconf query.
+         * Shell equivalent: sleep 120  (RFCbase.sh XHC1 branch) */
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                "[%s][%d] RDKC: Waiting 120 seconds before querying xconf\n",
+                __FUNCTION__, __LINE__);
+        sleep(120);
+#endif
 
         /* Initialize xconf Hanlder */
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();
@@ -431,6 +537,7 @@ namespace rfc {
 #if !defined(RDKB_SUPPORT)
         if(result == SUCCESS)
         {
+#ifndef RDKC
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_COMPLETE);
 
             bool isRebootRequired = rfcObj->getRebootRequirement();
@@ -441,13 +548,39 @@ namespace rfc {
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_CRITICAL_UPDATE);
                 SendEventToMaintenanceManager("MaintenanceMGR", MAINT_REBOOT_REQUIRED);
             }
+#endif /* !RDKC */
             reqStatus = SUCCESS;
         }
         else
         {
+#ifndef RDKC
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Posting RFC Error Event to MaintenanceMGR\n", __FUNCTION__,__LINE__);
             rfcObj->NotifyTelemetry2Count("SYST_INFO_RFC_Error");
             SendEventToMaintenanceManager("MaintenanceMGR", MAINT_RFC_ERROR);
+#endif /* !RDKC */
+        }
+#endif
+
+#ifdef RDKC
+        /* Camera reboot scheduling — equivalent to:
+         * if [ "$RfcRebootCronNeeded" = "1" ]; then
+         *     sh /lib/rdk/RfcRebootCronschedule.sh &
+         * fi */
+        if (rfcObj->getRfcRebootCronNeeded())
+        {
+            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
+                    "[%s][%d] RDKC: RfcRebootCronNeeded=true, scheduling reboot in maintenance window\n",
+                    __FUNCTION__, __LINE__);
+            if (access("/lib/rdk/RfcRebootCronschedule.sh", F_OK) == 0)
+            {
+                v_secure_system("sh /lib/rdk/RfcRebootCronschedule.sh &");
+            }
+            else
+            {
+                RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR,
+                        "[%s][%d] RDKC: RfcRebootCronschedule.sh not found\n",
+                        __FUNCTION__, __LINE__);
+            }
         }
 #endif
         int post_process_result = RFCManagerPostProcess();
@@ -465,6 +598,10 @@ namespace rfc {
         return reqStatus;
     }
 
+    /**
+     * @brief Entry point — run the full RFC Xconf request cycle.
+     * @return SUCCESS (0) or FAILURE (-1).
+     */
     int RFCManager ::RFCManagerProcessXconfRequest() 
     {
         int ret_status = FAILURE;
@@ -474,6 +611,15 @@ namespace rfc {
         return ret_status;
     }
 
+    /**
+     * @brief Configure the periodic cron job for rfcMgr execution.
+     *
+     * Parses a five-field cron string, adjusts the schedule back by
+     * three minutes, replaces any existing rfcMgr/RFCbase cron entry,
+     * and applies the new crontab.
+     *
+     * @param[in] cron  Five-field cron schedule string from DCM.
+     */
     void rfc::RFCManager::manageCronJob(const std::string& cron)
     {
         std::string tempFile = "/tmp/cron_tab_tmp_file";
@@ -528,7 +674,12 @@ namespace rfc {
 
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
 
+#ifdef RDKC
+        /* Camera cron entry omits log redirect (matches XHC1 shell behaviour) */
+        std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr";
+#else
         std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
+#endif
 
         // Export existing crontab using popen to avoid redirection issues
         std::string exportCmd = "crontab -l -c " + crontabPath + " 2>&1";
