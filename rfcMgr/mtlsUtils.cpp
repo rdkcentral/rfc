@@ -1,21 +1,23 @@
-/*##############################################################################
- # If not stated otherwise in this file or this component's LICENSE file the
- # following copyright and licenses apply:
- #
- # Copyright 2020 RDK Management
- #
- # Licensed under the Apache License, Version 2.0 (the "License");
- # you may not use this file except in compliance with the License.
- # You may obtain a copy of the License at
- #
- # http://www.apache.org/licenses/LICENSE-2.0
- #
- # Unless required by applicable law or agreed to in writing, software
- # distributed under the License is distributed on an "AS IS" BASIS,
- # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- # See the License for the specific language governing permissions and
- # limitations under the License.
- ##############################################################################
+/**
+ * @file mtlsUtils.cpp
+ * @brief mTLS certificate retrieval and state-red recovery implementation.
+ *
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "mtlsUtils.h"
@@ -29,9 +31,11 @@ extern "C" {
 #endif
 
 
-/* Description: Checking state red support is present or not
- * return :1 = if state red support is present
- * return :0 = if state red support is not present */
+/**
+ * @brief Check if state-red recovery is supported on this device.
+ * @retval 1  Supported (support file exists).
+ * @retval 0  Not supported.
+ */
 int isStateRedSupported(void) {
     int ret = -1;
     ret = filePresentCheck(STATE_RED_SPRT_FILE);
@@ -43,10 +47,11 @@ int isStateRedSupported(void) {
     return 0;
 }
 
-/* Description: Checking either device is in state red or not.
- * return 1: In state red
- *        0: Not in state red
- * */
+/**
+ * @brief Check if the device is currently in state-red.
+ * @retval 1  Device is in state-red.
+ * @retval 0  Device is not in state-red.
+ */
 int isInStateRed(void) {
     int ret = -1;
     int stateRed = 0;
@@ -66,10 +71,12 @@ int isInStateRed(void) {
 }
 
 #ifdef LIBRDKCERTSELECTOR
-/* Description: Use for get all mtls related certificate and key.
- * @param sec: This is a pointer hold the certificate, key and type of certificate.
- * @return :  MTLS_CERT_FETCH_SUCCESS on success, MTLS_CERT_FETCH_FAILURE on mtls cert failure , STATE_RED_CERT_FETCH_FAILURE on state red cert failure
- * */
+/**
+ * @brief Fetch mTLS certificate and key via librdkcertselector.
+ * @param[out] sec           Populated mTLS auth structure.
+ * @param[out] pthisCertSel  Certificate-selector handle (caller frees).
+ * @return MtlsAuthStatus result code.
+ */
 MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
     /*
             strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);
@@ -84,10 +91,11 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
     return MTLS_CERT_FETCH_SUCCESS;
 }
 #else
-/* Description: Use for get all mtls related certificate and key.
- * @param sec: This is a pointer hold the certificate, key and type of certificate.
- * @return : int Success 1 and failure -1
- * */
+/**
+ * @brief Fetch mTLS certificate and key (legacy / non-certselector path).
+ * @param[out] sec  Populated mTLS auth structure.
+ * @return MTLS_SUCCESS (1) or MTLS_FAILURE (-1).
+ */
 int getMtlscert(MtlsAuth_t *sec) {
     /*
             strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);

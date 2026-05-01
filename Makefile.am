@@ -17,7 +17,7 @@
 # limitations under the License.
 ##########################################################################
 if ENABLE_RDKC
-SUBDIRS = rfcapi
+SUBDIRS = rfcapi rfcMgr
 else
 if ENABLE_RDKB
 SUBDIRS = rfcMgr

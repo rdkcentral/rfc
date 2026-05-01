@@ -1,24 +1,31 @@
-/*##############################################################################
- # If not stated otherwise in this file or this component's LICENSE file the
- # following copyright and licenses apply:
- #
- # Copyright 2024 RDK Management
- #
- # Licensed under the Apache License, Version 2.0 (the "License");
- # you may not use this file except in compliance with the License.
- # You may obtain a copy of the License at
- #
- # http://www.apache.org/licenses/LICENSE-2.0
- #
- # Unless required by applicable law or agreed to in writing, software
- # distributed under the License is distributed on an "AS IS" BASIS,
- # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- # See the License for the specific language governing permissions and
- # limitations under the License.
- ##############################################################################
+/**
+ * @file xconf_handler.cpp
+ * @brief XconfHandler implementation — device identity collection and HTTP downloads.
+ *
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2024 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "xconf_handler.h"
+
+#if defined(RDKC)
+#include "rdk_debug.h"
+#define LOG_RFCMGR "LOG.RDK.RFCMGR"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +65,15 @@ int XconfHandler:: initializeXconfHandler()
             strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
             tmpbuf[sizeof(tmpbuf) - 1] = '\0';
             len = strlen(tmpbuf);
+        }
+#elif defined(RDKC)
+        {
+            std::string mac = getEstbMacAddress();
+            if (!mac.empty()) {
+                strncpy(tmpbuf, mac.c_str(), sizeof(tmpbuf) - 1);
+                tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+                len = strlen(tmpbuf);
+            }
         }
 #else
         len = GetEstbMac(tmpbuf, sizeof(tmpbuf));
@@ -102,7 +118,7 @@ int XconfHandler:: initializeXconfHandler()
         {
              _ecm_mac_address = tmpbuf;
         }
-#else
+#elif !defined(RDKC)
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetMFRName( tmpbuf, sizeof(tmpbuf) );
         if( len )
@@ -110,6 +126,9 @@ int XconfHandler:: initializeXconfHandler()
              _manufacturer = tmpbuf;
         }
 #endif
+#ifdef RDKC
+      _partner_id = getPartnerIdFromFile();
+#else
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
 	len = GetPartnerId( tmpbuf, sizeof(tmpbuf) );
 	if( len )
@@ -118,8 +137,9 @@ int XconfHandler:: initializeXconfHandler()
 	}
 	else
 	{
-	    _partner_id="Unkown";
+	    _partner_id="Unknown";
 	}
+#endif
 	
     return 0;
 }
