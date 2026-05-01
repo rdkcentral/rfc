@@ -19,6 +19,7 @@
 
 #include "rfc_common.h"
 #include "rfc_manager.h"
+#include "rdk_otlp_instrumentation.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -87,6 +88,10 @@ int main()
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);	
+
+    // Initialize OpenTelemetry instrumentation
+    rdk_otlp_init("rfcMgr", "1.0.0");
+    rdk_otlp_metrics_init();
 	
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
