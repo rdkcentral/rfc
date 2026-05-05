@@ -2,7 +2,7 @@
 
 ## Overview
 
-`librfcapi` is a C/C++ library that provides the canonical interface for reading and writing RFC (Remote Feature Control) parameters on RDK devices. It resolves parameter values from a layered file store: XConf-applied overrides first, then component defaults. All other RDK components use this library instead of accessing the INI files directly.
+`librfcapi` is a C/C++ library that provides the canonical interface for reading and writing RFC (Remote Feature Control) parameters on RDK devices. When the TR-181 data model service (`tr69hostif`) is ready, reads are served from the live data model. Before that service is ready, the library falls back to layered file-backed state: XConf-applied overrides first, bootstrap values where applicable, and component defaults last. All other RDK components use this library instead of accessing the INI files directly.
 
 ---
 
@@ -27,20 +27,37 @@ graph TB
 
 ### Lookup Priority
 
+For TR181-style RFC keys (`Device.*`), the effective priority is:
+
+1. Live TR181 data model via `tr69hostif` when `/tmp/.tr69hostif_http_server_ready` exists
+2. `/opt/secure/RFC/tr181store.ini` when the host interface is not ready
+3. `/opt/secure/RFC/bootstrap.ini` when the host interface is not ready and the key is not present in `tr181store.ini`
+4. `/tmp/rfcdefaults.ini` as the final fallback
+
+For legacy `RFC_xxxx` keys without a dot, the lookup remains file-based and reads `/opt/secure/RFC/rfcVariable.ini` directly.
+
 ```mermaid
 flowchart LR
     A[getRFCParameter called] --> B{Key starts with RFC_\nand no dot?}
     B -->|Yes| C[Read rfcVariable.ini]
-    B -->|No| D[Read tr181store.ini]
-    D --> E{Found?}
-    E -->|Yes| F[Return value]
-    E -->|No| G[Read rfcdefaults.ini\n merged from /etc/rfcdefaults/]
-    G --> H{Found?}
-    H -->|Yes| F
-    H -->|No| I[Return WDMP_FAILURE]
-    C --> J{Found?}
-    J -->|Yes| F
-    J -->|No| I
+    B -->|No| D{tr69hostif ready?}
+    D -->|Yes| E[Read live data model\nvia localhost HTTP]
+    D -->|No| F[Read tr181store.ini]
+    F --> G{Found?}
+    G -->|Yes| H[Return value]
+    G -->|No| I[Read bootstrap.ini]
+    I --> J{Found?}
+    J -->|Yes| H
+    J -->|No| K[Read rfcdefaults.ini\nmerged from /etc/rfcdefaults/]
+    K --> L{Found?}
+    L -->|Yes| H
+    L -->|No| M[Return WDMP_FAILURE]
+    C --> N{Found?}
+    N -->|Yes| H
+    N -->|No| M
+    E --> O{Found?}
+    O -->|Yes| H
+    O -->|No| M
 ```
 
 ---
@@ -78,7 +95,7 @@ typedef enum {
 
 ### `getRFCParameter()`
 
-Reads a single RFC parameter value from the local file store.
+Reads a single RFC parameter value from the live TR181 data model when available, otherwise from the local fallback stores.
 
 **Signature (non-RDKB):**
 ```c
@@ -229,6 +246,13 @@ bool isFileInDirectory(const char *filename, const char *directory);
 ## Default Value Resolution
 
 `getRFCParameter` merges all `.ini` files under `/etc/rfcdefaults/` into `/tmp/rfcdefaults.ini` on first access if the merged file does not exist. Component default files must be named `<componentname>.ini` and placed in `/etc/rfcdefaults/`.
+
+`/etc/rfcdefaults/*.ini` only affects the result when a requested key was not resolved from a higher-priority source. In practice that means:
+
+1. If `tr69hostif` is up, the live data model wins and defaults are not consulted.
+2. If `tr69hostif` is not up, `tr181store.ini` wins over defaults.
+3. `bootstrap.ini` also wins over defaults during the pre-hostif phase.
+4. Defaults are used only as the final fallback for missing keys.
 
 ```mermaid
 graph TD
