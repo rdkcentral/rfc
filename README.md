@@ -49,7 +49,7 @@ The **rfcapi** library provides a public C API (`getRFCParameter`, `setRFCParame
 |----------|-------------|-------------|
 | **STB** | *(default)* | Set-Top Box — uses hostif/WDMP APIs, TR-181 data model |
 | **RDKB** | `-DRDKB_SUPPORT` | RDK Broadband — uses rbus for TR-181 access |
-| **RDKC** | `-DRDKC` | RDK Camera (XHC1/XCAM2) — flat-file parameter storage, mfrApi for device identity |
+| **RDKC** | `-DRDKC` | RDK Camera — uses rbus for TR-181 access, mfrApi for device identity, file-based provisioning check |
 
 All platform-specific code is behind `#ifdef` guards, ensuring a single codebase builds cleanly for all targets.
 
@@ -79,11 +79,10 @@ sh run_l2_reboot_trigger.sh
 rfc-fork/
 ├── rfcMgr/                        # RFC Manager daemon (core component)
 │   ├── rfc_main.cpp               # Entry point — daemonize, init directories
-│   ├── rfc_manager.h/cpp          # Lifecycle orchestrator
+│   ├── rfc_manager.h/cpp          # Lifecycle orchestrator (WaitForIpAcquisition [RDKC])
 │   ├── xconf_handler.h/cpp        # Base device-identity collector
-│   ├── rfc_xconf_handler.h/cpp    # Core RFC state machine & Xconf logic
-│   ├── rdkc_rfc_xconf_handler.h/cpp  # RDKC camera-specific overrides
-│   ├── mtlsUtils.h/cpp            # mTLS certificate handling
+│   ├── rfc_xconf_handler.h/cpp    # Core RFC state machine & Xconf logic (all platforms)
+│   ├── mtlsUtils.h/cpp            # mTLS certificates + platform utilities (isDeviceProvisioned, getEstbMacAddress [RDKC])
 │   ├── rfc_common.h/cpp           # Shared utilities
 │   ├── rfc_mgr_iarm.h             # IARM bus integration
 │   ├── rfc_mgr_json.h             # JSON field constants
@@ -102,7 +101,7 @@ rfc-fork/
 │   └── tr181utils.cpp             # TR-181 access utilities
 ├── test/                          # Functional test suite
 │   └── functional-tests/
-├── documentation/                 # Architecture & design docs
+├── docs/                          # Architecture & design docs
 │   ├── architecture.md            # Component architecture & class diagrams
 │   ├── sequence-diagrams.md       # End-to-end sequence flows
 │   └── data-processing-flow.md    # Data processing & parameter flow
@@ -131,8 +130,7 @@ graph TB
         MGR["RFCManager<br/>Orchestrator"]
         XCONF["XconfHandler<br/>Device Identity"]
         RFC["RuntimeFeatureControl<br/>Processor"]
-        CAM["RdkcRuntimeFeatureControl<br/>Processor"]
-        MTLS["mtlsUtils<br/>Certificate Handling"]
+        MTLS["mtlsUtils<br/>Certificates & Platform Utils"]
     end
 
     subgraph "Libraries"
@@ -143,16 +141,17 @@ graph TB
 
     subgraph "External"
         SERVER["Xconf Server"]
+        RBUS["rbus<br/>TR-181 (RDKB+RDKC)"]
         FS["File System<br/>tr181store.ini"]
     end
 
     MAIN --> MGR
     MGR --> RFC
     RFC --> XCONF
-    RFC -.->|RDKC| CAM
     RFC --> MTLS
     RFC --> SERVER
     RFC --> API
+    RFC -.->|"RDKB+RDKC"| RBUS
     API --> FS
     API --> TR181
     TR181 --> UTILS
@@ -162,11 +161,13 @@ graph TB
 
 ```
 XconfHandler (device identity collection)
-  └── RuntimeFeatureControlProcessor (Xconf query, parse, apply)
-        └── RdkcRuntimeFeatureControlProcessor (camera-specific overrides)
+  └── RuntimeFeatureControlProcessor (Xconf query, parse, apply — all platforms via #ifdef guards)
 ```
 
-For detailed architecture diagrams, see [documentation/architecture.md](documentation/architecture.md).
+ Platform-specific behavior (rbus vs hostif, RDKC provisioning check, URL construction) is handled
+> via `#if defined(RDKB_SUPPORT) || defined(RDKC)` and `#ifdef RDKC` guards within the single class.
+
+For detailed architecture diagrams, see [docs/architecture.md](docs/architecture.md).
 
 ---
 
@@ -249,8 +250,13 @@ Runtime configuration is read from `rfc.properties`:
 - `waitForRfcCompletion()` synchronization at startup
 
 ### RDK-C (Camera — `--enable-rdkc`)
-- Simplified `getRFCParameter` without WDMP/tr69hostif
-- File-based lookup only
+- Uses rbus for `set_RFCProperty` and `read_RFCProperty` (shared code path with RDKB)
+- `clearDB()` removes `/opt/secure/RFC/tr181store.ini` + stash/restore identity params
+- `WaitForIpAcquisition()` polls network via `getifaddrs()` before RFC request
+- `isDeviceProvisioned()` checks `/opt/usr_config/live_video.conf` (`enabled=1`) or WPA supplicant fallback
+- `HandleScheduledReboot()` shared with RDKB — calls `/lib/rdk/RfcRebootCronschedule.sh`
+- Device identity via `mfrApi_test`, partner/account files in `/opt/usr_config/`
+- Log file at `/rdklogs/logs/dcmrfc.log.0`
 
 ---
 
@@ -366,9 +372,9 @@ Test coverage is tracked via GitHub Actions workflows:
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](documentation/architecture.md) | Component architecture, class hierarchy, build system |
-| [Sequence Diagrams](documentation/sequence-diagrams.md) | End-to-end execution flows with Mermaid diagrams |
-| [Data Processing Flow](documentation/data-processing-flow.md) | Parameter lifecycle, storage strategies, data transformations |
+| [Architecture](docs/architecture.md) | Component architecture, class hierarchy, build system |
+| [Sequence Diagrams](docs/sequence-diagrams.md) | End-to-end execution flows with Mermaid diagrams |
+| [Data Processing Flow](docs/data-processing-flow.md) | Parameter lifecycle, storage strategies, data transformations |
 | [Changelog](CHANGELOG.md) | Release history and version changes |
 | [Contributing](CONTRIBUTING.md) | How to contribute to this project |
 

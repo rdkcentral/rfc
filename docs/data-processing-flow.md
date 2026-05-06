@@ -246,26 +246,19 @@ flowchart TD
     
     A --> B{"Platform?"}
     
-    B -- "RDKC" --> C["Read /opt/secure/RFC/tr181store.ini"]
-    C --> D["Parse into lines[]"]
-    D --> E{"Key exists?"}
-    E -- Yes --> F["Replace: line = key=value"]
-    E -- No --> G["Append: lines.push_back(key=value)"]
-    F --> H["Write all lines to tr181store.ini"]
-    G --> H
-    H --> I["Return WDMP_SUCCESS"]
-
-    B -- "RDKB" --> J["rbus_open(handle)"]
+    B -- "RDKC / RDKB" --> J["rbus_open(handle)"]
     J --> K["rbus_set(handle, key, value)"]
     K --> L["rbus_close(handle)"]
-    L --> I
+    L --> I["Return WDMP_SUCCESS"]
 
     B -- "STB" --> M["setRFCParameter(key, value, type)<br/>via hostif/WDMP"]
     M --> I
 
-    style C fill:#c8e6c9,stroke:#2e7d32
-    style H fill:#c8e6c9,stroke:#2e7d32
+    style J fill:#c8e6c9,stroke:#2e7d32
+    style L fill:#c8e6c9,stroke:#2e7d32
 ```
+
+> **Note:** RDKC and RDKB share the same rbus code path, compiled under `#if defined(RDKB_SUPPORT) || defined(RDKC)`.
 
 ### Read Path (rfcapi)
 
@@ -275,26 +268,21 @@ flowchart TD
     
     A --> B{"Platform / Backend?"}
     
-    B -- "Flat-file (RDKC)" --> C["Open tr181store.ini"]
-    C --> D["Scan for key= prefix"]
-    D --> E{"Found?"}
-    E -- Yes --> F["Extract value after '='"]
-    F --> G["param.value = value<br/>param.type = STRING"]
-    E -- No --> H["Return WDMP_ERR_VALUE_IS_EMPTY"]
+    B -- "rbus (RDKC / RDKB)" --> L["rbus_get(key)"]
+    L --> M["Parse rbus response"]
+    M --> G["param.value = value<br/>param.type = STRING"]
 
     B -- "WDMP (STB)" --> I["Build WDMP request"]
     I --> J["Send to hostif backend"]
     J --> K["Parse WDMP response"]
     K --> G
 
-    B -- "TR-181 int (RDKB)" --> L["rbus_get(key)"]
-    L --> M["Parse rbus response"]
-    M --> G
-
     G --> N["Return 0 (success)"]
 
-    style C fill:#c8e6c9,stroke:#2e7d32
+    style L fill:#c8e6c9,stroke:#2e7d32
 ```
+
+> **Note:** `read_RFCProperty()` within rfcMgr also uses rbus for RDKC/RDKB via the combined `#if defined(RDKB_SUPPORT) || defined(RDKC)` path.
 
 ### File Format: tr181store.ini
 
@@ -470,9 +458,9 @@ flowchart TD
 
 | Operation | STB | RDKB | RDKC |
 |-----------|-----|------|------|
-| **Write** | `setRFCParameter()` via hostif | `rbus_set()` | Write to `tr181store.ini` |
-| **Read** | `getRFCParameter()` via WDMP | `rbus_get()` | Scan `tr181store.ini` |
-| **Clear** | TR-181 ClearDB params | TR-181 ClearDB params | `std::remove(tr181store.ini)` |
+| **Write** | `setRFCParameter()` via hostif | `rbus_set()` | `rbus_set()` (shared path) |
+| **Read** | `getRFCParameter()` via WDMP | `rbus_get()` | `rbus_get()` (shared path) |
+| **Clear** | TR-181 ClearDB params | TR-181 ClearDB params | `std::remove(tr181store.ini)` + `rfcStashRetrieveParams()` |
 
 ### mTLS Certificate
 
@@ -486,9 +474,10 @@ flowchart TD
 
 | Aspect | STB | RDKB | RDKC |
 |--------|-----|------|------|
-| **Trigger** | MaintenanceManager | MaintenanceManager | `RfcRebootCronschedule.sh` |
-| **Conditions** | `effectiveImmediate` flag | `effectiveImmediate` flag | `effectiveImmediate` + provisioned + not identity param |
-| **Notification** | IARM event | IARM event | Shell script (background) |
+| **Trigger** | MaintenanceManager | `HandleScheduledReboot()` | `HandleScheduledReboot()` (shared) |
+| **Conditions** | `effectiveImmediate` flag | `effectiveImmediate` flag | `effectiveImmediate` + `isDeviceProvisioned()` + not identity param |
+| **Script** | IARM event | `/etc/RfcRebootCronschedule.sh` | `/lib/rdk/RfcRebootCronschedule.sh` |
+| **Provisioning Check** | N/A | N/A | File-based: `/opt/usr_config/live_video.conf` `enabled=1` or WPA supplicant exists |
 
 ---
 

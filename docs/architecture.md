@@ -33,12 +33,11 @@ graph TD
 
     subgraph "RFC Processing Engine"
         C["XconfHandler<br/>Device identity collection<br/>MAC &#8226; FW &#8226; model &#8226; partner ID"]
-        D["RuntimeFeatureControlProcessor<br/>Xconf query &#8226; JSON parse &#8226; param apply<br/>hash/time management &#8226; reboot eval"]
-        E["RdkcRuntimeFeatureControl<br/>Processor<br/>Camera URL &#8226; RAM hash/time &#8226; no-op metadata"]
+        D["RuntimeFeatureControlProcessor<br/>Xconf query &#8226; JSON parse &#8226; param apply<br/>hash/time management &#8226; reboot eval<br/>#ifdef RDKC: provisioning check &#8226; effectiveImmediate"]
     end
 
-    subgraph "Security"
-        F["mtlsUtils<br/>Dynamic XPKI &#8226; Static XPKI &#8226; cert selector"]
+    subgraph "Security & Platform Utilities"
+        F["mtlsUtils<br/>Dynamic XPKI &#8226; Static XPKI &#8226; cert selector<br/>getEstbMacAddress &#8226; getPartnerIdFromFile<br/>getAccountHashFromFile &#8226; isDeviceProvisioned"]
     end
 
     subgraph "Public API"
@@ -58,7 +57,6 @@ graph TD
     A --> B
     B --> D
     D --> C
-    D -.->|"#ifdef RDKC"| E
     D --> F
     D --> I
     D --> G
@@ -66,7 +64,6 @@ graph TD
     G --> H
     H --> K
 
-    style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
     style F fill:#fff9c4,stroke:#f9a825,stroke-width:2px
     style G fill:#bbdefb,stroke:#1565c0,stroke-width:2px
 ```
@@ -83,7 +80,6 @@ graph LR
         MGR[rfc_manager]
         XCONF[xconf_handler]
         RFCX[rfc_xconf_handler]
-        RDKC_X[rdkc_rfc_xconf_handler]
         COMMON[rfc_common]
         MTLS[mtlsUtils]
         IARM[rfc_mgr_iarm]
@@ -93,7 +89,6 @@ graph LR
         MAIN --> MGR
         MGR --> RFCX
         RFCX --> XCONF
-        RFCX -.-> RDKC_X
         RFCX --> COMMON
         RFCX --> MTLS
         MGR --> IARM
@@ -119,8 +114,6 @@ graph LR
     RFCAPI --> TR181
     TR181 --> JSONUTIL
     TR181 --> TRSET
-
-    style RDKC_X fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
 ```
 
 ---
@@ -146,54 +139,47 @@ classDiagram
         #string _accountId
         #string _experience
         #string _xconf_server_url
-        #bool _rfcRebootCronNeeded
-        #set~string~ _effectiveImmediateParams
+        #bool _rfcRebootCronNeeded [RDKC]
+        #set~string~ _effectiveImmediateParams [RDKC]
         +InitializeRuntimeFeatureControlProcessor() int
         +ProcessRuntimeFeatureControlReq() int
         +GetAccountID() void
-        +getRfcRebootCronNeeded() bool
-        #CreateXconfHTTPUrl()* stringstream
-        #RetrieveHashAndTimeFromPreviousDataSet()* void
-        #StoreXconfEndpointMetadata()* void
-        #set_RFCProperty(char*, char*, char*) WDMP_STATUS
+        +getRfcRebootCronNeeded() bool [RDKC]
+        +HandleScheduledReboot(bool) void [RDKB|RDKC]
+        #CreateXconfHTTPUrl() stringstream
+        #RetrieveHashAndTimeFromPreviousDataSet() void
+        #StoreXconfEndpointMetadata() void
+        #set_RFCProperty(string, string, string) WDMP_STATUS
         #clearDB() void
         #updateHashInDB(string) void
         #updateTimeInDB(string) void
     }
 
-    class RdkcRuntimeFeatureControlProcessor {
-        -string _accountHash
-        -GetAccountHash() void
-        #CreateXconfHTTPUrl() stringstream
-        #RetrieveHashAndTimeFromPreviousDataSet() void
-        #StoreXconfEndpointMetadata() void
-    }
-
     class RFCManager {
         -RuntimeFeatureControlProcessor* _rfcProcessor
         +CheckDeviceIsOnline() DeviceStatus
+        +WaitForIpAcquisition() void [RDKC]
         +RFCManagerProcess() int
         +RFCManagerProcessXconfRequest() int
         +RFCManagerPostProcess() void
     }
 
     XconfHandler <|-- RuntimeFeatureControlProcessor : inherits
-    RuntimeFeatureControlProcessor <|-- RdkcRuntimeFeatureControlProcessor : inherits
     RFCManager --> RuntimeFeatureControlProcessor : creates & uses
 
-    note for RdkcRuntimeFeatureControlProcessor "Compiled only with -DRDKC flag.\nOverrides 3 virtual methods for\ncamera-specific behavior."
+    note for RuntimeFeatureControlProcessor "Single class for all platforms.\nPlatform differences via #ifdef guards.\nRDKC+RDKB share rbus path for TR-181."
 ```
 
-### Inheritance Design Rationale
+### Design Rationale
 
-The class hierarchy follows the **Template Method Pattern**:
+The architecture uses a **single class with conditional compilation** rather than inheritance:
 
 - **`XconfHandler`** — Collects device identity. Platform differences are behind `#ifdef` blocks within methods.
-- **`RuntimeFeatureControlProcessor`** — Implements the full RFC workflow. Declares `virtual` methods for steps that vary by platform.
-- **`RdkcRuntimeFeatureControlProcessor`** — Overrides only 3 methods, keeping the camera delta minimal:
-  - `CreateXconfHTTPUrl()` — Camera-specific URL parameters
-  - `RetrieveHashAndTimeFromPreviousDataSet()` — RAM-file storage
-  - `StoreXconfEndpointMetadata()` — No-op (camera must not persist Xconf metadata)
+- **`RuntimeFeatureControlProcessor`** — Implements the full RFC workflow for all platforms (STB, RDKB, RDKC). Platform-specific behavior is handled via `#ifdef` guards:
+  - `#if defined(RDKB_SUPPORT) || defined(RDKC)` — rbus-based `set_RFCProperty` and `read_RFCProperty`
+  - `#ifdef RDKC` — provisioning check, effectiveImmediate reboot evaluation, RAM-file hash/time storage
+  - `#ifdef RDKB_SUPPORT` — RDKB-specific `ProcessJsonResponseB`, account ID file management
+- **`RFCManager`** — Orchestrates lifecycle. RDKC-specific `WaitForIpAcquisition()` extracted as helper.
 
 ---
 
@@ -213,7 +199,7 @@ flowchart TD
     E --> H["SUBDIRS = rfcMgr"]
     F --> I["SUBDIRS = rfcapi tr181api utils rfcMgr"]
 
-    G --> J["rfcMgr sources += rdkc_rfc_xconf_handler.cpp<br/>Links: -lrfcapi -ldwnlutil -lfwutils -lcurl"]
+    G --> J["Links: -lrfcapi -lrbus -ldwnlutil<br/>-lfwutils -lsecure_wrapper -lcurl"]
     H --> K["Links: -lrbus"]
     I --> L["Links: ../rfcapi/.libs/librfcapi.la"]
 
@@ -228,7 +214,7 @@ flowchart TD
 |----------|---------------------|--------|-----------|
 | **STB** | rfcapi, tr181api, utils, rfcMgr | `/usr/bin/rfcMgr` | librfcapi.so, libtr181api.so |
 | **RDKB** | rfcMgr | `/usr/bin/rfcMgr` | *(links external rbus)* |
-| **RDKC** | rfcapi, rfcMgr | `/usr/bin/rfcMgr` | librfcapi.so |
+| **RDKC** | rfcapi, rfcMgr | `/usr/bin/rfcMgr` | librfcapi.so *(links rbus externally)* |
 
 ---
 
@@ -254,18 +240,27 @@ Used within shared source files for small, inline platform differences:
 
 **Used in:** `rfc_manager.cpp`, `xconf_handler.cpp`, `rfc_xconf_handler.cpp`, `mtlsUtils.cpp`, `rfcapi.cpp`
 
-### Strategy 2: Polymorphic Override
+### Strategy 2: Shared Code Paths with Combined Guards
 
-Used for larger behavioral differences via virtual method dispatch:
+Used when RDKB and RDKC share the same implementation (e.g., rbus):
 
-```mermaid
-flowchart LR
-    A["RFCManager"] --> B{"Platform?"}
-    B -- RDKC --> C["new RdkcRuntimeFeature<br/>ControlProcessor()"]
-    B -- Other --> D["new RuntimeFeature<br/>ControlProcessor()"]
-    C --> E["Virtual dispatch for<br/>CreateXconfHTTPUrl()<br/>RetrieveHashAndTime...<br/>StoreXconfEndpoint..."]
-    D --> E
 ```
+┌──────────────────────────────────────────────┐
+│  #if defined(RDKB_SUPPORT) || defined(RDKC)  │
+│      // rbus-based read/write (shared)        │
+│  #else                                       │
+│      // STB hostif/WDMP implementation        │
+│  #endif                                      │
+└──────────────────────────────────────────────┘
+```
+
+**Used in:** `set_RFCProperty()`, `read_RFCProperty()`, `HandleScheduledReboot()`, `RetrieveHashAndTimeFromPreviousDataSet()`
+
+### Platform-Specific Macros
+
+| Macro | RDKB Value | RDKC Value | Purpose |
+|-------|-----------|-----------|--------|
+| `RFC_REBOOT_CRON_SCRIPT` | `/etc/RfcRebootCronschedule.sh` | `/lib/rdk/RfcRebootCronschedule.sh` | Reboot scheduling script path |
 
 ---
 
@@ -276,11 +271,10 @@ flowchart LR
 | File | Responsibility | Key Functions |
 |------|---------------|---------------|
 | `rfc_main.cpp` | Process entry point | `main()`, `cleanup_lock_file()`, `signal_handler()`, `createDirectoryIfNotExists()` |
-| `rfc_manager.h/cpp` | Lifecycle orchestrator | `CheckDeviceIsOnline()`, `RFCManagerProcess()`, `RFCManagerPostProcess()`, `SendEventToMaintenanceManager()` |
+| `rfc_manager.h/cpp` | Lifecycle orchestrator | `CheckDeviceIsOnline()`, `WaitForIpAcquisition()` [RDKC], `RFCManagerProcess()`, `RFCManagerPostProcess()`, `SendEventToMaintenanceManager()` |
 | `xconf_handler.h/cpp` | Device identity | `initializeXconfHandler()`, `ExecuteRequest()` |
-| `rfc_xconf_handler.h/cpp` | Core RFC logic | `InitializeRuntimeFeatureControlProcessor()`, `ProcessRuntimeFeatureControlReq()`, `set_RFCProperty()`, `clearDB()` |
-| `rdkc_rfc_xconf_handler.h/cpp` | Camera overrides | `CreateXconfHTTPUrl()`, `RetrieveHashAndTimeFromPreviousDataSet()`, `StoreXconfEndpointMetadata()` |
-| `mtlsUtils.h/cpp` | Certificate management | `getMtlscert()`, `isStateRedSupported()`, `isInStateRed()` |
+| `rfc_xconf_handler.h/cpp` | Core RFC logic (all platforms) | `InitializeRuntimeFeatureControlProcessor()`, `ProcessRuntimeFeatureControlReq()`, `set_RFCProperty()`, `clearDB()`, `HandleScheduledReboot()`, `CreateConfigDataValueMap()` |
+| `mtlsUtils.h/cpp` | Certificates & platform utilities | `getMtlscert()`, `isStateRedSupported()`, `isInStateRed()`, `getEstbMacAddress()` [RDKC], `getPartnerIdFromFile()` [RDKC], `getAccountHashFromFile()` [RDKC], `isDeviceProvisioned()` [RDKC] |
 | `rfc_common.h/cpp` | Shared utilities | `read_RFCProperty()`, `getSyseventValue()`, `waitForRfcCompletion()` |
 | `rfc_mgr_iarm.h` | IARM bus integration | Event handler registration constants |
 | `rfc_mgr_json.h` | JSON field names | Feature/parameter key string constants |
@@ -315,7 +309,7 @@ graph TD
 
     subgraph "RDK Platform Libraries"
         HOSTIF[libhostif<br/>STB only]
-        RBUS[librbus<br/>RDKB only]
+        RBUS[librbus<br/>RDKB + RDKC]
         MFRAPI[mfrApi_test<br/>RDKC only]
         CERTSELECTOR[librdkcertselector<br/>optional]
         DWNLUTIL[libdwnlutil<br/>RDKC only]
@@ -336,7 +330,7 @@ graph TD
     RFCMGR --> SECWRAP
     RFCMGR --> RFCAPI
     RFCMGR -.->|STB| HOSTIF
-    RFCMGR -.->|RDKB| RBUS
+    RFCMGR -.->|RDKB+RDKC| RBUS
     RFCMGR -.->|RDKC| DWNLUTIL
     RFCMGR -.->|RDKC| FWUTILS
     RFCMGR -.->|optional| CERTSELECTOR
@@ -377,10 +371,12 @@ graph LR
 | Integration | Protocol/Method | Platform |
 |------------|-----------------|----------|
 | Xconf Server | HTTP GET + mTLS (libcurl) | All |
-| tr181store.ini | File I/O (flat key=value) | RDKC |
-| TR-181 Data Model | hostif / rbus | STB / RDKB |
+| TR-181 Data Model (rbus) | rbus_get / rbus_set | RDKB / RDKC |
+| TR-181 Data Model (hostif) | hostif WDMP | STB |
+| tr181store.ini | File I/O (clearDB only) | RDKC |
 | IARM Bus | Event registration | STB |
 | mfrApi_test | popen() command | RDKC |
 | Maintenance Manager | IARM event | STB |
-| Reboot Cron | v_secure_system() shell exec | RDKC |
-| Telemetry | v_secure_system() call | STB / RDKB |
+| Reboot Cron | v_secure_system() shell exec | RDKB / RDKC |
+| Provisioning Check | stat() + file read | RDKC |
+| Telemetry | v_secure_system() call | All |

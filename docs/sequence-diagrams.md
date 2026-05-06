@@ -51,13 +51,13 @@ sequenceDiagram
 
     Note over OS,FS: Phase 3 — RFC Processing
     Main->>RFCMgr: RFCManagerProcess()
-    RFCMgr->>RFCMgr: sleep(120) [RDKC only]
-    RFCMgr->>Proc: new Processor() [platform-specific]
+    RFCMgr->>RFCMgr: WaitForIpAcquisition() [RDKC only]
+    RFCMgr->>Proc: new RuntimeFeatureControlProcessor()
     RFCMgr->>Proc: InitializeRuntimeFeatureControlProcessor()
     RFCMgr->>Proc: ProcessRuntimeFeatureControlReq()
     Proc->>Xconf: HTTP GET + mTLS
     Xconf-->>Proc: HTTP 200 + JSON
-    Proc->>FS: Apply parameters (set_RFCProperty)
+    Proc->>FS: Apply parameters (set_RFCProperty via rbus)
     Proc->>FS: Update hash & timestamp
     Proc-->>RFCMgr: SUCCESS
 
@@ -241,11 +241,11 @@ sequenceDiagram
     Hash-->>Proc: {hash, timestamp}
 
     Note over Proc,Store: Step 2 — Build Request URL
-    Proc->>URL: CreateXconfHTTPUrl() [virtual]
-    alt RDKC Override
+    Proc->>URL: CreateXconfHTTPUrl()
+    alt RDKC
         URL->>URL: GetAccountHash()
         URL->>URL: Build: server?estbMacAddress=MAC<br/>&firmwareVersion=FW&env=BUILD<br/>&model=MODEL&accountHash=HASH<br/>&partnerId=PID&accountId=AID<br/>&experience=EXP&version=2
-    else Default
+    else STB/RDKB
         URL->>URL: Build: server?estbMacAddress=MAC<br/>&firmwareVersion=FW&env=BUILD<br/>&model=MODEL&ecmMacAddress=ECM<br/>&partnerId=PID&accountId=AID<br/>&experience=EXP&manufacturer=MFR<br/>&osclass=OS&version=2
     end
     URL-->>Proc: URL string
@@ -267,11 +267,7 @@ sequenceDiagram
     loop For each feature parameter
         Proc->>Store: clearDB() → remove old params
         Proc->>Store: set_RFCProperty(name, key, value)
-        alt RDKC
-            Store->>Store: Read tr181store.ini
-            Store->>Store: Update/append key=value line
-            Store->>Store: Write tr181store.ini
-        else RDKB
+        alt RDKC / RDKB
             Store->>Store: rbus_open → rbus_set → rbus_close
         else STB
             Store->>Store: setRFCParameter() via hostif
@@ -345,8 +341,7 @@ sequenceDiagram
 sequenceDiagram
     participant Proc as Processor
     participant JSON as JSON Parser
-    participant INI as tr181store.ini
-    participant API as rfcapi / rbus / hostif
+    participant API as rbus / hostif
 
     Proc->>JSON: Read features[] from response
     
@@ -358,17 +353,7 @@ sequenceDiagram
             
             Proc->>Proc: set_RFCProperty(featureName, key, value)
             
-            alt RDKC Platform
-                Proc->>INI: Read entire file into lines[]
-                
-                alt Key exists in file
-                    Proc->>INI: Replace line: key=value
-                else Key not found
-                    Proc->>INI: Append: key=value
-                end
-                
-                Proc->>INI: Write all lines back
-            else RDKB Platform
+            alt RDKC / RDKB Platform
                 Proc->>API: rbus_open()
                 Proc->>API: rbus_set(key, value)
                 Proc->>API: rbus_close()
@@ -387,12 +372,12 @@ sequenceDiagram
 sequenceDiagram
     participant Proc as Processor
     participant JSON as Feature JSON
-    participant Device as Device Properties
+    participant Prov as isDeviceProvisioned()
     participant Cron as RfcRebootCronschedule.sh
     participant MGR as RFCManager
 
     Note over Proc,MGR: Step 1 — Build effectiveImmediate set (RDKC)
-    Proc->>JSON: Parse features[]
+    Proc->>JSON: Parse features[] in CreateConfigDataValueMap()
     loop For each feature
         alt feature.effectiveImmediate == true
             loop For each param in feature.configData
@@ -404,8 +389,9 @@ sequenceDiagram
     Note over Proc,MGR: Step 2 — Evaluate per-param reboot need
     loop For each applied parameter
         alt param.key in _effectiveImmediateParams
-            Proc->>Device: getDevicePropertyData("RDKC_DEVICE_PROVISION_STATUS")
-            Device-->>Proc: "1" (provisioned) / "0" (not provisioned)
+            Proc->>Prov: isDeviceProvisioned()
+            Note over Prov: Check /opt/SecurePartition/usr_config/live_video.conf<br/>or /opt/usr_config/live_video.conf for "enabled=1"<br/>Fallback: /mnt/ramdisk/env/wpa_supplicant.conf exists & non-empty
+            Prov-->>Proc: true / false
             
             alt Device is provisioned
                 alt param is NOT AccountID or MD5AccountHash
@@ -422,13 +408,14 @@ sequenceDiagram
         end
     end
 
-    Note over Proc,MGR: Step 3 — Trigger reboot (if needed)
+    Note over Proc,MGR: Step 3 — HandleScheduledReboot (RDKB + RDKC shared)
     Proc-->>MGR: Return from ProcessRuntimeFeatureControlReq()
     MGR->>Proc: getRfcRebootCronNeeded()
     
     alt _rfcRebootCronNeeded == true
-        MGR->>Cron: v_secure_system("sh /lib/rdk/RfcRebootCronschedule.sh &")
-        Note over Cron: Schedule device reboot via cron
+        MGR->>Proc: HandleScheduledReboot(true)
+        Proc->>Cron: v_secure_system("sh " RFC_REBOOT_CRON_SCRIPT " &")
+        Note over Cron: RDKC: /lib/rdk/RfcRebootCronschedule.sh<br/>RDKB: /etc/RfcRebootCronschedule.sh
     else No reboot needed
         Note over MGR: Continue to post-processing
     end
@@ -448,11 +435,12 @@ sequenceDiagram
 
     Note over MGR,FS: After ProcessRuntimeFeatureControlReq() returns
 
-    alt RDKC Platform
+    alt RDKC / RDKB Platform
         MGR->>MGR: Skip MaintenanceManager notification
         MGR->>Proc: getRfcRebootCronNeeded()
         alt Reboot needed
-            MGR->>FS: v_secure_system("sh /lib/rdk/RfcRebootCronschedule.sh &")
+            MGR->>Proc: HandleScheduledReboot(true)
+            Proc->>FS: v_secure_system("sh " RFC_REBOOT_CRON_SCRIPT " &")
         end
     else STB Platform
         MGR->>MM: SendEventToMaintenanceManager(MAINT_RFC_COMPLETE)
