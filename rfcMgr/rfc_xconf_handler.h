@@ -260,9 +260,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 #endif
 #if defined(RDKB_SUPPORT) || defined(RDKC)
         void HandleScheduledReboot(bool rfcRebootCronNeeded);
-#endif
-#ifdef RDKC
-        bool isDeviceProvisioned();
 #endif	
         void GetValidAccountId();
         void GetValidPartnerId();

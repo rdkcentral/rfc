@@ -875,65 +875,6 @@ void RuntimeFeatureControlProcessor::HandleScheduledReboot(bool rfcRebootCronNee
 }
 #endif
 
-#ifdef RDKC
-bool RuntimeFeatureControlProcessor::isDeviceProvisioned()
-{
-    /* Mirrors shell checkCameraProvisionStatus():
-     * 1. If live_video.conf exists and is non-empty, check "enabled=1"
-     * 2. Else if wpa_supplicant.conf backup exists and is non-empty, provisioned
-     * 3. Else not provisioned
-     * Check secure partition path first (matches setConfigFilesPath logic). */
-    const char* SECURE_EVO_FILE = "/opt/SecurePartition/usr_config/live_video.conf";
-    const char* EVO_FILE = "/opt/usr_config/live_video.conf";
-    const char* WPA_CONFIG_BKP_ENV_PATH = "/mnt/ramdisk/env/wpa_supplicant.conf";
-
-    struct stat st;
-    const char* evoPath = nullptr;
-
-    // Determine which provisioning file to use (secure partition preferred)
-    if (stat(SECURE_EVO_FILE, &st) == 0 && st.st_size > 0)
-    {
-        evoPath = SECURE_EVO_FILE;
-    }
-    else if (stat(EVO_FILE, &st) == 0 && st.st_size > 0)
-    {
-        evoPath = EVO_FILE;
-    }
-
-    if (evoPath)
-    {
-        std::ifstream file(evoPath);
-        if (file.is_open())
-        {
-            std::string line;
-            while (std::getline(file, line))
-            {
-                // Match shell: grep -w "enabled" | cut -d "=" -f2
-                if (line.find("enabled") != std::string::npos)
-                {
-                    size_t pos = line.find('=');
-                    if (pos != std::string::npos)
-                    {
-                        std::string value = line.substr(pos + 1);
-                        value.erase(0, value.find_first_not_of(" \t\r\n"));
-                        value.erase(value.find_last_not_of(" \t\r\n") + 1);
-                        return (value == "1");
-                    }
-                }
-            }
-        }
-        return false;
-    }
-    // Fallback: device is provisioned if WPA config backup exists and is non-empty
-    else if (stat(WPA_CONFIG_BKP_ENV_PATH, &st) == 0 && st.st_size > 0)
-    {
-        return true;
-    }
-
-    return false;
-}
-#endif
-
 void RuntimeFeatureControlProcessor::GetAccountID() 
 {
     int i = 0;
