@@ -1959,7 +1959,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     
 	int curl_ret_code = -1;
 #ifdef LIBRDKCERTSELECTOR
-    int state_red = -1;
     int cert_ret_code = -1;
 	MtlsAuth_t sec;
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
@@ -2006,7 +2005,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
             if (thisCertSel == NULL)
             {
-                const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
+                const char* certGroup = "MTLS";
                 thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
                 if (thisCertSel == NULL) {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization failed\n", __FUNCTION__, __LINE__);
@@ -2026,9 +2025,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
                     if (ret == MTLS_CERT_FETCH_FAILURE) {
 	                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
-                        return cert_ret_code;
-                    } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
                         return cert_ret_code;
                     } else {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);

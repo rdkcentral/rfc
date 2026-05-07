@@ -302,7 +302,7 @@ Feature: RFC Manager Malformed XConf Response Handling
 
 #### GAP-H4: mTLS Certificate Fetch Failure
 
-**Source:** `DownloadRuntimeFeatutres()` handles `MTLS_CERT_FETCH_FAILURE` and `STATE_RED_CERT_FETCH_FAILURE`  
+**Source:** `DownloadRuntimeFeatutres()` handles `MTLS_CERT_FETCH_FAILURE`  
 **Untested:** Behavior when cert selector cannot retrieve any certificate.
 
 ```gherkin
@@ -315,12 +315,6 @@ Feature: RFC Manager mTLS Certificate Failure
     When the RFC manager binary is run
     Then an error message "MTLS cert fetch failure" should be logged
     And a telemetry marker "MTLS_CERT_FETCH_FAILURE" should be reported
-
-  Scenario: State Red certificate fallback
-    Given the device is in State Red mode
-    And the primary mTLS certificates are unavailable
-    When the RFC manager binary is run
-    Then the State Red certificate should be used for XConf communication
 ```
 
 #### GAP-H5: Bootstrap XConf URL

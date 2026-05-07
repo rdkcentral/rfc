@@ -39,7 +39,6 @@ extern "C" {
 #define CURL_MTLS_LOCAL_CERTPROBLEM 58
 
 typedef enum {
-    STATE_RED_CERT_FETCH_FAILURE = -2,     // Indicates failure in state red recovery
     MTLS_CERT_FETCH_FAILURE = -1,          // Indicates general MTLS failure
     MTLS_CERT_FETCH_SUCCESS = 0            // Indicates success
 } MtlsAuthStatus;
@@ -59,19 +58,12 @@ int getMtlscert(MtlsAuth_t *sec);
  * Users are free to override with their custom certs and verifier algorithms during compile time 
  **/
 #define KEY_STATIC  ""
-#define STATE_RED_CERT ""
-#define STATE_RED_KEY ""
 #define MTLS_CERT ""
 #define MTLS_KEY ""
 #define GET_CONFIG_FILE ""
 #define SYS_CMD_GET_CONFIG_FILE ""
-#define STATE_RED_SPRT_FILE ""
-#define STATEREDFLAG ""
 
-#if defined(GTEST_ENABLE)
-int isStateRedSupported(void);
-int isInStateRed(void);
-#endif
+
 
 #if defined(RDKB_SUPPORT)
 std::string getErouterMac();
