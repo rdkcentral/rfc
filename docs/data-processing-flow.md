@@ -219,12 +219,12 @@ flowchart TD
         "configData": [
           {
             "key": "Device.X_RDK.AccountID",
-            "value": "5789171196032993066",
+            "value": "12345",
             "dataType": 0
           },
           {
             "key": "Device.X_RDK.MD5AccountHash",
-            "value": "1EMvt8zMMd8muKCBJRnp1z6nZTgsBJ1VhL",
+            "value": "xxx",
             "dataType": 0
           }
         ]
@@ -288,8 +288,8 @@ flowchart TD
 
 ```
 Device.X_RDK.Feature.AccountInfo.Enable=true
-Device.X_RDK.AccountID=5789171196032993066
-Device.X_RDK.MD5AccountHash=1EMvt8zMMd8muKCBJRnp1z6nZTgsBJ1VhL
+Device.X_RDK.AccountID=12345
+Device.X_RDK.MD5AccountHash=xxxx
 Device.X_RDK.Feature.VideoAnalytics.Enable=true
 Device.X_RDK.Feature.AmbientListening.Enable=false
 ```
@@ -510,8 +510,8 @@ RFC_POSTPROCESS="/lib/rdk/RFCpostprocess.sh"
 ```ini
 # Format: TR-181_parameter_name=value
 Device.X_RDK.Feature.AccountInfo.Enable=true
-Device.X_RDK.AccountID=5789171196032993066
-Device.X_RDK.MD5AccountHash=1EMvt8zMMd8muKCBJRnp1z6nZTgsBJ1VhL
+Device.X_RDK.AccountID=12345
+Device.X_RDK.MD5AccountHash=xxxxx
 Device.X_RDK.Feature.VideoAnalytics.Enable=true
 ```
 
@@ -519,7 +519,7 @@ Device.X_RDK.Feature.VideoAnalytics.Enable=true
 
 ```
 # /tmp/RFC/.hashValue
-a3f2b8c1d4e5f6a7b8c9d0e1f2a3b4c5
+abcde5
 
 # /tmp/RFC/.timeValue
 1712937600
