@@ -44,7 +44,6 @@ extern "C" {
  * @brief mTLS certificate fetch status codes (librdkcertselector path).
  */
 typedef enum {
-    STATE_RED_CERT_FETCH_FAILURE = -2, /**< State-red recovery itself failed. */
     MTLS_CERT_FETCH_FAILURE = -1,      /**< General mTLS cert fetch failure. */
     MTLS_CERT_FETCH_SUCCESS = 0        /**< Certificate fetched successfully. */
 } MtlsAuthStatus;
@@ -76,22 +75,11 @@ int getMtlscert(MtlsAuth_t *sec);
  * Override at compile time with device-specific paths.
  * @{ */
 #define KEY_STATIC  ""
-#define STATE_RED_CERT ""
-#define STATE_RED_KEY ""
 #define MTLS_CERT ""
 #define MTLS_KEY ""
 #define GET_CONFIG_FILE ""
 #define SYS_CMD_GET_CONFIG_FILE ""
-#define STATE_RED_SPRT_FILE ""
-#define STATEREDFLAG ""
 /** @} */
-
-#if defined(GTEST_ENABLE)
-/** @brief Check if state-red recovery is supported on this build. */
-int isStateRedSupported(void);
-/** @brief Check if the device is currently in state-red. */
-int isInStateRed(void);
-#endif
 
 #if defined(RDKB_SUPPORT)
 /** @brief Get the eRouter MAC address string. */

@@ -30,46 +30,6 @@
 extern "C" {
 #endif
 
-
-/**
- * @brief Check if state-red recovery is supported on this device.
- * @retval 1  Supported (support file exists).
- * @retval 0  Not supported.
- */
-int isStateRedSupported(void) {
-    int ret = -1;
-    ret = filePresentCheck(STATE_RED_SPRT_FILE);
-    if(ret == RDK_API_SUCCESS) {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "isStateRedSupported(): Yes file present:%s\n", STATE_RED_SPRT_FILE);
-        return 1;
-    }
-    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "isStateRedSupported(): No:%s\n", STATE_RED_SPRT_FILE);
-    return 0;
-}
-
-/**
- * @brief Check if the device is currently in state-red.
- * @retval 1  Device is in state-red.
- * @retval 0  Device is not in state-red.
- */
-int isInStateRed(void) {
-    int ret = -1;
-    int stateRed = 0;
-    ret = isStateRedSupported();
-    if(ret == 0) {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"isInStateRed(): No ret:%d\n", stateRed);
-        return stateRed;
-    }
-    ret = filePresentCheck(STATEREDFLAG);
-    if(ret == RDK_API_SUCCESS) {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "isInStateRed(): Yes Flag prsent:%s. Device is in statered\n", STATEREDFLAG);
-        stateRed = 1;
-    } else {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "isInStateRed(): No Flag Not prsent:%s. Device is not in statered\n", STATEREDFLAG);
-    }
-    return stateRed;
-}
-
 #ifdef LIBRDKCERTSELECTOR
 /**
  * @brief Fetch mTLS certificate and key via librdkcertselector.
@@ -79,7 +39,7 @@ int isInStateRed(void) {
  */
 MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
     /*
-            strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);
+            strncpy(sec->cert_name, MTLS_CERT, sizeof(sec->cert_name) - 1);
 	    sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
             strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
 	    sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
@@ -98,7 +58,7 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
  */
 int getMtlscert(MtlsAuth_t *sec) {
     /*
-            strncpy(sec->cert_name, STATE_RED_CERT, sizeof(sec->cert_name) - 1);
+            strncpy(sec->cert_name, MTLS_CERT, sizeof(sec->cert_name) - 1);
             sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
             strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
             sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';

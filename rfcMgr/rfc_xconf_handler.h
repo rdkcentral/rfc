@@ -132,7 +132,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         {
             isRebootRequired = false;
         }
-        ~RuntimeFeatureControlProcessor() = default;
+
         RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete; /**< Copy disabled. */
         
         /**
