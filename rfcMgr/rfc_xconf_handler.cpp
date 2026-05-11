@@ -2073,20 +2073,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
                     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
             } while (rdkcertselector_setCurlStatus(thisCertSel, curl_ret_code, file_dwnl.url) == TRY_ANOTHER);
-#elif defined(RDKC)
-            {
-                MtlsAuth_t sec;
-                memset(&sec, '\0', sizeof(MtlsAuth_t));
-                int ret = getMtlscert(&sec);
-                if (ret == MTLS_SUCCESS) {
-                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RDKC mTLS creds fetched successfully\n", __FUNCTION__, __LINE__);
-                    curl_ret_code = ExecuteRequest(&file_dwnl, &sec, &httpCode);
-                } else {
-                    RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RDKC mTLS creds not available, proceeding without mTLS\n", __FUNCTION__, __LINE__);
-                    curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
-                }
-            }
-            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC Xconf Connection Response cURL Return : %d HTTP Code : %d\n",__FUNCTION__, __LINE__, curl_ret_code, httpCode);
 #else
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Executing request without cert selector\n", __FUNCTION__, __LINE__);
             curl_ret_code = ExecuteRequest(&file_dwnl, NULL, &httpCode);
