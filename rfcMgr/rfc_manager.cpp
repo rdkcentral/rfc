@@ -356,16 +356,19 @@ namespace rfc {
     /**
      * @brief Poll until a routable (non-loopback, non-link-local) IP appears.
      *
-     * Matches waitForIpAcquisition() in RFCbase.sh.  Loops with a 10-second
-     * sleep between attempts, identical to the shell script.
+     * Matches waitForIpAcquisition() in RFCbase.sh.  Polls every 10 seconds
+     * up to a maximum of 5 minutes (30 attempts) before bailing out.
      *
      * @retval true   A routable IP was found.
-     * @retval false  (currently never returned — loops until success).
+     * @retval false  Timed out waiting for an IP address.
      */
     bool RFCManager::WaitForIpAcquisition(void)
     {
+        constexpr int MAX_ATTEMPTS = 30;   /* 30 × 10s = 5 minutes */
+        constexpr int POLL_INTERVAL = 10;  /* seconds */
         char ipBuf[INET6_ADDRSTRLEN] = {0};
-        while (true)
+
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; ++attempt)
         {
             struct ifaddrs *ifap = nullptr;
             bool found = false;
@@ -403,15 +406,20 @@ namespace rfc {
             if (found)
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                        "[%s][%d] RDKC: Acquired IP address: %s\n",
-                        __FUNCTION__, __LINE__, ipBuf);
+                        "[%s][%d] RDKC: Acquired IP address: %s (attempt %d)\n",
+                        __FUNCTION__, __LINE__, ipBuf, attempt + 1);
                 return true;
             }
             RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,
-                    "[%s][%d] RDKC: Waiting for IP address...\n",
-                    __FUNCTION__, __LINE__);
-            sleep(10);
+                    "[%s][%d] RDKC: Waiting for IP address... (attempt %d/%d)\n",
+                    __FUNCTION__, __LINE__, attempt + 1, MAX_ATTEMPTS);
+            sleep(POLL_INTERVAL);
         }
+
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,
+                "[%s][%d] RDKC: Timed out waiting for IP address after %d seconds\n",
+                __FUNCTION__, __LINE__, MAX_ATTEMPTS * POLL_INTERVAL);
+        return false;
     }
 #endif
 
@@ -516,15 +524,6 @@ namespace rfc {
         RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
 
         int reqStatus = FAILURE;
-
-#ifdef RDKC
-        /* Camera devices wait 120 seconds before first Xconf query.
-         * Shell equivalent: sleep 120  (RFCbase.sh XHC1 branch) */
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                "[%s][%d] RDKC: Waiting 120 seconds before querying xconf\n",
-                __FUNCTION__, __LINE__);
-        sleep(120);
-#endif
 
         /* Initialize xconf Hanlder */
         int result = rfcObj->InitializeRuntimeFeatureControlProcessor();

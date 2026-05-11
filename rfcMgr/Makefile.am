@@ -26,9 +26,9 @@ AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
 AM_LDFLAGS += -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl
 
 if ENABLE_RDKC
-rfcMgr_CPPFLAGS     += -DRDKC $(rbus_CFLAGS) -I${STAGING_DIR_TARGET}/usr/include/
-AM_LDFLAGS += -L${STAGING_DIR_TARGET}/usr/lib/ -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl -lrfcapi -lrbus
-AM_LDFLAGS += -L../../build/rfcapi/.libs/ -lrfcapi
+rfcMgr_CPPFLAGS += -DRDKC $(rbus_CFLAGS)
+AM_LDFLAGS += $(rbus_LIBS)
+rfcMgr_LDADD = $(top_builddir)/rfcapi/librfcapi.la
 endif
 
 if IS_IARMBUS_ENABLED

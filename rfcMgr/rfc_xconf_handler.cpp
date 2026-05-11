@@ -1998,7 +1998,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
     
 	int curl_ret_code = -1;
 #ifdef LIBRDKCERTSELECTOR
-    int state_red = -1;
     int cert_ret_code = -1;
 	MtlsAuth_t sec;
     MtlsAuthStatus ret = MTLS_CERT_FETCH_SUCCESS;
@@ -2045,7 +2044,7 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Initializing cert selector\n", __FUNCTION__, __LINE__);
             if (thisCertSel == NULL)
             {
-                const char* certGroup = (state_red == 1) ? "RCVRY" : "MTLS";
+                const char* certGroup = "MTLS";
                 thisCertSel = rdkcertselector_new(DEFAULT_CONFIG, DEFAULT_HROT, certGroup);
                 if (thisCertSel == NULL) {
                     RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] Cert selector initialization failed\n", __FUNCTION__, __LINE__);
@@ -2065,9 +2064,6 @@ int RuntimeFeatureControlProcessor::DownloadRuntimeFeatutres(DownloadData *pDwnL
 
                     if (ret == MTLS_CERT_FETCH_FAILURE) {
 	                RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS cert failed, ret=%d\n", __FUNCTION__, __LINE__, ret);
-                        return cert_ret_code;
-                    } else if (ret == STATE_RED_CERT_FETCH_FAILURE) {
-                        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] State red cert failed\n", __FUNCTION__, __LINE__);
                         return cert_ret_code;
                     } else {
                         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] MTLS is enable\nMTLS creds for SSR fetched ret=%d\n", __FUNCTION__, __LINE__, ret);
@@ -2594,34 +2590,8 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
                     }
 #endif
 #ifdef RDKC
-                    /* Camera reboot evaluation:
-                     * Schedule reboot if effectiveImmediate is true for this param's
-                     * parent feature, the device is provisioned, and the param
-                     * is not AccountID or MD5AccountHash. */
-                    {
-                        bool isEffImm = (_effectiveImmediateParams.count(newKey) > 0);
-                        if (isEffImm)
-                        {
-                            bool provisioned = isDeviceProvisioned();
-                            if (provisioned)
-                            {
-                                std::string accountHashKey = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MD5AccountHash";
-                                if (newKey != RFC_ACCOUNT_ID_KEY_STR && newKey != accountHashKey)
-                                {
-                                    _rfcRebootCronNeeded = true;
-                                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                                            "[%s][%d] RDKC: Enabling RfcRebootCronNeeded for %s old=%s new=%s\n",
-                                            __FUNCTION__, __LINE__, newKey.c_str(), currentValue.c_str(), newValue.c_str());
-                                }
-                                else
-                                {
-                                    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,
-                                            "[%s][%d] RDKC: Skip scheduling reboot for Account Id/Hash change\n",
-                                            __FUNCTION__, __LINE__);
-                                }
-                            }
-                        }
-                    }
+                    if (shouldScheduleCameraReboot(newKey, _effectiveImmediateParams, currentValue, newValue))
+                        _rfcRebootCronNeeded = true;
 #endif		    
                 }
                 else
@@ -2645,6 +2615,22 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 #endif
 }
 
+#ifdef RDKC
+/**
+ * @brief Check whether a feature JSON node has effectiveImmediate=true.
+ * @param feature  Pointer to a single feature JSON object.
+ * @return true if the feature's effectiveImmediate flag is set.
+ */
+static bool isFeatureEffectiveImmediate(JSON *feature)
+{
+    char effImmStr[] = RFC_FEATURE_EFF_IMMD_STR;
+    char buf[6] = {0};
+    int sz = GetJsonVal(feature, effImmStr, buf, sizeof(buf));
+    return (sz && (strcasecmp(buf, "true") == 0 || strcmp(buf, "1") == 0));
+}
+
+#endif /* RDKC */
+
 void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
 {
     JSON *pConfigData = nullptr, *child = nullptr;
@@ -2661,17 +2647,7 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
         if(feature)
         {
 #ifdef RDKC
-            /* Check if this feature has effectiveImmediate=true */
-            bool featureEffImm = false;
-            {
-                char effImmStr[] = RFC_FEATURE_EFF_IMMD_STR;
-                char buf[6] = {0};
-                int sz = GetJsonVal(feature, effImmStr, buf, sizeof(buf));
-                if (sz && (strcasecmp(buf, "true") == 0 || strcmp(buf, "1") == 0))
-                {
-                    featureEffImm = true;
-                }
-            }
+            bool featureEffImm = isFeatureEffectiveImmediate(feature);
 #endif
             pConfigData = GetJsonItem(feature,configData);
             if(!pConfigData)
