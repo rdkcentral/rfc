@@ -274,7 +274,7 @@ Used when RDKB and RDKC share the same implementation (e.g., rbus):
 | `rfc_manager.h/cpp` | Lifecycle orchestrator | `CheckDeviceIsOnline()`, `WaitForIpAcquisition()` [RDKC], `RFCManagerProcess()`, `RFCManagerPostProcess()`, `SendEventToMaintenanceManager()` |
 | `xconf_handler.h/cpp` | Device identity | `initializeXconfHandler()`, `ExecuteRequest()` |
 | `rfc_xconf_handler.h/cpp` | Core RFC logic (all platforms) | `InitializeRuntimeFeatureControlProcessor()`, `ProcessRuntimeFeatureControlReq()`, `set_RFCProperty()`, `clearDB()`, `HandleScheduledReboot()`, `CreateConfigDataValueMap()` |
-| `mtlsUtils.h/cpp` | Certificates & platform utilities | `getMtlscert()`, `isStateRedSupported()`, `isInStateRed()`, `getEstbMacAddress()` [RDKC], `getPartnerIdFromFile()` [RDKC], `getAccountHashFromFile()` [RDKC], `isDeviceProvisioned()` [RDKC] |
+| `mtlsUtils.h/cpp` | Certificates & platform utilities | `getMtlscert()`, `getEstbMacAddress()` [RDKC], `getPartnerIdFromFile()` [RDKC], `getAccountHashFromFile()` [RDKC], `isDeviceProvisioned()` [RDKC], `shouldScheduleCameraReboot()` [RDKC] |
 | `rfc_common.h/cpp` | Shared utilities | `read_RFCProperty()`, `getSyseventValue()`, `waitForRfcCompletion()` |
 | `rfc_mgr_iarm.h` | IARM bus integration | Event handler registration constants |
 | `rfc_mgr_json.h` | JSON field names | Feature/parameter key string constants |
