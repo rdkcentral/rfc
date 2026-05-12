@@ -302,7 +302,7 @@ Feature: RFC Manager Malformed XConf Response Handling
 
 #### GAP-H4: mTLS Certificate Fetch Failure
 
-**Source:** `DownloadRuntimeFeatutres()` handles `MTLS_CERT_FETCH_FAILURE`  
+**Source:** `DownloadRuntimeFeatutres()` handles `MTLS_CERT_FETCH_FAILURE`
 **Untested:** Behavior when cert selector cannot retrieve any certificate.
 
 ```gherkin

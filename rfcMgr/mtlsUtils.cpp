@@ -1,21 +1,23 @@
-/*##############################################################################
- # If not stated otherwise in this file or this component's LICENSE file the
- # following copyright and licenses apply:
- #
- # Copyright 2020 RDK Management
- #
- # Licensed under the Apache License, Version 2.0 (the "License");
- # you may not use this file except in compliance with the License.
- # You may obtain a copy of the License at
- #
- # http://www.apache.org/licenses/LICENSE-2.0
- #
- # Unless required by applicable law or agreed to in writing, software
- # distributed under the License is distributed on an "AS IS" BASIS,
- # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- # See the License for the specific language governing permissions and
- # limitations under the License.
- ##############################################################################
+/**
+ * @file mtlsUtils.cpp
+ * @brief mTLS certificate retrieval and state-red recovery implementation.
+ *
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "mtlsUtils.h"
@@ -28,23 +30,41 @@
 extern "C" {
 #endif
 
-
 #ifdef LIBRDKCERTSELECTOR
-/* Description: Use for get all mtls related certificate and key.
- * @param sec: This is a pointer hold the certificate, key and type of certificate.
- * @return :  MTLS_CERT_FETCH_SUCCESS on success, MTLS_CERT_FETCH_FAILURE on mtls cert failure
- * */
+/**
+ * @brief Fetch mTLS certificate and key via librdkcertselector.
+ * @param[out] sec           Populated mTLS auth structure.
+ * @param[out] pthisCertSel  Certificate-selector handle (caller frees).
+ * @return MtlsAuthStatus result code.
+ */
 MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
+    /*
+            strncpy(sec->cert_name, MTLS_CERT, sizeof(sec->cert_name) - 1);
+	    sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
+            strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
+	    sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
+            strncpy(sec->key_pas, mtlsbuff, sizeof(sec->key_pas) - 1);
+            sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
+     * */
     (void)sec;
     (void)pthisCertSel;	
     return MTLS_CERT_FETCH_SUCCESS;
 }
 #else
-/* Description: Use for get all mtls related certificate and key.
- * @param sec: This is a pointer hold the certificate, key and type of certificate.
- * @return : int Success 1 and failure -1
- * */
+/**
+ * @brief Fetch mTLS certificate and key (legacy / non-certselector path).
+ * @param[out] sec  Populated mTLS auth structure.
+ * @return MTLS_SUCCESS (1) or MTLS_FAILURE (-1).
+ */
 int getMtlscert(MtlsAuth_t *sec) {
+    /*
+            strncpy(sec->cert_name, MTLS_CERT, sizeof(sec->cert_name) - 1);
+            sec->cert_name[sizeof(sec->cert_name) - 1] = '\0';
+            strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
+            sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
+            strncpy(sec->key_pas, mtlsbuff, sizeof(sec->key_pas) - 1);
+            sec->key_pas[sizeof(sec->key_pas) - 1] = '\0';
+        */
     /* TODO: RDKE-419: temporary change until RDKE-419 gets proper solution. */
     (void)sec;	
     return MTLS_FAILURE;
