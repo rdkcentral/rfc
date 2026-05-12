@@ -25,7 +25,22 @@ cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
+
+/usr/local/bin/tr69hostif -c /etc/mgrlist.conf -p 10999 -s 11999 | tee /opt/logs/tr69hostIf.log.0 &
+
+sleep 2m
+
+tr181 -d -s -t string -v 3060457086186635988 Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID
+tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType
+
+tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable
+
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
+ps -ef  |  grep  tr69hostif
+
+ps -ef
+
+
 
 # Run L2 Test cases
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
@@ -66,5 +81,4 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
-#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
 
