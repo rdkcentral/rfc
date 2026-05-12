@@ -2,7 +2,7 @@ name: L2 Integration Tests for RFC
 
 on:
   pull_request:
-    branches: [ develop, main ]
+    branches: [ develop, main, feature/dummy_L2 ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
