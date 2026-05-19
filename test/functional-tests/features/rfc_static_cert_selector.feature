@@ -25,16 +25,11 @@ Feature: Certificate Selector Fallback to Static Certificate
     Given the Cert Selector component is initialized
 
   Scenario: Use static certificate when dynamic certificate is unavailable
-    Given the Cert Selector is configured with method "Dynamic"
-    And the dynamic certificate source is unavailable
-    When the Cert Selector attempts to retrieve a certificate
-    Then it should fallback to the static certificate "static_cert.pem"
-    And the handshake should use the static certificate
-
-  Scenario: Use static certificate when dynamic certificate retrieval fails
-    Given the Cert Selector is configured with method "Dynamic"
-    And the dynamic certificate retrieval fails with error "Timeout"
-    When the Cert Selector attempts to retrieve a certificate
-    Then it should fallback to the static certificate "static_cert.pem"
-    And the handshake should use the static certificate
+    Given the dynamic certificate "/opt/certs/client.p12" does not exist
+    When the RFC manager binary is run
+    Then a message "Initializing cert selector" should be logged
+    And a message "Cert selector initialization successful" should be logged
+    And a message "MTLS dynamic/static cert success. cert=/etc/ssl/certs/client.pem, type=STATIC" should be logged
+    And a message "MTLS is enable" should be logged
+    And a message "RFC Xconf Connection Response cURL Return : 0 HTTP Code : 200" should be logged
 

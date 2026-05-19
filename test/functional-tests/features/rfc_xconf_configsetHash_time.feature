@@ -17,20 +17,23 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: RFC Manager XCONF Communication and Error Handling
+Feature: RFC Manager ConfigSetHash and ConfigSetTime Tracking
 
-  Scenario: Unresolved XCONF URL
-    Given the RFC properties file is modified to use an unresolved XCONF URL
-    When the RFC manager binary is run
-    Then an error message "Couldn't resolve host name" should be logged
-    And an error message "cURL Return : 6 HTTP Code : 0" should be logged
-
-  Scenario: 404 XCONF URL
-    Given the RFC properties file is modified to use a 404 XCONF URL
-    When the RFC manager binary is run
-    Then an error message "cURL Return : 0 HTTP Code : 404" should be logged
-
-  Scenario: URL Encoding
+  Background:
     Given all the properties to run RFC manager is available and running
-    When RFC manager binary is communicating with XCONF server
-    Then the URL should be percentage encoded 
+
+  Scenario: Set ConfigSetTime value via TR181 CLI
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime" to "1763118860" as uint32
+    Then the parameter should be set successfully with "Set operation success"
+
+  Scenario: Baseline XConf communication for configSetHash test
+    When the RFC binary is run
+    Then the XConf request should complete successfully
+
+  Scenario: Validate configSetHash and configSetTime from XConf response
+    When the RFC binary is run
+    Then a message "ConfigSetHash: Hash = 1KM7h9ommUuUoyVm8oAvp2JCC19zyVJAsp" should be logged
+    And a message "ConfigSetTime: Set Time = " should be logged
+    And a message "configSetHash value: 1KM7h9ommUuUoyVm8oAvp2JCC19zyVJAsp" should be logged
+    And a message "Config Set Hash = 1KM7h9ommUuUoyVm8oAvp2JCC19zyVJAsp" should be logged
+    And a message "Timestamp as string: = " should be logged

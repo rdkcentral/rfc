@@ -28,7 +28,7 @@ This document analyzes the L2 (integration/functional) test coverage for the RFC
 | 10 | `rfc_xconf_request_params.feature` | `test_rfc_xconf_request_params.py` | XConf query params verification | **Active** |
 | 11 | `rfc_valid_accountid.feature` | `test_rfc_valid_accountid.py` | Valid AccountID from XConf | **Active** |
 | 12 | `rfc_factory_reset.feature` | `test_rfc_factory_reset.py` | Empty value rejection; PartnerName set | **Active** |
-| 13 | `rfc_trigger_reboot.py` | `test_rfc_trigger_reboot.py` | AccountID trigger reboot validation | **Active** |
+| 13 | `rfc_trigger_reboot.feature` | `test_rfc_trigger_reboot.py` | AccountID trigger reboot validation | **Active** |
 | 14 | `rfc_feature_enable.feature` | `test_rfc_feature_enable.py` | HTTP 304 handling; feature enable status | **Active** |
 | 15 | `rfc_xconf_configsetHash_time.feature` | `test_rfc_xconf_configsethash_time.py` | configSetHash and configSetTime | **Active** |
 | 16 | `rfc_reboot_required.feature` | `test_rfc_xconf_reboot.py` | Reboot Required Event to MaintenanceMGR | **Active** |
@@ -967,6 +967,68 @@ Proposed new test scenarios:                 48
 Estimated current L2 functional coverage:  ~35%
 Target L2 functional coverage:             ~80%
 ```
+
+---
+
+---
+
+## 8. Feature File Corrections Applied
+
+The following corrections were applied to existing feature files to align them with their corresponding test implementations.
+
+### 8.1 Fixes Applied
+
+| File | Issue | Fix Applied |
+|---|---|---|
+| `rfc_xconf_configsetHash_time.feature` | Content was identical duplicate of `rfc_xconf_communication.feature` | Replaced with 3 unique scenarios: ConfigSetTime set via TR181, baseline XConf communication, and ConfigSetHash/Time log validation — matching `test_rfc_xconf_configsethash_time.py` |
+| `rfc_dynamic_cert_selector.feature` | Title said "Static Certificate Method" but filename says "dynamic" | Updated title to "Dynamic Certificate Method" and aligned scenario with `test_dynamic_cert_selector` assertions (P12 cert, MTLS enable, HTTP 200) |
+| `rfc_static_cert_selector.feature` | Generic scenarios not matching test assertions | Updated to match `test_static_cert_selector` — verifies fallback to `/etc/ssl/certs/client.pem` (STATIC type) when dynamic `/opt/certs/client.p12` doesn't exist |
+| `rfc_trigger_reboot.py` | Wrong `.py` extension; scenario content didn't match test | Renamed to `.feature`; updated scenario to match `test_xconf_request_response` assertions (AccountID transition from Unknown to valid) |
+| `rfc_unknown_accountid.feature` | Account ID value `412370664406228514` didn't match test value `3064488088886635972` | Updated to `3064488088886635972` to match `test_xconf_request_response` assertions |
+| `rfc_webpa.feature` | SET payload used value `"local"`, Then checked wrong parameter (`FWUpdate.AutoExcluded.Enable`) | Updated SET value to `"412370664406228514"`, fixed assertions to check `statusCode:200`, `message:Success`, and GET value `"412370664406228514"` matching `test_WebPA_Set_ACC_Id` / `test_WebPA_Get_ACC_Id` |
+| `rfc_reboot_required.feature` | Missing precondition scenario for `test_Set_AccId_value` | Added "Set Account ID precondition" scenario (sets AccountID via TR181 CLI before reboot test) |
+| `rfc_valid_accountid.feature` | Generic request-method checks not matching test; missing `test_ACC_Id_value` | Rewrote to match `test_xconf_request_response` log assertions and added "Verify Account ID persisted" scenario for `test_ACC_Id_value` |
+| `rfc_override_rfc_prop.feature` | Missing precondition scenarios for `test_Set_DeviceType_value` and `test_set_enable_dbg_services` | Added "Set DeviceType" and "Enable DbgServices" precondition scenarios |
+| `rfc_factory_reset.feature` | Missing precondition scenario for `test_set_empty_value` | Added "Set PartnerName to empty" precondition scenario between reject and retrieve tests |
+
+### 8.2 Remaining Known Issues
+
+| Issue | File | Recommendation |
+|---|---|---|
+| Feature has 3 scenarios, test only covers 304 | `rfc_feature_enable.feature` | Add tests for 404 and valid URL (200) scenarios |
+| Disabled critical tests | `test_rfc_webpa.py`, cert tests | Track re-enablement with issue/ticket |
+| `rfc_data.feature` expects file size > 0 | `rfc_data.feature` | Test checks file presence but not size — add size assertion or update feature |
+
+---
+
+## 9. Current Coverage Summary
+
+```
+Total source functions (approx):          ~120
+Functions with direct L2 coverage:          ~30
+Functions with indirect L2 coverage:        ~15
+Functions with no L2 coverage:              ~75
+
+Active L2 test scenarios:                    27
+Disabled L2 test scenarios:                   4
+Feature scenarios (total):                   35
+
+Estimated current L2 functional coverage:  ~35%
+```
+
+### Coverage Matrix by Source File
+
+| Source File | Total Functions | L2 Tested | Current Coverage |
+|---|---|---|---|
+| `rfc_main.cpp` | 4 | 2 | ~50% |
+| `rfc_manager.cpp` | 12 | 4 | ~33% |
+| `rfc_common.cpp` | 8 | 1 | ~12% |
+| `rfc_xconf_handler.cpp` | ~45 | 15 | ~33% |
+| `xconf_handler.cpp` | 2 | 1 | ~50% |
+| `mtlsUtils.cpp` | 4 | 2 (disabled) | ~50% (disabled) |
+| `rfcapi.cpp` | 8 | 2 | ~25% |
+| `tr181api.cpp` | 10 | 2 | ~20% |
+| `jsonhandler.cpp` | 7 | 1 | ~14% |
 
 ---
 

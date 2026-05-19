@@ -17,15 +17,18 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: Certificate Selector - Static Certificate Method
-  I want to validate that Cert Selector uses the Static Certificate method
+Feature: Certificate Selector - Dynamic Certificate Method
+  I want to validate that Cert Selector uses the Dynamic Certificate method
   So that secure communication is established correctly
 
   Background:
     Given the Cert Selector component is initialized
 
-  Scenario: Validate static certificate is successfully loaded
-  Given the static certificate "static_cert.pem" exists in the certificate directory
-  When the Cert Selector loads the static certificate
-  Then the load operation should complete successfully
-  And no certificate parsing errors should occur
+  Scenario: Validate dynamic certificate is successfully loaded and mTLS connection succeeds
+    Given the dynamic certificate "/opt/certs/client.p12" exists in the certificate directory
+    When the Cert Selector loads the certificate
+    Then a message "Initializing cert selector" should be logged
+    And a message "Cert selector initialization successful" should be logged
+    And a message "MTLS dynamic/static cert success. cert=/opt/certs/client.p12, type=P12" should be logged
+    And a message "MTLS is enable" should be logged
+    And a message "RFC Xconf Connection Response cURL Return : 0 HTTP Code : 200" should be logged

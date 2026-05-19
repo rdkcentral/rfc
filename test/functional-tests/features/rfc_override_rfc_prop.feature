@@ -19,6 +19,16 @@
 
 Feature: Validate override functionality for rfc.properties file
 
+  Scenario: Set DeviceType precondition for override test
+    Given the TR181 parameter store is available
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType" to "test" as string
+    Then the parameter should be set successfully with "Set operation success"
+
+  Scenario: Enable DbgServices precondition for override test
+    Given the TR181 parameter store is available
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable" to "true" as bool
+    Then the parameter should be set successfully with "Set operation success"
+
   Scenario: Override function correctly overrides /etc/rfc.properties using /opt/rfc.properties
     Given the following /opt/rfc.properties file exist:
       | path                 | key                      | value                                                           |

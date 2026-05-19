@@ -17,18 +17,17 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: Verify RFC request parameters
+Feature: Verify RFC valid Account ID handling
 
-  Scenario: RFC GET request is sent with correct parameters
+  Scenario: RFC XConf request starts with Unknown AccountID and transitions to valid ID
     Given the mockxconf server is running
-    When a RFC curl request is made to "https://mockxconf:50053/featureControl/getSettings?" with:
-      | method | GET |
-      | query  | estbMacAddress=01%3A23%3A45%3A67%3A89%3Aab&firmwareVersion=T2_Container_0.0.0&env=prod&model=L2CNTR&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=global&osClass=&accountId=Unknown&Experience=X1&version=2 |
-    Then the mockxconf server should have received a request to ""https://mockxconf:50053/featureControl/getSettings?"
-    And the request method should be "GET"
-    And the request query parameters should contain:
-	| accountId       | Unknown            |
-    And the response from the xconf server and the account id should be valid
-	| accountId       | 3064488088886635972|
+    When the RFC manager binary is run and queries XConf
+    Then a message "&accountId=Unknown&" should be logged in the RFC log
+    And a message "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID" should be logged in the RFC log
+    And a message "NEW valid Account ID: 3064488088886635972" should be logged in the RFC log
+    And a message "&accountId=3064488088886635972&" should be logged in the RFC log
 
+  Scenario: Verify Account ID is persisted in TR181 store after XConf update
+    When I query the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID" via tr181 CLI
+    Then the returned value should contain "3064488088886635972"
 

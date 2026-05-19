@@ -32,15 +32,15 @@ Feature: WebPA Set Get using mock parodus
         "parameters": [
           {
             "name": "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID",
-            "value": "local",
+            "value": "412370664406228514",
             "dataType": 0
           }
         ]
       }
       """
     When I execute the mock parodus with the payload
-    Then the response should indicate success
-    And the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.FWUpdate.AutoExcluded.Enable" should be "local"
+    Then the response should contain '"statusCode":200'
+    And the response should contain '"message":"Success"'
 
   Scenario: Get a WebPA parameter using mock parodus
     Given a valid WebPA get request payload:
@@ -53,5 +53,6 @@ Feature: WebPA Set Get using mock parodus
       }
       """
     When I execute the mock parodus with the payload
-    Then the response should indicate success
-    And the returned value should be "local"
+    Then the response should contain '"statusCode":200'
+    And the response should contain '"message":"Success"'
+    And the response should contain '"value":"412370664406228514"'

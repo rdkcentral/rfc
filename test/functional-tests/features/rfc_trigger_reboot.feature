@@ -17,20 +17,13 @@
 # limitations under the License.
 ####################################################################################
 
-Feature: Verify RFC request parameters
+Feature: RFC Trigger Reboot - Account ID Transition
 
-  Scenario: RFC GET request is sent with correct parameters
+  Scenario: RFC processes XConf response with valid Account ID transition
     Given the mockxconf server is running
-    When a RFC curl request is made to "https://mockxconf:50053/featureControl/getSettings?" with:
-      | method | GET |
-      | query  | estbMacAddress=01%3A23%3A45%3A67%3A89%3Aab&firmwareVersion=T2_Container_0.0.0&env=prod&model=L2CNTR&manufacturer=&controllerId=2504&channelMapId=2345&VodId=15660&partnerId=global&osClass=&accountId=Unknown&Experience=X1&version=2 |
-    Then the mockxconf server should have received a request to "https://mockxconf:50053/featureControl/getSettings?"
-    And the request method should be "GET"
-    And the request query parameters should contain:
-	| accountId       | Unknown            |
-    And the response from the xconf server and the account id should be Valid
-	| accountId       | 3064488088886635972|
-    And a message "EMPTY value for Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID is rejected" should be logged
-    And a message "Checking Config Value changed for tr181 param" should be logged
+    And the device starts with an Unknown account ID
+    When the RFC manager binary is run and queries XConf
+    Then a message "Checking Config Value changed for tr181 param" should be logged
+    And a message "RFC: Checking AccountId received from Xconf is Unknown" should be logged
     And a message "RFC: Comparing Xconfvalue='3064488088886635972' with Unknown" should be logged
     And a message "AccountId is Valid 3064488088886635972, Updating the device Database" should be logged

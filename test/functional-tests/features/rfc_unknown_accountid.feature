@@ -34,5 +34,5 @@ Feature: Verify RFC request parameters
     And a message "Checking Config Value changed for tr181 param" should be logged
     And a message "RFC: AccountId received from Xconf is Unknown" should be logged
     And a message "RFC: Comparing Xconfvalue='Unknown' with Unknown" should be logged
-    And a message "RFC: AccountId Unknown is replaced with Authservice 412370664406228514" should be logged
-    And a message "RFC: AccountId Updated Value is 412370664406228514 and Xconf value is 412370664406228514" should be logged 
+    And a message "RFC: AccountId Unknown is replaced with Authservice 3064488088886635972" should be logged
+    And a message "RFC: AccountId Updated Value is 3064488088886635972 and Xconf value is 3064488088886635972" should be logged 

@@ -31,6 +31,11 @@ Feature: RFC Manager Configuration Management
     And the RFC manager should reject the configuration
     And a message "EMPTY value for Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName is rejected" should be logged 
 
+  Scenario: Set PartnerName to empty before XConf retrieval test
+    Given the TR181 parameter store is available
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerName" to "" as string
+    Then the parameter should be set successfully with "Set operation success"
+
   Scenario: Successfully retrieve PartnerName value and verify via tr181
     Given the mockxconf server is running
     When a RFC curl request is made to "https://mockxconf:50053/featureControl/getSettings?" with:

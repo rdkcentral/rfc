@@ -19,6 +19,10 @@
 
 Feature: RFC: Posting Reboot Required Event to MaintenanceMGR
 
+  Scenario: Set Account ID precondition for reboot test
+    Given the TR181 parameter store is available
+    When I set the parameter "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID" to "3060457086186635988" as string
+    Then the parameter should be set successfully with "Set operation success"
 
   Scenario: Posting Reboot Required Event to MaintenanceMGR
     Given all the properties to run RFC manager is available and running
