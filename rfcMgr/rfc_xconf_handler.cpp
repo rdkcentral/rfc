@@ -75,7 +75,7 @@ bool RuntimeFeatureControlProcessor::isSecureDbgSrvUnlocked(void) {
            }
 	    else
            {
-	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] unable to enable Debug Services\n", __FUNCTION__, __LINE__);                
+	               RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Unable to enable Debug Services\n", __FUNCTION__, __LINE__);                
 	       }
 	 }
 	 if (isDebugServicesUnlocked) {
