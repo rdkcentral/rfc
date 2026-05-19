@@ -196,6 +196,106 @@ If duplicate keys exist across files, effective precedence is determined by merg
 
 ---
 
+## Path 4: XConf Write Path and Firmware Upgrade Behavior
+
+This is the path used by `rfcMgr` when it applies a fresh XConf response to the device.
+Understanding this path is essential for explaining why parameter values set by XConf
+persist across firmware upgrades.
+
+### How XConf Writes Persist
+
+When `rfcMgr` successfully downloads an XConf response, it calls
+`processXconfResponseConfigDataPart()`, which writes every parameter received from XConf
+directly into `/opt/secure/RFC/tr181store.ini`.
+
+`/opt/secure/` is a **persistent storage partition** that survives firmware upgrades.
+A firmware upgrade does not erase this partition.
+
+This means any value XConf has ever pushed to a device remains at **priority 2** in the
+runtime stack until XConf explicitly sends a different value or the parameter is manually
+cleared.
+
+### Firmware Upgrade Sequence
+
+On every `rfcMgr` startup, `IsNewFirmwareFirstRequest()` compares the firmware string
+stored in `/opt/secure/RFC/.version` against the currently running firmware:
+
+```cpp
+// rfc_xconf_handler.cpp
+bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
+{
+    if ((_last_firmware.empty()) ||
+        (!_firmware_version.empty() &&
+         (_last_firmware.compare(_firmware_version) != 0)))
+    {
+        return true;  // new firmware detected
+    }
+    return false;
+}
+```
+
+When this returns `true`, `clearDB()` is called **before** the XConf response is
+processed. `clearDB()` is not a factory reset — it truncates `tr181store.ini` and signals
+`tr69hostif` to flush its in-memory state, then immediately re-populates the store from
+the fresh XConf response.
+
+```mermaid
+sequenceDiagram
+    participant rfcMgr
+    participant VersionFile as /opt/secure/RFC/.version
+    participant XConf as XConf Server
+    participant Store as tr181store.ini
+
+    rfcMgr->>VersionFile: Read _last_firmware
+    rfcMgr->>rfcMgr: IsNewFirmwareFirstRequest()
+    alt firmware changed
+        rfcMgr->>XConf: GET featureControl/getSettings
+        XConf-->>rfcMgr: { param: value, ... }
+        rfcMgr->>Store: clearDB() — truncate
+        rfcMgr->>Store: processXconfResponseConfigDataPart() — write XConf values
+        rfcMgr->>VersionFile: WriteFile(".version", new_fw)
+    else same firmware
+        rfcMgr->>XConf: GET featureControl/getSettings
+        XConf-->>rfcMgr: { param: value, ... }
+        rfcMgr->>Store: processXconfResponseConfigDataPart() — write XConf values
+    end
+```
+
+### Why a Parameter Value Is the Same After Upgrade
+
+A firmware upgrade does not notify XConf. XConf continues to send the same value for a
+parameter until an operator changes the XConf server-side configuration for that
+device/account combination. The sequence is:
+
+1. XConf sends `param=value` → written to `tr181store.ini`
+2. Firmware is upgraded
+3. `clearDB()` truncates `tr181store.ini`
+4. XConf is queried again and **sends the same `param=value`**
+5. `param=value` is written back into `tr181store.ini`
+
+The XML `<default>` element in `data-model.xml` is at priority 5 and is never consulted
+because the XConf response at priority 2 fills `tr181store.ini` before any fallback is
+needed.
+
+### Key Files Involved
+
+| File | Partition | Survives upgrade | Purpose |
+|---|---|---|---|
+| `/opt/secure/RFC/tr181store.ini` | `/opt/secure/` (persistent) | **Yes** | XConf-applied parameter values |
+| `/opt/secure/RFC/.version` | `/opt/secure/` (persistent) | **Yes** | Last firmware that processed XConf |
+| `/opt/secure/RFC/bootstrap.ini` | `/opt/secure/` (persistent) | **Yes** | Bootstrap-backed overrides |
+| `/tmp/data-model.xml` | tmpfs | No | XML factory defaults — lowest priority |
+
+### Changing an XConf-Applied Value
+
+| Method | Command | Effect |
+|---|---|---|
+| Update XConf rule | Change device/account rule in XConf server | Permanent; takes effect on next `rfcMgr` run |
+| Local override | `tr181 -s <param> -v <value> -n string` | Temporary; overwritten on next successful XConf fetch |
+| Clear the parameter | `tr181 -c <param>` | Removes entry from store; XML default takes effect until XConf runs again |
+
+---
+
 ## Combined Conceptual Priority
 
 If you want one combined conceptual ordering across all runtime sources, the safest summary is:
@@ -297,6 +397,64 @@ Why:
 - handler path failed to produce a live value
 - `validateAgainstDataModel()` had already captured XML `defaultValue`
 - the live request path returns the XML default, not `/etc/rfcdefaults`
+
+### Example F: parameter value is the same after firmware upgrade
+
+Consider:
+
+```text
+Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TR069support.Enable
+```
+
+State before upgrade:
+
+- XConf has a rule pushing `Enable=true` for this device
+- `/opt/secure/RFC/tr181store.ini` contains `...TR069support.Enable=true`
+- `data-model.xml` has `<default type="factory" value="false"/>`
+
+After upgrading from one firmware version to another:
+
+Returned value:
+
+```text
+true
+```
+
+Why:
+
+- `/opt/secure/` is persistent — `tr181store.ini` survives the upgrade
+- `rfcMgr` detects a new firmware via `/opt/secure/RFC/.version`, calls `clearDB()` which
+  truncates `tr181store.ini`, then immediately queries XConf
+- XConf still has the same rule and returns `Enable=true`
+- `processXconfResponseConfigDataPart()` writes `true` back into `tr181store.ini`
+- `tr181store.ini` is at priority 2; the XML default of `false` at priority 5 is never reached
+
+**Diagnostic check:**
+
+```bash
+# Confirm XConf set the value
+grep -i "TR069support\|Feature Name" /opt/logs/rfcscript.log | tail -20
+
+# Confirm clearDB ran on the upgrade
+grep -i "Clearing DB\|last_firmware\|different" /opt/logs/rfcscript.log | head -20
+
+# Confirm version file was updated
+cat /opt/secure/RFC/.version
+```
+
+Expected log evidence of firmware-change detection and re-apply:
+
+```
+GetLastProcessedFirmware: [<previous-firmware-version>]
+Last Image version <previous-firmware-version> and current image version \
+  <new-firmware-version> are different
+[clearDB] Clearing DB
+[processXconfResponseConfigDataPart] Feature Name \
+  [Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TR069support.Enable] Value[true]
+```
+
+To change the value, update the XConf server-side rule — not the firmware. See
+[Path 4](#path-4-xconf-write-path-and-firmware-upgrade-behavior) for the options.
 
 ---
 

@@ -33,25 +33,48 @@ graph TB
 
 ### Store Hierarchy
 
+For TR181 reads through `getParam()`, the effective priority is:
+
+1. Live TR181 data model via `getRFCParameter()` when `tr69hostif` is ready
+2. `/opt/secure/RFC/tr181store.ini` when `tr69hostif` is not ready
+3. `/opt/secure/RFC/bootstrap.ini` when `tr69hostif` is not ready and the key is not in `tr181store.ini`
+4. Merged defaults from `/etc/rfcdefaults/*.ini` via `/tmp/rfcdefaults.ini`
+
+For local reads through `getLocalParam()`, the priority is:
+
+1. `/opt/secure/RFC/tr181localstore.ini`
+2. `/etc/rfcdefaults/<callerID>.ini`
+
 ```mermaid
 flowchart LR
-    A[getParam called] --> B["Read tr181store.ini\n(via getRFCParameter)"]
-    B --> C{Found?}
-    C -->|Yes| D[Return value]
-    C -->|No| E["Read rfcdefaults.ini\n(via getRFCParameter)"]
-    E --> F{Found?}
-    F -->|Yes| D
-    F -->|No| G[Return tr181Failure]
-
-    H[getLocalParam called] --> I["Read tr181localstore.ini\n(direct file read)"]
+    A[getParam called] --> B{tr69hostif ready?}
+    B -->|Yes| C["Read live data model\n(via getRFCParameter)"]
+    B -->|No| D["Read tr181store.ini\n(via getRFCParameter)"]
+    D --> E{Found?}
+    E -->|Yes| F[Return value]
+    E -->|No| G["Read bootstrap.ini\n(via getRFCParameter)"]
+    G --> H{Found?}
+    H -->|Yes| F
+    H -->|No| I["Read rfcdefaults.ini\n(via getRFCParameter)"]
     I --> J{Found?}
-    J -->|Yes| D
-    J -->|No| G
+    J -->|Yes| F
+    J -->|No| K[Return tr181Failure]
+    C --> L{Found?}
+    L -->|Yes| F
+    L -->|No| K
 
-    K[getDefaultValue called] --> L["Read /etc/rfcdefaults/\n<callerID>.ini"]
-    L --> M{Found?}
-    M -->|Yes| D
-    M -->|No| G
+    M[getLocalParam called] --> N["Read tr181localstore.ini\n(direct file read)"]
+    N --> O{Found?}
+    O -->|Yes| F
+    O -->|No| P["Read /etc/rfcdefaults/\n<callerID>.ini"]
+    P --> Q{Found?}
+    Q -->|Yes| F
+    Q -->|No| K
+
+    R[getDefaultValue called] --> S["Read /etc/rfcdefaults/\n<callerID>.ini"]
+    S --> T{Found?}
+    T -->|Yes| F
+    T -->|No| K
 ```
 
 ---
@@ -214,7 +237,7 @@ tr181ErrorCode_t clearParam(char *pcCallerID,
 
 ### `getLocalParam()`
 
-Reads a parameter exclusively from the device-local store (`tr181localstore.ini`). XConf-applied values are **not** consulted.
+Reads a parameter from the device-local store (`tr181localstore.ini`) and, if it is absent there, falls back to the caller-specific defaults file in `/etc/rfcdefaults/<callerID>.ini`. XConf-applied values are **not** consulted.
 
 **Signature:**
 ```c
@@ -223,7 +246,7 @@ tr181ErrorCode_t getLocalParam(char *pcCallerID,
                                 TR181_ParamData_t *pstParamData);
 ```
 
-**Use case:** Components that manage their own persistent state independently of XConf policy.
+**Use case:** Components that manage their own persistent state independently of XConf policy, while still allowing a component-owned default to be supplied from `/etc/rfcdefaults/<callerID>.ini`.
 
 ---
 

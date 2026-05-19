@@ -8,6 +8,74 @@ This document analyzes the L2 (integration/functional) test coverage for the RFC
 **Test Infrastructure:** Mock XConf HTTPS server (`rfcData.js`), mock parodus binary, Docker container  
 **Execution Scripts:** `run_l2.sh` (main), `run_l2_reboot_trigger.sh` (reboot-specific)
 
+### Test Directory Structure
+
+```
+test/functional-tests/
+├── features/                          # Gherkin feature specifications (19 files)
+│   ├── rfc_data.feature
+│   ├── rfc_device_offline_status.feature
+│   ├── rfc_dynamic_cert_selector.feature
+│   ├── rfc_factory_reset.feature
+│   ├── rfc_feature_enable.feature
+│   ├── rfc_initialization_failure.feature
+│   ├── rfc_override_rfc_prop.feature
+│   ├── rfc_reboot_required.feature
+│   ├── rfc_setget_param.feature
+│   ├── rfc_single_instance_run.feature
+│   ├── rfc_static_cert_selector.feature
+│   ├── rfc_tr181_setget_local_param.feature
+│   ├── rfc_trigger_reboot.py           # Note: .py extension but Gherkin content
+│   ├── rfc_unknown_accountid.feature
+│   ├── rfc_valid_accountid.feature
+│   ├── rfc_webpa.feature
+│   ├── rfc_xconf_communication.feature
+│   ├── rfc_xconf_configsetHash_time.feature
+│   └── rfc_xconf_request_params.feature
+└── tests/                             # pytest implementation (20 files)
+    ├── rfc_test_helper.py             # Shared utility functions
+    ├── test_rfc_device_offline_status.py
+    ├── test_rfc_dynamic_static_cert_selector.py
+    ├── test_rfc_factory_reset.py
+    ├── test_rfc_feature_enable.py
+    ├── test_rfc_initialization_failure.py
+    ├── test_rfc_override_rfc_prop.py
+    ├── test_rfc_setget_param.py
+    ├── test_rfc_single_instance_run.py
+    ├── test_rfc_static_cert_selector.py
+    ├── test_rfc_tr181_setget_local_param.py
+    ├── test_rfc_trigger_reboot.py
+    ├── test_rfc_unknown_accountid.py
+    ├── test_rfc_valid_accountid.py
+    ├── test_rfc_webpa.py
+    ├── test_rfc_xconf_communication.py
+    ├── test_rfc_xconf_configsethash_time.py
+    ├── test_rfc_xconf_reboot.py
+    ├── test_rfc_xconf_request_params.py
+    └── test_rfc_xconf_rfc_data.py
+```
+
+### Test Execution Model
+
+All L2 tests operate by:
+
+1. Setting up preconditions (files, properties, environment)
+2. Running the `rfcMgr` binary directly (`/usr/bin/rfcMgr`)
+3. Asserting expected log messages in `/opt/logs/rfcscript.log`
+4. Optionally verifying file-system side effects or CLI outputs
+
+The test helper (`rfc_test_helper.py`) provides:
+
+| Helper | Purpose |
+|--------|---------|
+| `initial_rfc_setup()` | Creates route file, gateway IP, partner ID, MAC address, XConf URL, secure dir, firmware version file |
+| `rfc_run_binary()` | Executes `/usr/bin/rfcMgr` |
+| `grep_log_file(file, string)` | Asserts string presence in rfcMgr log output |
+| `search_log_file(file, string)` | Returns last matching log line |
+| `run_shell_command(cmd)` | Executes shell command and returns stdout |
+| `write_on_file(file, content)` | Writes content to file |
+| `get_FWversion()` | Reads firmware version from `/version.txt` |
+
 ---
 
 ## 1. Current L2 Test Coverage
@@ -828,9 +896,161 @@ Feature: RFC Manager Scheduled Reboot
 
 ---
 
-## 3. Coverage Matrix
+## 3. RFC Manager Component Coverage
 
-### 3.1 Source File Coverage
+This section maps the `rfcMgr` daemon's core responsibilities to the specific L2 tests that
+exercise them. The rfcMgr binary is the primary component under test — every active L2 test
+invokes it via the `rfc_run_binary()` helper.
+
+### 3.1 rfcMgr Lifecycle vs L2 Test Coverage
+
+```mermaid
+sequenceDiagram
+    participant Test as pytest
+    participant rfcMgr
+    participant Lock as /tmp/.rfcServiceLock
+    participant Net as isDnsResolve()
+    participant Props as rfc.properties
+    participant XConf as Mock XConf Server
+    participant Store as tr181store.ini
+
+    Test->>rfcMgr: rfc_run_binary()
+    rfcMgr->>Lock: Acquire file lock
+    Note right of Lock: test_rfc_single_instance_run.py
+    rfcMgr->>Net: CheckDeviceIsOnline()
+    Note right of Net: test_rfc_device_offline_status.py
+    rfcMgr->>Props: GetServURL()
+    Note right of Props: test_rfc_initialization_failure.py<br/>test_rfc_override_rfc_prop.py
+    rfcMgr->>XConf: DownloadRuntimeFeatures()
+    Note right of XConf: test_rfc_xconf_communication.py<br/>test_rfc_feature_enable.py<br/>test_rfc_xconf_request_params.py
+    XConf-->>rfcMgr: JSON Response + configSetHash header
+    rfcMgr->>rfcMgr: PreProcessJsonResponse()
+    Note right of rfcMgr: test_rfc_valid_accountid.py<br/>test_rfc_unknown_accountid.py<br/>test_rfc_trigger_reboot.py
+    rfcMgr->>Store: processXconfResponseConfigDataPart()
+    Note right of Store: test_rfc_factory_reset.py<br/>test_rfc_xconf_rfc_data.py<br/>test_rfc_xconf_configsethash_time.py
+    rfcMgr->>rfcMgr: SendEventToMaintenanceManager()
+    Note right of rfcMgr: test_rfc_xconf_reboot.py
+```
+
+### 3.2 rfcMgr Function-to-Test Mapping
+
+| rfcMgr Function | Responsibility | L2 Test File(s) | Coverage Status |
+|---|---|---|---|
+| `main()` → lock file check | Single-instance guard | `test_rfc_single_instance_run.py` | Covered |
+| `main()` → `createDirectoryIfNotExists()` | `/opt/secure/RFC` creation | `test_rfc_xconf_rfc_data.py` (implicit) | Partial |
+| `RFCManager()` → `InitializeIARM()` | IARM bus setup | None | **Gap** |
+| `CheckDeviceIsOnline()` → `isDnsResolve()` | DNS-based online check | `test_rfc_device_offline_status.py` | Covered |
+| `CheckDeviceIsOnline()` → `CheckIProuteConnectivity()` | IP route retry | None | **Gap** |
+| `RFCManagerProcess()` → `InitializeRuntimeFeatureControlProcessor()` | Props parsing, URL, FW version | `test_rfc_initialization_failure.py` | Covered |
+| `GetServURL()` → persistent file override | `/opt/rfc.properties` priority | `test_rfc_override_rfc_prop.py` | Covered |
+| `IsNewFirmwareFirstRequest()` | Firmware change detection | None | **Gap** |
+| `clearDB()` + `rfcStashStoreParams()` | DB clear on FW change | None | **Gap** |
+| `CreateXconfHTTPUrl()` | URL construction with device params | `test_rfc_xconf_request_params.py` | Covered |
+| `DownloadRuntimeFeatutres()` | mTLS + CURL download | `test_rfc_xconf_communication.py` | Partial (HTTP only) |
+| `ProcessRuntimeFeatureControlReq()` → HTTP 200 | Successful XConf processing | `test_rfc_xconf_communication.py` | Covered |
+| `ProcessRuntimeFeatureControlReq()` → HTTP 304 | Not-modified handling | `test_rfc_feature_enable.py` | Covered |
+| `ProcessRuntimeFeatureControlReq()` → HTTP 404 | Not-found handling | `test_rfc_xconf_communication.py` | Covered |
+| `ProcessRuntimeFeatureControlReq()` → CURL code 6 | DNS resolution failure | `test_rfc_xconf_communication.py` | Covered |
+| `ProcessRuntimeFeatureControlReq()` → retry logic | 3 retries with 15s delay | None | **Gap** |
+| `PreProcessJsonResponse()` → `GetValidAccountId()` | AccountID validation | `test_rfc_valid_accountid.py` | Covered |
+| `PreProcessJsonResponse()` → `GetValidPartnerId()` | PartnerID validation | None | **Gap** |
+| `PreProcessJsonResponse()` → `GetXconfSelect()` | Slot selection (prod/ci/automation) | None | **Gap** |
+| `processXconfResponseConfigDataPart()` | Config data apply to store | `test_rfc_xconf_rfc_data.py`, `test_rfc_factory_reset.py` | Covered |
+| `processXconfResponseConfigDataPart()` → empty value reject | EMPTY value rejection | `test_rfc_factory_reset.py` | Covered |
+| `isConfigValueChange()` | Change detection | `test_rfc_trigger_reboot.py` (indirect) | Partial |
+| `rfcCheckAccountId()` | Unknown → AuthService replacement | `test_rfc_unknown_accountid.py` | Covered |
+| `updateHashAndTimeInDB()` | configSetHash + time persistence | `test_rfc_xconf_configsethash_time.py` | Covered |
+| `SendEventToMaintenanceManager()` | Reboot required event | `test_rfc_xconf_reboot.py` | Covered |
+| `RFCManagerPostProcess()` | Post-process script exec | None | **Gap** |
+| `manageCronJob()` | DCM cron scheduling | None | **Gap** |
+| `getMtlscert()` | mTLS certificate selection | `test_rfc_dynamic_static_cert_selector.py` | **Disabled** |
+| `NotifyTelemetry2Count()` / `NotifyTelemetry2Value()` | Telemetry markers | None | **Gap** |
+
+### 3.3 rfcMgr Coverage by Execution Phase
+
+```mermaid
+flowchart LR
+    subgraph "Phase 1: Startup"
+        A[Lock file] --> B[Dir creation]
+        B --> C[IARM init]
+    end
+    subgraph "Phase 2: Online Check"
+        D[DNS resolve] --> E[IP route check]
+    end
+    subgraph "Phase 3: XConf Fetch"
+        F[URL construction] --> G[mTLS cert]
+        G --> H[CURL download]
+        H --> I[Retry on failure]
+    end
+    subgraph "Phase 4: Response Processing"
+        J[JSON parse] --> K[Account/Partner validate]
+        K --> L[Config data apply]
+        L --> M[Hash/time update]
+    end
+    subgraph "Phase 5: Post-Process"
+        N[Reboot event] --> O[Post-process script]
+        O --> P[Cron management]
+        P --> Q[Telemetry report]
+    end
+
+    style A fill:#4CAF50,color:white
+    style B fill:#A5D6A7
+    style C fill:#F44336,color:white
+    style D fill:#4CAF50,color:white
+    style E fill:#F44336,color:white
+    style F fill:#4CAF50,color:white
+    style G fill:#FFC107,color:black
+    style H fill:#4CAF50,color:white
+    style I fill:#F44336,color:white
+    style J fill:#F44336,color:white
+    style K fill:#4CAF50,color:white
+    style L fill:#4CAF50,color:white
+    style M fill:#4CAF50,color:white
+    style N fill:#4CAF50,color:white
+    style O fill:#F44336,color:white
+    style P fill:#F44336,color:white
+    style Q fill:#F44336,color:white
+```
+
+**Legend:** Green = covered | Yellow = disabled test | Red = gap
+
+### 3.4 Feature File to Test Script Mapping
+
+Each `.feature` file in `test/functional-tests/features/` specifies expected behavior in Gherkin
+syntax. The corresponding pytest file in `tests/` implements the actual verification. Not all
+feature scenarios have 1:1 implementation — some tests verify multiple scenarios in a single
+function.
+
+| Feature File | Test Script | Scenario Count (Feature) | Test Functions (Actual) |
+|---|---|---|---|
+| `rfc_single_instance_run.feature` | `test_rfc_single_instance_run.py` | 1 | 1 |
+| `rfc_device_offline_status.feature` | `test_rfc_device_offline_status.py` | 1 | 1 |
+| `rfc_initialization_failure.feature` | `test_rfc_initialization_failure.py` | 2 | 2 |
+| `rfc_xconf_communication.feature` | `test_rfc_xconf_communication.py` | 3 | 3 |
+| `rfc_feature_enable.feature` | `test_rfc_feature_enable.py` | 3 | 1 (304 only) |
+| `rfc_setget_param.feature` | `test_rfc_setget_param.py` | 2 | 2 |
+| `rfc_tr181_setget_local_param.feature` | `test_rfc_tr181_setget_local_param.py` | 2 | 2 |
+| `rfc_data.feature` | `test_rfc_xconf_rfc_data.py` | 1 | 2 |
+| `rfc_xconf_request_params.feature` | `test_rfc_xconf_request_params.py` | 1 | 1 |
+| `rfc_valid_accountid.feature` | `test_rfc_valid_accountid.py` | 1 | 2 |
+| `rfc_unknown_accountid.feature` | `test_rfc_unknown_accountid.py` | 1 | 1 |
+| `rfc_factory_reset.feature` | `test_rfc_factory_reset.py` | 2 | 4 |
+| `rfc_trigger_reboot.py` | `test_rfc_trigger_reboot.py` | 1 | 1 |
+| `rfc_reboot_required.feature` | `test_rfc_xconf_reboot.py` | 1 | 2 |
+| `rfc_xconf_configsetHash_time.feature` | `test_rfc_xconf_configsethash_time.py` | 3 | 3 |
+| `rfc_override_rfc_prop.feature` | `test_rfc_override_rfc_prop.py` | 1 | 3 |
+| `rfc_dynamic_cert_selector.feature` | `test_rfc_dynamic_static_cert_selector.py` | 1 | 1 (disabled) |
+| `rfc_static_cert_selector.feature` | `test_rfc_static_cert_selector.py` | 2 | 1 (disabled) |
+| `rfc_webpa.feature` | `test_rfc_webpa.py` | 2 | 2 (disabled) |
+
+**Total active test functions:** 31  
+**Total disabled test functions:** 4
+
+---
+
+## 4. Coverage Matrix
+
+### 4.1 Source File Coverage
 
 | Source File | Functions | L2 Tested | Coverage |
 |---|---|---|---|
@@ -845,7 +1065,7 @@ Feature: RFC Manager Scheduled Reboot
 | `jsonhandler.cpp` | 7 | 1 (indirect via data files) | ~14% |
 | `tr181utils.cpp` | 8 | 2 (CLI get/set used in tests) | ~25% |
 
-### 3.2 Error Path Coverage
+### 4.2 Error Path Coverage
 
 | Error Category | Total Paths | Covered | Gap |
 |---|---|---|---|
@@ -857,7 +1077,7 @@ Feature: RFC Manager Scheduled Reboot
 | Type conversion errors | 5 | 0 | 5 paths |
 | Semaphore failures | 4 | 0 | 4 paths |
 
-### 3.3 Feature Branch Coverage
+### 4.3 Feature Branch Coverage
 
 | Compile Flag | Active Tests | Gap |
 |---|---|---|
@@ -870,7 +1090,7 @@ Feature: RFC Manager Scheduled Reboot
 
 ---
 
-## 4. Recommended Test Implementation Priority
+## 5. Recommended Test Implementation Priority
 
 ### Phase 1 — Critical (Immediate)
 
@@ -904,7 +1124,7 @@ Feature: RFC Manager Scheduled Reboot
 
 ---
 
-## 5. Mock Server Enhancement Requirements
+## 6. Mock Server Enhancement Requirements
 
 To support the missing test scenarios, the mock XConf server (`rfcData.js`) needs:
 
@@ -936,7 +1156,7 @@ test/test-artifacts/mockxconf/
 
 ---
 
-## 6. Issues Found in Existing Tests
+## 7. Issues Found in Existing Tests
 
 | Issue | File | Description |
 |---|---|---|
@@ -949,7 +1169,9 @@ test/test-artifacts/mockxconf/
 
 ---
 
-## 7. Test Coverage Summary
+## 8. Test Coverage Summary
+
+### Overall Module
 
 ```
 Total source functions (approx):          ~120
@@ -968,12 +1190,38 @@ Estimated current L2 functional coverage:  ~35%
 Target L2 functional coverage:             ~80%
 ```
 
+### rfcMgr Component Specific
+
+```
+rfcMgr source files:                         6 (rfc_main, rfc_manager, rfc_common,
+                                                rfc_xconf_handler, xconf_handler, mtlsUtils)
+rfcMgr total functions:                    ~75
+rfcMgr functions with L2 coverage:         ~22 (including indirect)
+rfcMgr functions with NO L2 coverage:      ~53
+
+rfcMgr execution phases:                     5 (Startup, Online Check, XConf Fetch,
+                                                Response Processing, Post-Process)
+Phases with adequate coverage:               2 (Online Check, Response Processing)
+Phases with partial coverage:                2 (Startup, XConf Fetch)
+Phases with poor coverage:                   1 (Post-Process)
+
+Key coverage gaps:
+  - IARM bus initialization/events           0% tested
+  - mTLS certificate selection               0% active (tests disabled)
+  - Firmware upgrade flow (clearDB/stash)    0% tested
+  - Retry logic (3x15s on failure)           0% tested
+  - JSON parse error handling                0% tested
+  - RDKB-specific code paths                 0% tested
+  - Post-process script execution            0% tested
+  - Telemetry notification                   0% tested
+```
+
 ---
 
 ## See Also
 
-- [RFC Parameter Runtime Priority](rfc-parameter-runtime-priority.md) — Parameter precedence documentation
-- [RFC API Reference](../rfcapi/docs/README.md) — RFC API documentation
-- [TR181 API Reference](../tr181api/docs/README.md) — TR181 API documentation
-- [Test Execution](../run_l2.sh) — L2 test execution script
-- [Mock XConf Server](../test/test-artifacts/mockxconf/rfcData.js) — Mock server implementation
+- [RFC Parameter Runtime Priority](../../docs/rfc-parameter-runtime-priority.md) — Parameter precedence documentation
+- [RFC API Reference](../../rfcapi/docs/README.md) — RFC API documentation
+- [TR181 API Reference](../../tr181api/docs/README.md) — TR181 API documentation
+- [Test Execution](../../run_l2.sh) — L2 test execution script
+- [Mock XConf Server](../test-artifacts/mockxconf/rfcData.js) — Mock server implementation

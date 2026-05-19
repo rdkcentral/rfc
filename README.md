@@ -403,6 +403,7 @@ Licensed under the Apache License, Version 2.0
 
 - [rfcapi API Reference](rfcapi/docs/README.md)
 - [tr181api API Reference](tr181api/docs/README.md)
+- [RFC Parameter Runtime Priority](docs/rfc-parameter-runtime-priority.md)
 - [Build System Instructions](.github/instructions/build-system.instructions.md)
 - [C Embedded Standards](.github/instructions/c-embedded.instructions.md)
 - [L2 Test Runner Agent](.github/agents/l2-test-runner.agent.md)
