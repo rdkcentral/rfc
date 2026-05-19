@@ -1,163 +1,163 @@
 ---
 name: bdd-feature-generator
-description: Generate BDD (Behavior Driven Development) feature files from tr69hostif source code analysis. Use for creating Gherkin-format documentation of TR-181 parameter handlers, daemon lifecycle, WebPA/Parodus communication, HTTP server protocol, and RFC store behavior. Produces gap analysis between feature files and L2 test implementations.
+description: Generate BDD (Behavior Driven Development) feature files from RFC Manager source code analysis. Use for creating Gherkin-format documentation of XConf communication, TR-181 parameter processing, mTLS certificate selection, AccountID handling, Maintenance Manager integration, and reboot trigger behavior. Produces gap analysis between feature files and L2 test implementations.
 ---
 
-# BDD Feature Generator for tr69hostif
+# BDD Feature Generator for RFC Manager
 
 ## Purpose
 
-Automatically generate BDD feature files in Gherkin format by analyzing the tr69hostif source code. This skill creates comprehensive behavioral documentation that can serve as:
-- **Functional documentation** of TR-181 data model parameter handlers (GET/SET)
+Automatically generate BDD feature files in Gherkin format by analyzing the RFC Manager (`rfcMgr`) source code. This skill creates comprehensive behavioral documentation that can serve as:
+- **Functional documentation** of XConf server communication, JSON response processing, and TR-181 parameter application
 - **Test specifications** for L2 functional tests (`test/functional-tests/`)
-- **Requirements traceability** linking handler source code to observable behavior
-- **Gap analysis baseline** for comparing L2 tests vs implemented handlers
+- **Requirements traceability** linking RFC Manager source code to observable behavior
+- **Gap analysis baseline** for comparing L2 tests vs implemented functionality
 
 ## Usage
 
 Invoke this skill when:
-- Documenting existing tr69hostif parameter handlers in BDD format
-- Creating test specifications for new TR-181 parameters
-- Generating feature files for untested profiles (WiFi, MoCA, Ethernet, etc.)
+- Documenting existing RFC Manager behavior in BDD format
+- Creating test specifications for new XConf features or parameters
+- Generating feature files for untested functionality (retry logic, error handling, etc.)
 - Performing gap analysis between L2 tests and source implementation
 - Onboarding new team members with behavioral documentation of the daemon
 
 ## Project Context
 
-tr69hostif is a TR-069/TR-181 host interface daemon for RDK devices. It:
-- Exposes ~708 TR-181 parameters via **rbus DML** and **HTTP/WDMP-C** interfaces
-- Communicates with **Parodus/WebPA** for cloud management
-- Calls **Thunder JSON-RPC plugins** for device state (NetworkManager, AuthService, etc.)
-- Manages **RFC**, **Bootstrap**, and **Non-RFC** parameter stores backed by INI files
-- Runs as a systemd service with multiple initialization threads
+RFC Manager (`rfcMgr`) is a Remote Feature Control daemon for RDK devices. It:
+- Queries the **XConf server** via HTTPS for feature-control configurations
+- Parses **JSON responses** to extract TR-181 parameters, configSetHash, and timing data
+- Applies parameters via **rbus** (RDKB/RDKC) or **WDMP-C/rfcapi** (video devices)
+- Supports **mTLS** with dynamic (P12) and static (PEM) certificate selection
+- Communicates with the **Maintenance Manager** via IARM bus events
+- Manages **AccountID** resolution from XConf response and AuthService
+- Handles **reboot scheduling** via Maintenance Manager events and cron jobs
+- Runs as a **forked daemon** with single-instance enforcement via lock file
 
 ## Prerequisites
 
 Before running this skill:
 
-1. **Review the build system** — `src/Makefile.am` and `src/hostif/profiles/Makefile.am`
-2. **Identify compiled profiles** — Only document profiles that are actually built
-3. **Review existing feature files** — Match the format in `docs/features/` and `test/functional-tests/features/`
-4. **Check existing coverage** — Read `test/docs/L2_Test_Coverage.md` for current gap data
-5. **Understand test interfaces** — L2 tests use `rbuscli` (rbus DML), mock `parodus` binary (WebPA), and log scraping
+1. **Review the build system** — `configure.ac` and `Makefile.am` (top-level + sub-components)
+2. **Identify compile flags** — `RDKB_SUPPORT`, `RDKC`, `USE_IARMBUS`, `LIBRDKCERTSELECTOR`, `GTEST_ENABLE`
+3. **Review existing feature files** — Match the format in `test/functional-tests/features/`
+4. **Check existing coverage** — Read `test/docs/L2_Analysis_Report.md` for current gap data
+5. **Understand test interfaces** — L2 tests use `tr181` CLI, mock XConf HTTPS server (`rfcData.js`), mock `parodus` binary, and log scraping
 
 ## Process
 
 ### Step 1: Analyze Build Configuration
 
-The tr69hostif build is Autotools-based. Identify compiled components from the Makefile chain:
+The RFC Manager build is Autotools-based. Identify compiled components from `configure.ac` and the Makefile chain:
 
 ```bash
-# Top-level: identifies src/ as the main SUBDIR
+# Top-level: identifies subdirectory build order
 cat Makefile.am | grep "SUBDIRS"
-# → SUBDIRS = $(SUBDIRS_MOCA) $(SUBDIRS_WIFI) src
+# RDKC: SUBDIRS = rfcapi rfcMgr
+# RDKB: SUBDIRS = rfcMgr
+# Video (default): SUBDIRS = rfcapi tr181api utils rfcMgr
 
-# Source level: identifies compiled subsystems
-cat src/Makefile.am | grep "SUBDIRS"
-# → SUBDIRS = hostif/handlers hostif/profiles
-# → SUBDIRS += hostif/snmpAdapter       (if WITH_SNMP_ADAPTER)
-# → SUBDIRS += hostif/parodusClient
-# → SUBDIRS += hostif/httpserver         (if !WITH_NEW_HTTP_SERVER_DISABLE)
-
-# Profile level: identifies compiled TR-181 profile directories
-cat src/hostif/profiles/Makefile.am | grep "SUBDIRS"
-# → SUBDIRS = STBService Device DeviceInfo Ethernet IP Time
-# → SUBDIRS += DHCPv4          (if WITH_DHCP_PROFILE)
-# → SUBDIRS += StorageService   (if WITH_STORAGESERVICE_PROFILE)
-# → SUBDIRS += InterfaceStack   (if WITH_INTFSTACK_PROFILE)
-# → SUBDIRS += wifi             (if WITH_WIFI_PROFILE)
+# rfcMgr: the main daemon binary
+cat rfcMgr/Makefile.am
+# Sources: rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp
+#          rfc_xconf_handler.cpp xconf_handler.cpp
 ```
 
-**Always compiled profiles:**
+**Compile flags from `configure.ac`:**
 
-| Profile Directory | TR-181 Namespace | Key Source Files |
+| Flag | `configure` Option | Purpose |
 |---|---|---|
-| `profiles/STBService/` | `Device.Services.STBService.*` | `Components_AudioOutput.cpp`, `Components_HDMI.cpp`, `Components_XrdkEMMC.cpp`, etc. |
-| `profiles/Device/` | `Device.*` (x_rdk) | `x_rdk_profile.cpp` |
-| `profiles/DeviceInfo/` | `Device.DeviceInfo.*` | `Device_DeviceInfo.cpp`, `XrdkBlueTooth.cpp`, `XrdkCentralComRFC.cpp`, `XrdkCentralComBSStore.cpp` |
-| `profiles/Ethernet/` | `Device.Ethernet.*` | `Device_Ethernet_Interface.cpp`, `Device_Ethernet_Interface_Stats.cpp` |
-| `profiles/IP/` | `Device.IP.*` | `Device_IP.cpp`, `Device_IP_Interface.cpp`, `Device_IP_Interface_IPv4Address.cpp`, `Device_IP_Interface_IPv6Address.cpp`, `Device_IP_Interface_Stats.cpp` |
-| `profiles/Time/` | `Device.Time.*` | `Device_Time.cpp` |
+| `-DRDKB_SUPPORT` | `--enable-rdkb=yes` | Broadband platform (rbus, dmcli, sysevent) |
+| `-DRDKC` | `ENABLE_RDKC` condition | Camera platform (rbus, IP polling) |
+| `-DUSE_IARMBUS` | `--enable-iarmbus=yes` | IARM bus for Maintenance Manager events |
+| `-DLIBRDKCERTSELECTOR` | `--enable-rdkcertselector=yes` | Dynamic mTLS certificate selection (P12) |
+| `-DLIBRDKCONFIG_BUILD` | `--enable-mountutils=yes` | Mount utilities for cert path resolution |
+| `-DRDKB_EXTENDER_SUPPORT` | `--enable-rdkbextender=yes` | Broadband extender variant |
+| `-DUSE_TR69HOSTIF` | `--enable-tr69hostif=yes` | TR-069 host interface integration |
+| `-DGTEST_ENABLE` | `--enable-gtestapp=yes` | Google Test (L1 unit tests) |
+| `-DINCLUDE_BREAKPAD` | `--enable-breakpad=yes` | Crash reporting via Breakpad |
 
-**Conditionally compiled profiles:**
+**Platform build variants:**
 
-| Profile Directory | Build Flag | TR-181 Namespace |
+| Platform | Libraries Built | Key Flags |
 |---|---|---|
-| `profiles/DHCPv4/` | `WITH_DHCP_PROFILE` | `Device.DHCPv4.*` |
-| `profiles/StorageService/` | `WITH_STORAGESERVICE_PROFILE` | `Device.StorageService.*` |
-| `profiles/InterfaceStack/` | `WITH_INTFSTACK_PROFILE` | `Device.InterfaceStack.*` |
-| `profiles/wifi/` | `WITH_WIFI_PROFILE` | `Device.WiFi.*` |
-
-**Always compiled non-profile components:**
-
-| Component | Key Source Files | Purpose |
-|---|---|---|
-| `handlers/` | `hostIf_rbus_Dml_Provider.cpp`, `hostIf_msgHandler.cpp`, `hostIf_jsonReqHandlerThread.cpp`, etc. | Request routing, rbus DML registration |
-| `parodusClient/` | Parodus/WebPA client | Cloud management interface |
-| `httpserver/` (conditional) | `http_server.cpp`, `request_handler.cpp`, `XrdkCentralComRFCVar.cpp` | libsoup HTTP server for WDMP-C JSON |
-
-**Exclude from feature generation:**
-- `src/hostif/include/` — Headers only
-- `src/hostif/handlers/src/gtest/`, `src/hostif/profiles/*/gtest/` — Unit tests (L1)
-- `src/hostif/*/docs/` — Existing documentation
-- `test/` — Test infrastructure
-- `scripts/` — Build/validation utilities
+| RDKC (Camera) | `rfcapi`, `rfcMgr` | `-DRDKC`, rbus |
+| RDKB (Broadband) | `rfcMgr` | `-DRDKB_SUPPORT`, rbus |
+| RDKV (Video/STB) | `rfcapi`, `tr181api`, `utils` (tr181, rfctool), `rfcMgr` | WDMP-C, IARM |
 
 ### Step 2: Analyze Source Code Structure
 
-For each compiled profile/component:
+**Core source files (`rfcMgr/`):**
 
-1. **Read the header file** (`.h`) — Identify all `get_*` and `set_*` handler declarations
-2. **Read the implementation** (`.cpp`) — Extract TR-181 parameter names from string comparisons, Thunder plugin calls, file I/O paths
-3. **Identify the request handler** — Map the profile to its `hostIf_*_ReqHandler.cpp` in `handlers/src/`
-4. **Note conditional compilation** — `#ifdef USE_HWSELFTEST_PROFILE`, `#ifdef USE_WIFI_PROFILE`, etc.
-5. **Note Thunder dependencies** — Any `JSONRPCLink` or `org.rdk.*` plugin invocations
-6. **Note file-backed parameters** — INI files, RFC stores, `/opt/secure/RFC/` paths
+| Source File | Key Functionality |
+|---|---|
+| `rfc_main.cpp` | Daemon entry point: fork(), lock file, signal handler, directory creation (`/opt/secure/RFC/`, `/tmp/RFC/`), calls `CheckDeviceIsOnline()` then `RFCManagerProcessXconfRequest()` |
+| `rfc_manager.cpp` | `RFCManager` class: internet connectivity check (platform-specific), IARM initialization, Maintenance Manager events, XConf request orchestration, cron job management, post-processing |
+| `rfc_manager.h` | Class declaration, `DeviceStatus` enum (`ONLINE`/`OFFLINE`), macros for file paths, maintenance event codes |
+| `rfc_common.cpp` | `read_RFCProperty()` (rbus on RDKB/RDKC, WDMP on video), `waitForRfcCompletion()`, `CheckSpecialCharacters()`, `StringCaseCompare()` |
+| `rfc_common.h` | Shared declarations, `RFCProperty` structure |
+| `rfc_xconf_handler.cpp` | `RuntimeFeatureControlProcessor` class: XConf URL construction, JSON response parsing, configSetHash/Time tracking, TR-181 parameter application, AccountID handling, stash store/retrieve |
+| `rfc_xconf_handler.h` | XConf handler declarations |
+| `xconf_handler.cpp` | `XConfHandler` class: curl-based HTTPS communication, retry logic, HTTP response code handling |
+| `xconf_handler.h` | XConf HTTP handler declarations |
+| `mtlsUtils.cpp` | mTLS certificate retrieval: dynamic P12 cert via `RdkCertSelector`, static PEM fallback |
+| `mtlsUtils.h` | mTLS utility declarations |
 
-**Key elements to extract for each profile:**
+**Supporting libraries:**
+
+| Directory | Library | Purpose |
+|---|---|---|
+| `rfcapi/` | `librfcapi.la` | RFC API: `getRFCParameter()`, `setRFCParameter()`, `freeRFCParameter()` |
+| `tr181api/` | `libtr181api.la` | TR-181 API: parameter get/set wrappers (video only) |
+| `utils/` | `tr181` binary | CLI tool for TR-181 parameter SET/GET from shell scripts |
+| `utils/` | `rfctool` binary | JSON handler utility |
+
+**Key elements to extract per source file:**
 
 | Element | Where to Find | Example |
 |---|---|---|
-| GET handler functions | `.h` class declaration | `get_Device_DeviceInfo_ModelName()` |
-| SET handler functions | `.h` class declaration | `set_Device_DeviceInfo_X_RDKCENTRAL_COM_FirmwareToDownload()` |
-| TR-181 parameter paths | `.cpp` string comparisons | `"Device.DeviceInfo.ModelName"` |
-| Thunder plugin calls | `.cpp` `Invoke()` calls | `org.rdk.NetworkManager.GetIPSettings` |
-| File-backed state | `.cpp` file open/write | `/opt/secure/RFC/bootstrap.ini` |
-| Error return codes | `.cpp` return statements | `NOK`, `OK` |
-| Compile guards | `.h` / `.cpp` `#ifdef` | `USE_HWSELFTEST_PROFILE`, `BLE_TILE_PROFILE` |
+| XConf URL construction | `rfc_xconf_handler.cpp` | URL query parameters (eStbMac, model, firmwareVersion, env, accountId) |
+| JSON response fields | `rfc_xconf_handler.cpp` | `featureControl.features[].configData`, `configSetHash`, `configSetTime` |
+| TR-181 parameter application | `rfc_xconf_handler.cpp` | Parameter name/value from `effectiveImmediate` entries |
+| Internet check paths | `rfc_manager.cpp` | IP route (RDKV), dmcli eRouter (RDKB), getifaddrs (RDKC) |
+| IARM event types | `rfc_manager.cpp` | `MAINT_RFC_COMPLETE`, `MAINT_RFC_ERROR`, `MAINT_REBOOT_REQUIRED` |
+| File-backed state | `rfc_xconf_handler.cpp` | `/opt/secure/RFC/tr181store.ini`, `/opt/secure/RFC/bootstrap.ini`, `/opt/secure/RFC/.version` |
+| Certificate paths | `mtlsUtils.cpp` | Dynamic: `RdkCertSelector_Get_mTlsCreds()`, Static: `/etc/ssl/certs/client.pem` |
+| Compile guards | All files | `#ifdef RDKB_SUPPORT`, `#ifdef RDKC`, `#ifdef LIBRDKCERTSELECTOR`, `#ifdef EN_MAINTENANCE_MANAGER` |
 
 ### Step 3: Create Feature File Structure
 
-Feature files are generated to `docs/features/`.
+Feature files are placed in `test/functional-tests/features/`.
 
-```bash
-mkdir -p docs/features
-```
+**Naming convention for RFC Manager:**
 
-**Naming convention for tr69hostif:**
+Feature files follow the pattern `rfc_{behavior_area}.feature`:
 
-| Source | Feature File | Description |
+| Source Functionality | Feature File | Description |
 |---|---|---|
-| `profiles/DeviceInfo/` | `deviceinfo_parameters.feature` | DeviceInfo standard + custom params |
-| `profiles/DeviceInfo/XrdkBlueTooth.cpp` | `bluetooth_parameters.feature` | BLE/Tile parameters |
-| `profiles/IP/` | `ip_interface.feature` | IP, IPv4Address, IPv6Address, Stats |
-| `profiles/Ethernet/` | `ethernet_interface.feature` | Ethernet interface + stats |
-| `profiles/wifi/` | `wifi_parameters.feature` | WiFi Radio, SSID, AccessPoint, EndPoint |
-| `profiles/moca/` | `moca_interface.feature` | MoCA interface, stats, QoS, mesh |
-| `profiles/Time/` | `time_parameters.feature` | Time, NTP, Chrony |
-| `profiles/STBService/` | `stbservice_components.feature` | AudioOutput, HDMI, eMMC, SDCard, etc. |
-| `profiles/StorageService/` | `storage_service.feature` | PhysicalMedium |
-| `profiles/DHCPv4/` | `dhcpv4_client.feature` | DHCPv4 client params |
-| `profiles/InterfaceStack/` | `interface_stack.feature` | HigherLayer/LowerLayer |
-| `handlers/src/hostIf_rbus_Dml_Provider.cpp` | `rbus_dml_registration.feature` | rbus data element registration |
-| `httpserver/` | `http_server.feature` | WDMP-C HTTP server protocol |
-| `parodusClient/` | `webpa_parodus.feature` | WebPA/Parodus communication |
-| Daemon lifecycle | `bootup_sequence.feature` | Init, threads, shutdown |
-| RFC/Bootstrap stores | `rfc_store.feature` | RFC, Bootstrap, rfcVariable persistence |
+| XConf HTTP communication | `rfc_xconf_communication.feature` | XConf server request/response, HTTP status codes |
+| XConf request parameters | `rfc_xconf_request_params.feature` | URL query parameters sent to XConf |
+| XConf configSetHash/Time | `rfc_xconf_configsetHash_time.feature` | Configuration hash and timestamp tracking |
+| XConf RFC data processing | `rfc_data.feature` | JSON response feature data extraction |
+| TR-181 parameter SET/GET | `rfc_setget_param.feature` | Parameter application via tr181 CLI |
+| TR-181 local SET/GET | `rfc_tr181_setget_local_param.feature` | Local store parameter roundtrip |
+| WebPA communication | `rfc_webpa.feature` | WebPA SET/GET via mock parodus binary |
+| Feature enable/disable | `rfc_feature_enable.feature` | Feature control (HTTP 200 vs 304 responses) |
+| Device offline status | `rfc_device_offline_status.feature` | Internet connectivity check behavior |
+| Initialization failure | `rfc_initialization_failure.feature` | Unresolved XConf host, missing DNS |
+| Single instance run | `rfc_single_instance_run.feature` | Lock file enforcement |
+| AccountID handling | `rfc_valid_accountid.feature` | Valid AccountID resolution and application |
+| Unknown AccountID | `rfc_unknown_accountid.feature` | Unknown/invalid AccountID behavior |
+| Factory reset | `rfc_factory_reset.feature` | Store clear and re-application |
+| Reboot required | `rfc_reboot_required.feature` | Reboot event via Maintenance Manager |
+| Reboot trigger | `rfc_trigger_reboot.feature` | Account transition reboot trigger |
+| Dynamic cert selection | `rfc_dynamic_cert_selector.feature` | P12 mTLS dynamic certificate |
+| Static cert fallback | `rfc_static_cert_selector.feature` | PEM static certificate fallback |
+| RFC properties override | `rfc_override_rfc_prop.feature` | rfc.properties override behavior |
 
 ### Step 4: Generate Feature Files
 
-Use this template for tr69hostif feature files:
+Use this template for RFC Manager feature files:
 
 ```gherkin
 ####################################################################################
@@ -179,241 +179,181 @@ Use this template for tr69hostif feature files:
 # limitations under the License.
 ####################################################################################
 
-# Source: src/hostif/profiles/{ProfileDir}/{SourceFile}.cpp
+# Source: rfcMgr/{SourceFile}.cpp
+# Test:   test/functional-tests/tests/{TestFile}.py
 
-Feature: {TR-181 Namespace} Parameter Handlers
+@order-{N}
+Feature: {Feature Title}
 
   Background:
-    Given the tr69hostif daemon is running and initialized
-    And rbuscli is available on the system
+    Given the rfcMgr binary is available at "/usr/bin/rfcMgr"
+    And the mock XConf HTTPS server is running on port 50053
+    And the RFC properties file exists at "/etc/rfc.properties"
 
-  Scenario: GET {TR-181 Parameter Path}
-    When I GET "{parameter.path}" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain a valid value
-
-  Scenario: SET and GET {TR-181 Parameter Path}
-    When I SET "{parameter.path}" to "{test_value}" as {type} via rbus
-    And I GET "{parameter.path}" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain "{test_value}"
+  Scenario: {Descriptive scenario name}
+    Given {precondition}
+    When {action — typically running rfcMgr or setting a parameter}
+    Then {expected outcome — log message, parameter value, or file content}
 ```
 
-### Step 5: Map Handler Code to Scenarios
+### Step 5: Map Source Handlers to Scenarios
 
-**For each TR-181 parameter handler, create scenarios covering:**
+For each functional area in the RFC Manager source code, generate scenarios that exercise the corresponding behavior. Use the test helper constants and interfaces available in the L2 test infrastructure.
 
-1. **GET happy path** — Normal successful GET returning expected value
-2. **SET + GET roundtrip** — SET a value, GET it back, verify match (for writable params)
-3. **Error conditions** — GET/SET on invalid instance, wrong data type
-4. **File-backed persistence** — Verify SET writes to INI file (for RFC/Bootstrap params)
-5. **Thunder-backed params** — Verify GET maps Thunder plugin response correctly
-
-**Example mapping — rbus DML GET handler:**
-
-```cpp
-// Source: src/hostif/profiles/DeviceInfo/Device_DeviceInfo.cpp
-int hostIf_DeviceInfo::get_Device_DeviceInfo_ModelName(HOSTIF_MsgData_t *stMsgData, bool *pChanged)
-{
-    // reads /etc/device.properties for MODEL_NUM
-    ...
-    strncpy(stMsgData->paramValue, modelName, TR69HOSTIFMGR_MAX_PARAM_LEN);
-    stMsgData->paramtype = hostIf_StringType;
-    return OK;
-}
-```
-
-**Generated scenario:**
+**XConf Communication (from `rfc_xconf_handler.cpp`, `xconf_handler.cpp`):**
 
 ```gherkin
-Scenario: GET Device.DeviceInfo.ModelName
-  When I GET "Device.DeviceInfo.ModelName" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain a non-empty string
+Scenario: Successful XConf request with HTTP 200
+  Given RFC_XCONF_URL is set to "https://mockxconf:50053/featureControl/getSettings"
+  When the rfcMgr binary is executed
+  Then the log should contain "HTTP Response code: 200"
+  And the tr181store.ini file should be updated with parameters from the XConf response
+
+Scenario: XConf returns 304 Not Modified
+  Given the configSetHash matches the previous request
+  When the rfcMgr binary is executed
+  Then the log should contain "HTTP Response code: 304"
+  And the tr181store.ini should remain unchanged
 ```
 
-**Example mapping — rbus DML SET+GET handler:**
-
-```cpp
-// Source: src/hostif/profiles/DeviceInfo/Device_DeviceInfo.cpp
-int hostIf_DeviceInfo::set_Device_DeviceInfo_X_RDKCENTRAL_COM_FirmwareToDownload(
-    HOSTIF_MsgData_t *stMsgData)
-{
-    snprintf(m_FirmwareToDownload, ...);
-    return OK;
-}
-```
-
-**Generated scenarios:**
+**Parameter SET/GET (from `rfc_common.cpp`, `rfcapi/rfcapi.cpp`):**
 
 ```gherkin
-Scenario: SET and GET FirmwareToDownload
-  When I SET "Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareToDownload" to "test_image.bin" as string via rbus
-  And I GET "Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareToDownload" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain "test_image.bin"
+Scenario: SET and GET TR-181 parameter via tr181 CLI
+  Given the TR-181 store file exists at "/opt/secure/RFC/tr181store.ini"
+  When I SET "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass" to "default" via tr181
+  And I GET "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass" via tr181
+  Then the response should contain "default"
 ```
 
-**Example mapping — WebPA via mock parodus:**
+**WebPA Communication (from `rfc_common.cpp` — WDMP path):**
 
 ```gherkin
 Scenario: SET parameter via WebPA
-  When I send a WebPA SET payload:
+  When I send a WebPA SET payload via the mock parodus binary:
     """
-    {"command":"SET","parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.XconfUrl","dataType":0,"value":"https://mock/getSettings"}]}
+    {"command":"SET","parameters":[{"name":"{param}","dataType":{type},"value":"{value}"}]}
     """
   Then the parodus mock should exit with code 0
   And the parodus log should contain '"statusCode":200'
   And the parodus log should contain '"message":"Success"'
 ```
 
-**Example mapping — Thunder-backed parameter:**
+**AccountID Handling (from `rfc_xconf_handler.cpp`):**
 
 ```gherkin
-Scenario: GET STB IP via Thunder NetworkManager
-  Given the mock Thunder server is running on port 9998
-  And "org.rdk.NetworkManager.GetIPSettings" returns {"ipaddress":"192.168.1.100"}
-  When I GET "Device.DeviceInfo.X_COMCAST-COM_STB_IP" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain "192.168.1.100"
+Scenario: Valid AccountID extracted from XConf response
+  Given the XConf response contains a valid AccountID
+  When the rfcMgr binary processes the response
+  Then the log should contain the AccountID value
+  And the TR-181 parameter for AccountID should be set
+
+Scenario: Unknown AccountID triggers error handling
+  Given the XConf response contains AccountID "3064488088886635972"
+  When the rfcMgr binary processes the response
+  Then the log should indicate an unknown AccountID
 ```
 
-**Example mapping — RFC file-backed parameter:**
+**Certificate Selection (from `mtlsUtils.cpp`):**
 
 ```gherkin
-Scenario: Bootstrap parameter persisted to file
-  When I SET "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName" to "TestProduct" as string via rbus
-  And I GET "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.PartnerProductName" via rbus
-  Then the rbus response should contain "TestProduct"
-  And the file "/opt/secure/RFC/bootstrap.ini" should contain "TestProduct"
+Scenario: Dynamic P12 certificate selection
+  Given LIBRDKCERTSELECTOR is enabled
+  And a valid P12 certificate is available
+  When the rfcMgr binary initiates XConf communication
+  Then the log should contain the dynamic certificate path
+
+Scenario: Static PEM certificate fallback
+  Given no dynamic certificate selector is available
+  And "/etc/ssl/certs/client.pem" exists
+  When the rfcMgr binary initiates XConf communication
+  Then the log should contain "/etc/ssl/certs/client.pem"
 ```
 
-### Step 6: Document Parameter Tables
-
-For profiles with many parameters, use `Scenario Outline` with `Examples` tables:
+**Reboot/Maintenance Manager (from `rfc_manager.cpp`):**
 
 ```gherkin
-Scenario Outline: GET Device.IP interface parameters
-  When I GET "<parameter>" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain "<expected_value>"
+Scenario: Reboot required event sent to Maintenance Manager
+  Given ENABLE_MAINTENANCE is set to "true" in device.properties
+  And the XConf response requires a reboot
+  When the rfcMgr binary completes processing
+  Then an IARM event MAINT_REBOOT_REQUIRED should be sent
+
+Scenario: RFC complete event sent to Maintenance Manager
+  Given ENABLE_MAINTENANCE is set to "true" in device.properties
+  When the rfcMgr binary completes successfully
+  Then an IARM event MAINT_RFC_COMPLETE should be sent
+```
+
+### Step 6: Use Scenario Outlines for Parameterized Tests
+
+When multiple test variations share the same flow but differ in data, use Scenario Outline with Examples:
+
+```gherkin
+Scenario Outline: XConf communication with different HTTP response codes
+  Given RFC_XCONF_URL is set to "<url>"
+  When the rfcMgr binary is executed
+  Then the log should contain "HTTP Response code: <code>"
 
   Examples:
-    | parameter                                        | expected_value       |
-    | Device.IP.Interface.1.IPv6Prefix.1.Autonomous    | false                |
-    | Device.IP.Interface.1.IPv6Address.1.Anycast       | false                |
-    | Device.IP.Interface.1.IPv6Address.1.Enable        | true                 |
-    | Device.IP.Interface.1.IPv4Address.1.Enable        | true                 |
-    | Device.IP.Interface.1.IPv6Enable                  | true                 |
+    | url                                                          | code |
+    | https://mockxconf:50053/featureControl/getSettings           | 200  |
+    | https://mockxconf:50053/featureControl304/getSettings        | 304  |
+    | https://mockxconf:50053/featureControl404/getSettings        | 404  |
 ```
 
-For documenting the full handler inventory of a profile, use a table scenario:
+### Step 7: Create Feature-to-Test Mapping
 
-```gherkin
-Scenario: Device.Ethernet.Interface parameter handler coverage
-  Given the Ethernet profile is compiled
-  Then the following parameters should have GET handlers
-    | Parameter                                          | Handler Function                              | Type    |
-    | Device.Ethernet.Interface.{i}.Enable               | get_Device_Ethernet_Interface_Enable           | boolean |
-    | Device.Ethernet.Interface.{i}.Status               | get_Device_Ethernet_Interface_Status           | string  |
-    | Device.Ethernet.Interface.{i}.MACAddress            | get_Device_Ethernet_Interface_MACAddress        | string  |
-    | Device.Ethernet.Interface.{i}.MaxBitRate            | get_Device_Ethernet_Interface_MaxBitRate        | int     |
-    | Device.Ethernet.Interface.{i}.DuplexMode            | get_Device_Ethernet_Interface_DuplexMode        | string  |
-    | Device.Ethernet.Interface.{i}.Stats.BytesSent       | get_Device_Ethernet_Interface_Stats_BytesSent   | ulong   |
-    | Device.Ethernet.Interface.{i}.Stats.BytesReceived    | get_Device_Ethernet_Interface_Stats_BytesReceived| ulong  |
-```
+Maintain a mapping between feature files and their corresponding test implementations:
 
-### Step 7: Create README Index
-
-Create `docs/features/README.md`:
-
-```markdown
-# tr69hostif Feature Documentation
-
-This folder contains BDD feature files documenting the TR-181 parameter
-handlers and daemon behavior implemented in `src/hostif/`.
-
-## Feature Files Overview
-
-| Feature File | Source Components | Description |
+| Feature File | Test File | Test Runner |
 |---|---|---|
-| `bootup_sequence.feature` | `src/hostif/src/hostIf_main.cpp`, handlers | Daemon startup, thread init, subsystem checks |
-| `handler_communications.feature` | `handlers/`, `profiles/DeviceInfo/` | RFC, Bootstrap, Time, Chrony SET/GET via rbus |
-| `device_ip_profiles.feature` | `profiles/DeviceInfo/`, `profiles/IP/` | DeviceInfo defaults, IP, Services, ReverseSSH |
-| `webpa_parodus.feature` | `parodusClient/` | WebPA SET/GET via mock parodus |
-| `wifi_parameters.feature` | `profiles/wifi/` | WiFi Radio, SSID, AP, EndPoint |
-| `ethernet_interface.feature` | `profiles/Ethernet/` | Ethernet interface + stats |
-| `http_server.feature` | `httpserver/` | WDMP-C protocol tests |
+| `rfc_single_instance_run.feature` | `test_rfc_single_instance_run.py` | `run_l2.sh` |
+| `rfc_device_offline_status.feature` | `test_rfc_device_offline_status.py` | `run_l2.sh` |
+| `rfc_initialization_failure.feature` | `test_rfc_initialization_failure.py` | `run_l2.sh` |
+| `rfc_xconf_communication.feature` | `test_rfc_xconf_communication.py` | `run_l2.sh` |
+| `rfc_setget_param.feature` | `test_rfc_setget_param.py` | `run_l2.sh` |
+| `rfc_tr181_setget_local_param.feature` | `test_rfc_tr181_setget_local_param.py` | `run_l2.sh` |
+| `rfc_data.feature` | `test_rfc_xconf_rfc_data.py` | `run_l2.sh` |
+| `rfc_xconf_request_params.feature` | `test_rfc_xconf_request_params.py` | `run_l2.sh` |
+| `rfc_valid_accountid.feature` | `test_rfc_valid_accountid.py` | `run_l2.sh` |
+| `rfc_factory_reset.feature` | `test_rfc_factory_reset.py` | `run_l2.sh` |
+| `rfc_trigger_reboot.feature` | `test_rfc_trigger_reboot.py` | `run_l2.sh` |
+| `rfc_feature_enable.feature` | `test_rfc_feature_enable.py` | `run_l2.sh` |
+| `rfc_xconf_configsetHash_time.feature` | `test_rfc_xconf_configsethash_time.py` | `run_l2.sh` |
+| `rfc_reboot_required.feature` | `test_rfc_xconf_reboot.py` | `run_l2.sh` |
+| `rfc_override_rfc_prop.feature` | `test_rfc_override_rfc_prop.py` | `run_l2.sh` |
+| `rfc_unknown_accountid.feature` | `test_rfc_unknown_accountid.py` | `run_l2_reboot_trigger.sh` |
+| `rfc_webpa.feature` | `test_rfc_webpa.py` | `run_l2_reboot_trigger.sh` |
+| `rfc_dynamic_cert_selector.feature` | `test_rfc_dynamic_static_cert_selector.py` | commented out |
+| `rfc_static_cert_selector.feature` | `test_rfc_static_cert_selector.py` | commented out |
 
-## Source Directory Mapping
+## Scenario Patterns for RFC Manager
 
-Based on `src/Makefile.am` and `src/hostif/profiles/Makefile.am`:
-
-### Always Compiled
-- `profiles/STBService/` — STB service components (Audio, HDMI, eMMC, etc.)
-- `profiles/Device/` — x_rdk profile
-- `profiles/DeviceInfo/` — DeviceInfo, RFC, Bootstrap, Bluetooth
-- `profiles/Ethernet/` — Ethernet interface and stats
-- `profiles/IP/` — IP, IPv4Address, IPv6Address, Interface stats
-- `profiles/Time/` — NTP, Chrony time management
-- `handlers/` — Request handlers, rbus DML provider, message handler
-- `parodusClient/` — WebPA/Parodus client
-
-### Conditionally Compiled
-- `profiles/DHCPv4/` — `WITH_DHCP_PROFILE`
-- `profiles/StorageService/` — `WITH_STORAGESERVICE_PROFILE`
-- `profiles/InterfaceStack/` — `WITH_INTFSTACK_PROFILE`
-- `profiles/wifi/` — `WITH_WIFI_PROFILE`
-- `snmpAdapter/` — `WITH_SNMP_ADAPTER`
-- `httpserver/` — `!WITH_NEW_HTTP_SERVER_DISABLE`
-
-### Not Documented (Not Compiled)
-- `src/hostif/include/` — Headers only
-- `src/hostif/*/docs/` — Existing documentation
-- `src/hostif/*/gtest/` — Unit tests (L1)
-
-## Test Interface Summary
-
-| Interface | Tool | Log File | Used For |
-|---|---|---|---|
-| rbus DML | `rbuscli get/set` | `/opt/logs/tr69hostif.log.0` | Parameter GET/SET |
-| WebPA/Parodus | `/usr/local/bin/parodus` mock binary | `/opt/logs/parodus.log` | WebPA JSON payloads |
-| HTTP Server | `curl` to `http://127.0.0.1:11999` | `/opt/logs/tr69hostif.log.0` | WDMP-C JSON protocol |
-| Thunder | Mock JSON-RPC on `:9998` | `/opt/logs/tr69hostif.log.0` | Plugin-backed params |
-
-## Generation Date
-
-Generated: {DATE}
-```
-
-## Scenario Patterns for tr69hostif
-
-### Parameter GET Pattern (rbus DML)
+### XConf Communication Pattern
 
 ```gherkin
-Scenario: GET {TR-181 Parameter}
-  Given the tr69hostif daemon is running and initialized
-  When I GET "{Device.Namespace.Parameter}" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain a valid {type} value
+Scenario: {Description of XConf interaction}
+  Given RFC_XCONF_URL is configured in "/etc/rfc.properties"
+  And the mock XConf server returns HTTP {status_code}
+  When the rfcMgr binary is executed
+  Then the log file "/opt/logs/rfcscript.txt" should contain "{expected_log_entry}"
 ```
 
-### Parameter SET+GET Roundtrip Pattern (rbus DML)
+### TR-181 Parameter SET/GET Pattern (tr181 CLI)
 
 ```gherkin
-Scenario: SET and GET {TR-181 Parameter}
-  Given the tr69hostif daemon is running and initialized
-  When I SET "{Device.Namespace.Parameter}" to "{value}" as {type} via rbus
-  And I GET "{Device.Namespace.Parameter}" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain "{value}"
+Scenario: SET and GET {parameter}
+  When I SET "{Device.Namespace.Parameter}" to "{value}" via tr181 CLI
+  And I GET "{Device.Namespace.Parameter}" via tr181 CLI
+  Then the response should contain "{value}"
 ```
 
 ### WebPA SET/GET Pattern (mock parodus)
 
 ```gherkin
 Scenario: SET {parameter} via WebPA
-  When I send a WebPA SET payload:
+  When I send a WebPA SET payload via mock parodus:
     """
     {"command":"SET","parameters":[{"name":"{param}","dataType":{type},"value":"{value}"}]}
     """
@@ -422,7 +362,7 @@ Scenario: SET {parameter} via WebPA
   And the parodus log should contain '"message":"Success"'
 
 Scenario: GET {parameter} via WebPA
-  When I send a WebPA GET payload:
+  When I send a WebPA GET payload via mock parodus:
     """
     {"command":"GET","names":["{param}"]}
     """
@@ -431,133 +371,307 @@ Scenario: GET {parameter} via WebPA
   And the parodus log should contain '"value":"{expected}"'
 ```
 
-### HTTP Server Protocol Pattern (WDMP-C)
+### Device Connectivity Check Pattern
 
 ```gherkin
-Scenario: GET parameter via HTTP server
-  When I send HTTP GET to "http://127.0.0.1:11999" with body:
-    """
-    {"names":["{Device.Namespace.Parameter}"]}
-    """
-  Then the HTTP response status should be 200
-  And the response body should contain '"statusCode":200'
+Scenario: Device offline — no route available
+  Given the route file "/tmp/route_available" does not exist
+  And the DNS file "/etc/resolv.dnsmasq" does not exist
+  When the rfcMgr binary is executed
+  Then the log should contain "OFFLINE" or connectivity failure message
+  And the rfcMgr should exit without making XConf request
 
-Scenario: SET parameter via HTTP server with CallerID
-  When I send HTTP POST to "http://127.0.0.1:11999" with CallerID header and body:
-    """
-    {"parameters":[{"name":"{param}","value":"{value}","dataType":{type}}]}
-    """
-  Then the HTTP response status should be 200
-  And the response body should contain '"statusCode":200'
-
-Scenario: SET parameter via HTTP server without CallerID
-  When I send HTTP POST to "http://127.0.0.1:11999" without CallerID header
-  Then the HTTP response status should be 500
-  And the response body should contain "POST Not Allowed without CallerID"
+Scenario: Device online — route and DNS available
+  Given the route file "/tmp/route_available" exists
+  And the DNS file "/etc/resolv.dnsmasq" contains valid nameserver entries
+  When the rfcMgr binary is executed
+  Then the log should indicate successful connectivity check
 ```
 
-### Thunder Plugin Pattern
+### Single Instance Lock Pattern
 
 ```gherkin
-Scenario: GET {parameter} backed by Thunder {plugin}
-  Given the mock Thunder server is running on port 9998
-  And "{org.rdk.Plugin.Method}" returns {mock_json_response}
-  When I GET "{Device.Namespace.Parameter}" via rbus
-  Then the rbus response should not contain an error
-  And the rbus response should contain the mapped value from the Thunder response
+Scenario: Only one rfcMgr instance runs at a time
+  Given the lock file "/tmp/.rfcServiceLock" does not exist
+  When the rfcMgr binary is executed
+  Then the lock file should be created
+  And a second rfcMgr instance should fail to acquire the lock
 ```
 
-### Daemon Bootup Log Pattern
+### Factory Reset Pattern
 
 ```gherkin
-Scenario: {Subsystem} initialization
-  Given the tr69hostif binary has been invoked
-  And the process has been active for at least 10 seconds
-  When the daemon completes initialization
-  Then the log should contain "{success_message}"
-  And the log should NOT contain "{error_message}"
+Scenario: Factory reset clears RFC stores
+  Given the TR-181 store contains existing parameters
+  When a factory reset is triggered
+  And the rfcMgr binary is re-executed
+  Then the store files should be cleared
+  And parameters should be re-applied from the XConf response
 ```
 
-### RFC/Bootstrap File Persistence Pattern
+### AccountID Handling Pattern
 
 ```gherkin
-Scenario: {Parameter} persisted to {file}
-  When I SET "{Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Param}" to "{value}" as string via rbus
-  And I GET "{Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.Param}" via rbus
-  Then the rbus response should contain "{value}"
-  And the file "{/opt/secure/RFC/bootstrap.ini}" should contain "{value}"
+Scenario: AccountID from XConf response
+  Given the XConf response contains AccountID "{account_id}"
+  When the rfcMgr binary processes the response
+  Then the log should contain "AccountID: {account_id}"
+  And the TR-181 AccountID parameter should be set to "{account_id}"
+```
+
+### Reboot Trigger Pattern
+
+```gherkin
+Scenario: Account transition triggers reboot
+  Given the previous AccountID was "{old_id}"
+  And the new XConf response contains AccountID "{new_id}"
+  When the rfcMgr binary processes the response
+  Then a reboot trigger event should be generated
+```
+
+### Certificate Selection Pattern
+
+```gherkin
+Scenario: Dynamic mTLS certificate (P12)
+  Given LIBRDKCERTSELECTOR is compiled in
+  When the rfcMgr initiates HTTPS to XConf
+  Then the log should show dynamic certificate selection via RdkCertSelector
+
+Scenario: Static mTLS certificate (PEM fallback)
+  Given the static certificate exists at "/etc/ssl/certs/client.pem"
+  When the rfcMgr initiates HTTPS to XConf
+  Then the log should show static certificate path "/etc/ssl/certs/client.pem"
+```
+
+### Maintenance Manager Event Pattern
+
+```gherkin
+Scenario: RFC {status} event to Maintenance Manager
+  Given ENABLE_MAINTENANCE is "true" in "/etc/device.properties"
+  When the rfcMgr binary completes with {status}
+  Then an IARM event with code {event_code} should be sent
+
+  # Event codes:
+  # MAINT_RFC_COMPLETE = 2
+  # MAINT_RFC_ERROR = 3
+  # MAINT_REBOOT_REQUIRED = 4
+```
+
+### Feature Enable/Disable Pattern
+
+```gherkin
+Scenario: Feature enable via HTTP 200 response
+  Given the XConf server returns a 200 with feature configuration
+  When the rfcMgr binary is executed
+  Then the feature parameters should be applied to the TR-181 store
+
+Scenario: No change via HTTP 304 response
+  Given the configSetHash matches the cached value
+  When the rfcMgr binary is executed
+  Then no parameters should be changed
+  And the log should contain "304"
+```
+
+### RFC Properties Override Pattern
+
+```gherkin
+Scenario: Override XConf URL via rfc.properties
+  Given "/opt/rfc.properties" contains "RFC_CONFIG_SERVER_URL={override_url}"
+  When the rfcMgr binary is executed
+  Then the XConf request should use "{override_url}" instead of the default
 ```
 
 ### Negative Test Pattern
 
 ```gherkin
-Scenario: GET nonexistent parameter
-  When I GET "Device.Nonexistent.Parameter" via rbus
-  Then the rbus response should contain an error
+Scenario: Unresolvable XConf hostname
+  Given RFC_XCONF_URL points to "https://unmockxconf:50053/featureControl/getSettings"
+  When the rfcMgr binary is executed
+  Then the log should contain a DNS resolution failure
+  And the rfcMgr should exit with an error
 
-Scenario: SET wrong data type
-  When I SET "{string_param}" to "123" as int via rbus
-  Then the rbus response should indicate a type mismatch error
-
-Scenario: Malformed WebPA JSON payload
-  When I send a WebPA payload with malformed JSON
-  Then the parodus mock should indicate a parse error
+Scenario: Missing rfc.properties file
+  Given "/etc/rfc.properties" does not exist
+  When the rfcMgr binary is executed
+  Then the log should indicate a configuration error
 ```
 
 ## Quality Checklist
 
-Before completing feature generation for tr69hostif:
+Before completing feature generation for RFC Manager:
 
-- [ ] All compiled profile directories analyzed (`profiles/Makefile.am` SUBDIRS)
-- [ ] Non-compiled/conditional profiles noted with build flags
-- [ ] Each GET handler has at least one scenario
-- [ ] Each SET handler has a SET+GET roundtrip scenario
-- [ ] Thunder-backed parameters identified and documented with plugin/method
-- [ ] File-backed parameters (RFC, Bootstrap, Chrony) include file persistence checks
-- [ ] HTTP server protocol scenarios included (GET, POST, error cases)
+- [ ] All `rfcMgr/` source files analyzed for behavioral scenarios
+- [ ] Platform-specific paths documented (RDKV, RDKB, RDKC connectivity checks)
+- [ ] XConf communication scenarios cover 200, 304, 404, and error responses
+- [ ] TR-181 parameter SET/GET roundtrip scenarios included
 - [ ] WebPA/Parodus scenarios use mock parodus binary pattern
-- [ ] Negative/edge case scenarios documented (wrong type, nonexistent param, malformed JSON)
-- [ ] Conditional compilation guards noted (`#ifdef USE_WIFI_PROFILE`, etc.)
+- [ ] AccountID handling scenarios cover valid, unknown, and transition cases
+- [ ] Certificate selection scenarios cover dynamic (P12) and static (PEM) paths
+- [ ] Maintenance Manager IARM event scenarios included (complete, error, reboot)
+- [ ] Factory reset scenario documents store clear and re-application
+- [ ] Single instance lock file enforcement documented
+- [ ] Initialization failure scenarios cover DNS, network, and config errors
+- [ ] Feature files match the existing naming convention (`rfc_*.feature`)
 - [ ] License headers included (Apache 2.0, RDK Management)
 - [ ] Source file references included as comments
 - [ ] `@order-N` tags used for pytest execution ordering
-- [ ] README index created with profile mapping and test interface summary
-- [ ] Gap analysis section compares features to `test/functional-tests/tests/` implementations
-- [ ] Scenarios are atomic (one parameter or behavior per scenario)
+- [ ] Feature-to-test mapping table is current
+- [ ] Gap analysis identifies untested functionality
+- [ ] Scenarios are atomic (one behavior per scenario)
 - [ ] Given/When/Then structure followed consistently
+
+## Test Infrastructure Reference
+
+### L2 Test Environment
+
+Tests run in a Docker container (`rdkcentral/docker-device-mgt-service-test`) with:
+
+| Component | Description |
+|---|---|
+| Mock XConf Server | Node.js HTTPS server (`rfcData.js`) on port 50053, serves JSON feature-control responses |
+| Mock Parodus Binary | Binary at `/usr/local/bin/parodus`, simulates WebPA communication |
+| `tr181` CLI | Utility for TR-181 parameter SET/GET from shell (`utils/tr181utils.cpp`) |
+| `rbuscli` | rbus command-line tool for direct parameter access |
+| rfcMgr Binary | Compiled daemon at `/usr/bin/rfcMgr` |
+
+### Key File Paths Used in Tests
+
+| Constant | Path | Purpose |
+|---|---|---|
+| `RFC_MGR_PATH` | `/usr/bin/rfcMgr` | Daemon binary |
+| `RFC_LOCK_FILE` | `/tmp/.rfcServiceLock` | Single-instance lock file |
+| `RFC_LOG_FILE` | `/opt/logs/rfcscript.txt` | Primary RFC log file |
+| `LOG_FILE` | `/opt/logs/rfcscript.txt.1` | Rotated log file (read after execution) |
+| `RFC_PROPS_FILE` | `/etc/rfc.properties` | RFC configuration properties |
+| `TR181_INI_FILE` | `/opt/secure/RFC/tr181.list` | TR-181 parameter list |
+| `TR181_STORE_FILE` | `/opt/secure/RFC/tr181store.ini` | TR-181 store (XConf-applied values) |
+| `BOOTSTRAP_FILE` | `/opt/secure/RFC/bootstrap.ini` | Bootstrap parameter store |
+| `RFC_DEFAULTS_FILE` | `/etc/rfcdefaults.ini` | Default RFC parameter values |
+| `RFC_OLD_FW_FILE` | `/opt/secure/RFC/.version` | Cached firmware version |
+| `RFC_ROUTE_FILE` | `/tmp/route_available` | Network route availability flag |
+| `RFC_DNS_FILE` | `/etc/resolv.dnsmasq` | DNS resolver configuration |
+| `PARODUS_LOG_FILE` | `/opt/logs/parodus.log` | Mock parodus output log |
+| `DEVICE_PROPERTIES` | `/etc/device.properties` | Device configuration (ENABLE_MAINTENANCE, etc.) |
+| `VERSION_FILE` | `/version.txt` | Device firmware version |
+
+### Mock XConf Server URLs
+
+| Constant | URL | Response |
+|---|---|---|
+| `RFC_XCONF_URL` | `https://mockxconf:50053/featureControl/getSettings` | HTTP 200 with feature JSON |
+| `RFC_XCONF_304_URL` | `https://mockxconf:50053/featureControl304/getSettings` | HTTP 304 Not Modified |
+| `RFC_XCONF_404_URL` | `https://mockxconf:50053/featureControl404/getSettings` | HTTP 404 Not Found |
+| `RFC_XCONF_UNRESOLVED_URL` | `https://unmockxconf:50053/featureControl/getSettings` | DNS resolution failure |
+| `RFC_XCONF_OVERRIDE_URL` | `https://mockxconf_opt_rfc_properties/featureControl/getSettings` | Override URL test |
+
+### Mock XConf Response Artifacts
+
+Located in `test/test-artifacts/mockxconf/`:
+
+| File | Purpose |
+|---|---|
+| `rfcData.js` | Node.js HTTPS mock server (Express) handling multiple endpoints |
+| `xconf-rfc-response.json` | Standard XConf feature-control JSON response |
+| `xconf-rfc-response-unknown-accountid.json` | Response with unknown AccountID for negative test |
+
+### Test Execution Sequence
+
+**Main suite (`run_l2.sh`):**
+
+1. Pre-test setup: copy properties, certs, store files; set ConfigSetTime via `rbuscli`
+2. Execute test files sequentially via `pytest`:
+   - `test_rfc_single_instance_run.py`
+   - `test_rfc_device_offline_status.py`
+   - `test_rfc_initialization_failure.py`
+   - `test_rfc_xconf_communication.py`
+   - `test_rfc_setget_param.py`
+   - `test_rfc_tr181_setget_local_param.py`
+   - `test_rfc_xconf_rfc_data.py`
+   - `test_rfc_xconf_request_params.py`
+   - `test_rfc_valid_accountid.py`
+   - `test_rfc_factory_reset.py`
+   - `test_rfc_trigger_reboot.py`
+   - `test_rfc_feature_enable.py`
+   - `test_rfc_xconf_configsethash_time.py`
+3. Enable Maintenance Manager: append `ENABLE_MAINTENANCE=true` to `device.properties`
+4. Continue with:
+   - `test_rfc_xconf_reboot.py`
+   - `test_rfc_override_rfc_prop.py`
+5. Certificate tests (currently commented out):
+   - `test_rfc_dynamic_static_cert_selector.py`
+   - `test_rfc_static_cert_selector.py`
+
+**Reboot trigger suite (`run_l2_reboot_trigger.sh`):**
+
+1. Set `ENABLE_MAINTENANCE=false` in `device.properties`
+2. Remove `/opt/rfc.properties`
+3. Execute:
+   - `test_rfc_unknown_accountid.py`
+   - `test_rfc_webpa.py`
 
 ## Output Structure
 
 ```
-docs/
-└── features/
-    ├── README.md                         # Index, profile mapping, gap summary
-    ├── bootup_sequence.feature           # Daemon lifecycle, thread init
-    ├── handler_communications.feature    # RFC/Bootstrap/Time SET+GET via rbus
-    ├── device_ip_profiles.feature        # DeviceInfo, IP, Services via rbus
-    ├── webpa_parodus.feature             # WebPA SET/GET via mock parodus
-    ├── http_server.feature               # WDMP-C HTTP protocol tests
-    ├── wifi_parameters.feature           # WiFi Radio/SSID/AP/EndPoint
-    ├── ethernet_interface.feature        # Ethernet interface + stats
-    ├── moca_interface.feature            # MoCA interface/stats/QoS
-    ├── stbservice_components.feature     # AudioOutput/HDMI/eMMC/SDCard
-    ├── time_parameters.feature           # NTP/Chrony beyond basic
-    ├── rfc_store.feature                 # RFC variable store, override precedence
-    ├── bluetooth_parameters.feature      # BLE/Tile (conditional)
-    ├── dhcpv4_client.feature             # DHCPv4 (conditional)
-    ├── storage_service.feature           # StorageService (conditional)
-    ├── interface_stack.feature           # InterfaceStack (conditional)
-    └── negative_edge_cases.feature       # Wrong type, nonexistent param, etc.
+test/functional-tests/
+├── features/                                      # BDD feature files (Gherkin documentation format)
+│   ├── rfc_data.feature                           # XConf RFC data processing
+│   ├── rfc_device_offline_status.feature          # Device connectivity checks
+│   ├── rfc_dynamic_cert_selector.feature          # Dynamic P12 mTLS cert
+│   ├── rfc_factory_reset.feature                  # Factory reset behavior
+│   ├── rfc_feature_enable.feature                 # Feature enable/disable (200/304)
+│   ├── rfc_initialization_failure.feature         # Startup failure scenarios
+│   ├── rfc_override_rfc_prop.feature              # RFC properties override
+│   ├── rfc_reboot_required.feature                # Reboot via Maintenance Manager
+│   ├── rfc_setget_param.feature                   # TR-181 SET/GET roundtrip
+│   ├── rfc_single_instance_run.feature            # Lock file enforcement
+│   ├── rfc_static_cert_selector.feature           # Static PEM cert fallback
+│   ├── rfc_tr181_setget_local_param.feature       # Local store SET/GET
+│   ├── rfc_trigger_reboot.feature                 # Account transition reboot
+│   ├── rfc_unknown_accountid.feature              # Unknown AccountID handling
+│   ├── rfc_valid_accountid.feature                # Valid AccountID resolution
+│   ├── rfc_webpa.feature                          # WebPA via mock parodus
+│   ├── rfc_xconf_communication.feature            # XConf HTTP communication
+│   ├── rfc_xconf_configsetHash_time.feature       # ConfigSetHash/Time tracking
+│   └── rfc_xconf_request_params.feature           # XConf request parameters
+├── tests/                                         # Runnable pytest functions
+│   ├── rfc_test_helper.py                         # Shared constants, helper functions
+│   ├── test_rfc_single_instance_run.py
+│   ├── test_rfc_device_offline_status.py
+│   ├── test_rfc_initialization_failure.py
+│   ├── test_rfc_xconf_communication.py
+│   ├── test_rfc_setget_param.py
+│   ├── test_rfc_tr181_setget_local_param.py
+│   ├── test_rfc_xconf_rfc_data.py
+│   ├── test_rfc_xconf_request_params.py
+│   ├── test_rfc_valid_accountid.py
+│   ├── test_rfc_factory_reset.py
+│   ├── test_rfc_trigger_reboot.py
+│   ├── test_rfc_feature_enable.py
+│   ├── test_rfc_xconf_configsethash_time.py
+│   ├── test_rfc_xconf_reboot.py
+│   ├── test_rfc_override_rfc_prop.py
+│   ├── test_rfc_unknown_accountid.py
+│   ├── test_rfc_webpa.py
+│   ├── test_rfc_dynamic_static_cert_selector.py
+│   └── test_rfc_static_cert_selector.py
+└── test-artifacts/
+    └── mockxconf/
+        ├── rfcData.js                             # Mock XConf HTTPS server
+        ├── xconf-rfc-response.json                # Standard response
+        └── xconf-rfc-response-unknown-accountid.json  # Unknown AccountID response
 ```
 
-## Example: Complete tr69hostif Feature File
+**Test runner:** `pytest` executed sequentially by `run_l2.sh` and `run_l2_reboot_trigger.sh`.
+**Interfaces exercised:** `tr181` CLI (parameter SET/GET), mock `parodus` binary (WebPA), mock XConf HTTPS server (rfcData.js), log scraping (`/opt/logs/rfcscript.txt`).
+
+## Example: Complete RFC Manager Feature File
 
 ```gherkin
 ####################################################################################
 # If not stated otherwise in this file or this component's Licenses.txt file the
 # following copyright and licenses apply:
 #
-# Copyright 2026 RDK Management
+# Copyright 2025 RDK Management
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -572,75 +686,37 @@ docs/
 # limitations under the License.
 ####################################################################################
 
-# Source: src/hostif/profiles/Ethernet/Device_Ethernet_Interface.cpp
-# Source: src/hostif/profiles/Ethernet/Device_Ethernet_Interface_Stats.cpp
+# Source: rfcMgr/rfc_xconf_handler.cpp, rfcMgr/xconf_handler.cpp
+# Test:   test/functional-tests/tests/test_rfc_xconf_communication.py
 
-Feature: Device.Ethernet.Interface Parameter Handlers
+@order-4
+Feature: RFC Manager XConf Communication
 
   Background:
-    Given the tr69hostif daemon is running and initialized
-    And rbuscli is available on the system
-    And the Ethernet profile is compiled (always compiled)
+    Given the rfcMgr binary is available at "/usr/bin/rfcMgr"
+    And the mock XConf HTTPS server is running on port 50053
+    And the RFC properties file exists at "/etc/rfc.properties"
+    And the route file "/tmp/route_available" exists
+    And the DNS file "/etc/resolv.dnsmasq" contains valid entries
 
-  Scenario: GET Ethernet interface enable status
-    When I GET "Device.Ethernet.Interface.1.Enable" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain a boolean value
+  Scenario: Successful XConf request with feature data (HTTP 200)
+    Given RFC_CONFIG_SERVER_URL is set to "https://mockxconf:50053/featureControl/getSettings"
+    When the rfcMgr binary is executed
+    Then the log should contain "HTTP Response code: 200"
+    And the file "/opt/secure/RFC/tr181store.ini" should contain applied parameters
 
-  Scenario: GET Ethernet interface status
-    When I GET "Device.Ethernet.Interface.1.Status" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain one of "Up", "Down", "Unknown", "Dormant"
+  Scenario: No configuration change (HTTP 304)
+    Given the cached configSetHash matches the server value
+    And RFC_CONFIG_SERVER_URL is set to "https://mockxconf:50053/featureControl304/getSettings"
+    When the rfcMgr binary is executed
+    Then the log should contain "HTTP Response code: 304"
+    And the TR-181 store should remain unchanged
 
-  Scenario: GET Ethernet interface MAC address
-    When I GET "Device.Ethernet.Interface.1.MACAddress" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain a valid MAC address format
-
-  Scenario Outline: GET Ethernet interface statistics
-    When I GET "<parameter>" via rbus
-    Then the rbus response should not contain an error
-    And the rbus response should contain a numeric value
-
-    Examples:
-      | parameter                                              |
-      | Device.Ethernet.Interface.1.Stats.BytesSent            |
-      | Device.Ethernet.Interface.1.Stats.BytesReceived        |
-      | Device.Ethernet.Interface.1.Stats.PacketsSent          |
-      | Device.Ethernet.Interface.1.Stats.PacketsReceived      |
-      | Device.Ethernet.Interface.1.Stats.ErrorsSent           |
-      | Device.Ethernet.Interface.1.Stats.ErrorsReceived       |
-      | Device.Ethernet.Interface.1.Stats.DiscardPacketsSent   |
-      | Device.Ethernet.Interface.1.Stats.DiscardPacketsReceived|
-
-  Scenario: GET Ethernet via WebPA wildcard
-    When I send a WebPA GET payload:
-      """
-      {"command":"GET","names":["Device.Ethernet.Interface.1."]}
-      """
-    Then the parodus mock should exit with code 0
-    And the parodus log should contain '"statusCode":200'
-
-  Scenario: Ethernet interface handler coverage
-    Given the Ethernet profile source is analyzed
-    Then the following GET handlers should exist
-      | Parameter                                           | Source File                              |
-      | Device.Ethernet.Interface.{i}.Enable                | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.Status                | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.Name                  | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.LastChange             | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.Upstream               | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.MACAddress              | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.MaxBitRate              | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.DuplexMode              | Device_Ethernet_Interface.cpp            |
-      | Device.Ethernet.Interface.{i}.Stats.BytesSent         | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.BytesReceived     | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.PacketsSent       | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.PacketsReceived   | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.ErrorsSent        | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.ErrorsReceived    | Device_Ethernet_Interface_Stats.cpp      |
-      | Device.Ethernet.Interface.{i}.Stats.DiscardPacketsSent | Device_Ethernet_Interface_Stats.cpp     |
-      | Device.Ethernet.Interface.{i}.Stats.DiscardPacketsReceived | Device_Ethernet_Interface_Stats.cpp |
+  Scenario: XConf server returns error (HTTP 404)
+    Given RFC_CONFIG_SERVER_URL is set to "https://mockxconf:50053/featureControl404/getSettings"
+    When the rfcMgr binary is executed
+    Then the log should contain "HTTP Response code: 404"
+    And no parameters should be applied
 ```
 
 ## Integration with Gap Analysis
@@ -650,13 +726,11 @@ After generating feature files, use them for gap analysis against the L2 test su
 ### Step 1: Map Features to Existing Tests
 
 ```
-docs/features/bootup_sequence.feature     ↔ test/functional-tests/tests/test_bootup_sequence.py
-docs/features/handler_communications.feature ↔ test/functional-tests/tests/test_handlers_communications.py
-docs/features/device_ip_profiles.feature   ↔ test/functional-tests/tests/tr69hostif_deviceip.py
-docs/features/webpa_parodus.feature        ↔ test/functional-tests/tests/tr69hostif_webpa.py
-docs/features/ethernet_interface.feature   ↔ (NO TEST FILE — gap)
-docs/features/wifi_parameters.feature      ↔ (NO TEST FILE — gap)
-docs/features/http_server.feature          ↔ (NO TEST FILE — gap)
+test/functional-tests/features/rfc_xconf_communication.feature  ↔ tests/test_rfc_xconf_communication.py
+test/functional-tests/features/rfc_setget_param.feature          ↔ tests/test_rfc_setget_param.py
+test/functional-tests/features/rfc_webpa.feature                 ↔ tests/test_rfc_webpa.py
+test/functional-tests/features/rfc_device_offline_status.feature ↔ tests/test_rfc_device_offline_status.py
+...
 ```
 
 ### Step 2: Count Coverage
@@ -672,79 +746,54 @@ Features without test coverage fall into categories:
 
 | Category | Example | Required Infrastructure |
 |---|---|---|
-| Untested profiles | WiFi, MoCA, Ethernet, DHCPv4 | Profile compiled in Docker container |
-| Thunder-backed params | `X_COMCAST-COM_STB_IP` | Mock Thunder JSON-RPC on `:9998` |
-| HTTP server protocol | GET/POST/error via `:11999` | `curl` or Python `requests` |
-| Negative/edge cases | Wrong type, nonexistent param | Existing `rbuscli` / `parodus` mock |
-| RFC store precedence | `rfcVariable` overrides `rfcdefaults` | File manipulation + rbus GET |
+| Untested error paths | XConf timeout, curl errors | Mock server error injection |
+| Platform-specific checks | RDKB dmcli, RDKC getifaddrs | Platform-specific Docker build |
+| Retry/backoff logic | XConf retry on failure | Configurable mock server delays |
+| Cron job management | `manageCronJob()` | Cron mock or verification |
+| IARM event edge cases | Multiple events, race conditions | IARM bus mock verification |
+| mTLS certificate tests | Dynamic P12, static PEM | Certificate infrastructure |
 
 ### Step 4: Identify Undocumented Tests
 
-Tests that exist in `test/functional-tests/tests/` but have no matching scenario in the
-original `test/functional-tests/features/` files. These should be documented retroactively.
+Tests that exist in `test/functional-tests/tests/` but have no matching scenario in
+`test/functional-tests/features/`. These should be documented retroactively.
 
 ### Step 5: Generate Gap Report
 
-Include a summary table in `docs/features/README.md`:
+Include a summary table in `test/docs/L2_Analysis_Report.md`:
 
 ```markdown
-| Profile | Feature Scenarios | L2 Tests | Coverage | Top Gaps |
+| Functional Area | Feature Scenarios | L2 Tests | Coverage | Top Gaps |
 |---|:---:|:---:|:---:|---|
-| Bootup lifecycle | 18 | 18 | 100% | — |
-| DeviceInfo params | 172 | ~20 | ~12% | Thunder, BT, ProcessStatus |
-| WiFi | 153 | 0 | 0% | Entire profile |
-| MoCA | 99 | 0 | 0% | Entire profile |
+| XConf Communication | 5 | 3 | 60% | Timeout, retry logic |
+| Parameter SET/GET | 4 | 4 | 100% | — |
+| WebPA | 3 | 2 | 67% | Error payloads |
+| AccountID | 4 | 3 | 75% | AuthService fallback |
+| Certificate Selection | 4 | 2 | 50% | P12 expiry, rotation |
 ```
 
 ### Existing Coverage Reference
 
 The comprehensive coverage analysis is maintained in:
-- `test/docs/L2_Test_Coverage.md` — Full per-parameter handler counts and gap data
-- `test/functional-tests/automatics/` — Automatics test gap analysis tooling
-
-## Current L2 Test Layout
-
-```
-test/functional-tests/
-├── features/                                   # Original BDD feature files (docs only, not wired to pytest-bdd)
-│   ├── tr69hostif_bootup_sequence.feature
-│   ├── tr69hostif_deviceip.feature
-│   ├── tr69hostif_handlers_communications.feature
-│   └── tr69hostif_webpa.feature
-├── tests/                                      # Runnable pytest functions
-│   ├── test_bootup_sequence.py                 # orders 1–18: log scraping
-│   ├── test_handlers_communications.py         # orders 19–27: rbus SET+GET (RFC, Bootstrap, Chrony)
-│   ├── tr69hostif_deviceip.py                  # orders 25–28: rbus GET (DeviceInfo, IP, Services, SSH)
-│   ├── tr69hostif_webpa.py                     # orders 29–44: mock parodus WebPA SET/GET
-│   ├── helper_functions.py                     # Shell/log/rbus helper functions
-│   ├── basic_constants.py                      # Shared constants (LOG_FILE, RBUS_EXCEPTION_STRING, etc.)
-│   └── profile_helper_functions.py             # ⚠ Broken stub (GREP_STRING undefined)
-└── automatics/                                 # Automatics gap analysis tooling
-    ├── generate_test_gap_report.py
-    ├── format_xls.py
-    ├── xls_to_markdown.py
-    └── requirements.txt
-```
-
-**Test runner:** `pytest` with `@pytest.mark.run(order=N)`, executed sequentially.
-**Interfaces exercised:** `rbuscli` (rbus DML), mock `parodus` binary (WebPA), log scraping (`/opt/logs/tr69hostif.log.0`).
+- `test/docs/L2_Analysis_Report.md` — Full coverage data, gap analysis, and feature file corrections
 
 ## Maintenance
 
-When tr69hostif source code changes:
+When RFC Manager source code changes:
 
-1. **New parameter handler added** — Add scenario to the appropriate `.feature` file; add parameter to handler coverage table
-2. **New profile compiled** — Create a new `.feature` file; add to README index
-3. **Thunder plugin call added** — Document the plugin/method mapping; note mock requirement
-4. **Handler removed** — Remove corresponding scenario; note in gap analysis
-5. **Build flag changed** — Update conditional compilation notes in README
-6. **L2 test added** — Update gap analysis coverage numbers
-7. **Version tag** — Include generation date in README
+1. **New XConf field added** — Add scenario to the appropriate `.feature` file; update JSON response artifacts
+2. **New platform support** — Create platform-specific scenarios; note build flags
+3. **New mTLS behavior** — Update certificate selection feature files
+4. **IARM event added** — Document the event code and trigger conditions
+5. **Handler removed** — Remove corresponding scenario; note in gap analysis
+6. **Build flag changed** — Update conditional compilation notes
+7. **L2 test added** — Update gap analysis coverage numbers
+8. **Test helper constants changed** — Update the Test Infrastructure Reference section
 
 ## Related Skills
 
-- `technical-documentation-writer` — For detailed architecture and API docs (`docs/architecture/`, `docs/api/`)
-- `memory-safety-analyzer` — For safety analysis of handler code
-- `thread-safety-analyzer` — For concurrency analysis of daemon threads
+- `technical-documentation-writer` — For detailed architecture and API docs (`docs/`)
+- `memory-safety-analyzer` — For safety analysis of rfcMgr C++ code
+- `thread-safety-analyzer` — For concurrency analysis of daemon fork/signal handling
 - `quality-checker` — For running static analysis and build verification
-- `tr69hostif-issue-triage` — For correlating device logs with source code
+- `triage-logs` — For correlating device logs with RFC Manager source code
