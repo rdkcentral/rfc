@@ -58,7 +58,7 @@ void signal_handler(int sig)
  */
 bool createDirectoryIfNotExists(const char* path) {
     if (!path || *path == '\0') {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid path\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid path found\n", __FUNCTION__, __LINE__);
         return false;
     }
 

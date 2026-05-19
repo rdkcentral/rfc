@@ -34,7 +34,7 @@ This document analyzes the L2 (integration/functional) test coverage for the RFC
 | 16 | `rfc_reboot_required.feature` | `test_rfc_xconf_reboot.py` | Reboot Required Event to MaintenanceMGR | **Active** |
 | 17 | `rfc_override_rfc_prop.feature` | `test_rfc_override_rfc_prop.py` | `/opt/rfc.properties` overrides `/etc/rfc.properties` | **Active** |
 | 18 | `rfc_unknown_accountid.feature` | `test_rfc_unknown_accountid.py` | Unknown AccountID → AuthService replacement | **Active** (in `run_l2_reboot_trigger.sh`) |
-| 19 | `rfc_webpa.feature` | `test_rfc_webpa.py` | WebPA SET/GET via mock parodus | **Commented out** |
+| 19 | `rfc_webpa.feature` | `test_rfc_webpa.py` | WebPA SET/GET via mock parodus | **Active** (in `run_l2_reboot_trigger.sh`) |
 
 ### 1.2 Coverage by Functional Area
 
@@ -58,12 +58,12 @@ graph TB
         O[Reboot Required Event]
         P[Properties File Override]
         Q[Feature Enable Status]
+        T[WebPA SET/GET]
     end
 
     subgraph "COVERED - Disabled Tests"
         R[Dynamic P12 Cert]
         S[Static PEM Cert Fallback]
-        T[WebPA SET/GET]
     end
 
     subgraph "NOT COVERED"
@@ -103,7 +103,7 @@ graph TB
     style Q fill:#4CAF50,color:white
     style R fill:#FFC107,color:black
     style S fill:#FFC107,color:black
-    style T fill:#FFC107,color:black
+    style T fill:#4CAF50,color:white
     style U fill:#F44336,color:white
     style V fill:#F44336,color:white
     style W fill:#F44336,color:white
@@ -186,14 +186,14 @@ graph TB
 |---|---|---|---|
 | RFC data files created | `processXconfResponseConfigDataPart()` | `test_rfc_xconf_rfc_data.py` | `tr181store.ini`, `tr181localstore.ini`, `tr181.list`, `rfcVariable.ini`, `rfcFeature.list` present |
 
-#### I. mTLS / Certificate (Disabled)
+#### I. mTLS / Certificate (Disabled — pending open-source code changes)
 
 | Scenario | Source Function | Test File | Verified Behavior |
 |---|---|---|---|
-| Dynamic P12 cert selection | `getMtlscert()` + cert selector | `test_rfc_dynamic_static_cert_selector.py` | P12 cert loaded, mTLS enabled | 
+| Dynamic P12 cert selection | `getMtlscert()` + cert selector | `test_rfc_dynamic_static_cert_selector.py` | P12 cert loaded, mTLS enabled |
 | Static PEM cert fallback | `getMtlscert()` + cert selector | `test_rfc_static_cert_selector.py` | Fallback to static PEM cert |
 
-#### J. WebPA (Disabled)
+#### J. WebPA
 
 | Scenario | Source Function | Test File | Verified Behavior |
 |---|---|---|---|
@@ -208,8 +208,8 @@ graph TB
 
 ```mermaid
 pie title L2 Test Coverage Distribution
-    "Covered & Active" : 17
-    "Covered but Disabled" : 3
+    "Covered & Active" : 19
+    "Covered but Disabled" : 2
     "Missing - High Priority" : 12
     "Missing - Medium Priority" : 10
     "Missing - Low Priority" : 6
@@ -940,12 +940,14 @@ test/test-artifacts/mockxconf/
 
 | Issue | File | Description |
 |---|---|---|
-| Duplicate feature files | `rfc_xconf_communication.feature` and `rfc_xconf_configsetHash_time.feature` | Identical content — `configsetHash_time` should have unique scenarios |
-| Wrong file extension | `rfc_trigger_reboot.py` in `features/` dir | Should be `.feature` if using Gherkin, or moved to `tests/` if Python |
-| Feature/test mismatch | `rfc_dynamic_cert_selector.feature` | Feature title says "Static" but filename says "dynamic" |
-| Disabled critical tests | `test_rfc_webpa.py`, cert tests | Commented out in `run_l2.sh` without tracking issue |
+| Disabled critical tests | `test_rfc_dynamic_static_cert_selector.py`, `test_rfc_static_cert_selector.py` | Commented out in `run_l2.sh` without tracking issue |
 | No negative RFC API tests | `test_rfc_setget_param.py` | Missing: invalid param name, wildcard rejection, non-existent param |
 | No clear param test | `test_rfc_tr181_setget_local_param.py` | `clearLocalParam()` not tested |
+| Feature/test scenario mismatch | `rfc_feature_enable.feature` | Feature has 3 scenarios (304, 404, valid URL) but only 1 test (304) |
+| Data feature scenario mismatch | `rfc_data.feature` | Feature has 1 scenario but test has 2 functions (`test_RFC_dir_exists`, `test_expected_files_present`) |
+| Factory reset extra function | `test_rfc_factory_reset.py` | Has 4 test functions but feature has 3 scenarios — `test_rfc_partnername_value` has no explicit scenario |
+
+> **Note:** Several issues from the original analysis (duplicate feature files, wrong file extension, feature/test title mismatches, wrong account IDs, missing preconditions) were already corrected — see Section 8 for details.
 
 ---
 
@@ -957,12 +959,16 @@ Functions with direct L2 coverage:          ~30
 Functions with indirect L2 coverage:        ~15
 Functions with no L2 coverage:              ~75
 
-Active L2 test scenarios:                    27
-Disabled L2 test scenarios:                   4
+Active L2 test functions:                    33
+Disabled L2 test functions:                   2
+Active feature scenarios:                    35
 Proposed new test scenarios:                 48
   - High priority:                           22
   - Medium priority:                         16
   - Low priority:                            10
+
+Test files active:                           17
+Test files disabled (commented out):          2
 
 Estimated current L2 functional coverage:  ~35%
 Target L2 functional coverage:             ~80%
@@ -996,8 +1002,9 @@ The following corrections were applied to existing feature files to align them w
 | Issue | File | Recommendation |
 |---|---|---|
 | Feature has 3 scenarios, test only covers 304 | `rfc_feature_enable.feature` | Add tests for 404 and valid URL (200) scenarios |
-| Disabled critical tests | `test_rfc_webpa.py`, cert tests | Track re-enablement with issue/ticket |
-| `rfc_data.feature` expects file size > 0 | `rfc_data.feature` | Test checks file presence but not size — add size assertion or update feature |
+| Disabled cert tests | `test_rfc_dynamic_static_cert_selector.py`, `test_rfc_static_cert_selector.py` | Track re-enablement — blocked on open-source code changes |
+| `rfc_data.feature` has 1 scenario for 2 test functions | `rfc_data.feature` / `test_rfc_xconf_rfc_data.py` | Consider splitting scenario or adding second scenario for directory existence check |
+| `rfc_factory_reset.py` has 4 test functions for 3 scenarios | `rfc_factory_reset.feature` | `test_rfc_partnername_value` has no explicit scenario — consider adding |
 
 ---
 
@@ -1009,9 +1016,13 @@ Functions with direct L2 coverage:          ~30
 Functions with indirect L2 coverage:        ~15
 Functions with no L2 coverage:              ~75
 
-Active L2 test scenarios:                    27
-Disabled L2 test scenarios:                   4
+Active L2 test functions:                    33
+Disabled L2 test functions (cert tests):      2
 Feature scenarios (total):                   35
+
+Test files in run_l2.sh:                     15
+Test files in run_l2_reboot_trigger.sh:       2
+Test files commented out:                     2
 
 Estimated current L2 functional coverage:  ~35%
 ```
