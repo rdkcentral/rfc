@@ -49,4 +49,3 @@ def test_WebPA_Get_ACC_Id():
 
     ACC_ID_MSG = '"value":"412370664406228514"'
     assert ACC_ID_MSG in grep_paroduslogs(ACC_ID_MSG)
-

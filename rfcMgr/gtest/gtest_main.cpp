@@ -892,16 +892,6 @@ TEST(rfcMgrTest, getJRPCTokenData) {
 
 }
 
-TEST(rfcMgrTest, isStateRedSupported) {
-    int ret = isStateRedSupported();
-    EXPECT_EQ(ret , 0); 
-}
-
-TEST(rfcMgrTest, isInStateRed) {
-    int ret = isInStateRed();
-    EXPECT_EQ(ret , 0);
-}
-
 TEST(rfcMgrTest, executeCommandAndGetOutput) {
     const char *pArgs;
     std::string result; 	

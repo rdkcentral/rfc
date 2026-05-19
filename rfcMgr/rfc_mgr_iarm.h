@@ -1,4 +1,7 @@
 /**
+ * @file rfc_mgr_iarm.h
+ * @brief IARM bus definitions and event constants for RFC Manager.
+ *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
  *
@@ -15,7 +18,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 #ifndef RFC_MGR_IARM_H
 #define RFC_MGR_IARM_H

@@ -27,3 +27,4 @@ rm -rf /opt/rfc.properties
 # Run L2 Test cases
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_unknown_accountid.json test/functional-tests/tests/test_rfc_unknown_accountid.py
 
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
