@@ -2488,7 +2488,7 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
         RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Config Data Map is Empty\n", __FUNCTION__, __LINE__);
         return;    
     }
-#if !defined(RDKB_SUPPORT)
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
     clearDB();
 #endif    
 
