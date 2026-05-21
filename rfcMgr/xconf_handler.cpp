@@ -100,7 +100,18 @@ int XconfHandler:: initializeXconfHandler()
 	}
 	
 	memset(tmpbuf, '\0', sizeof(tmpbuf));
+#ifdef RDKC
+	{
+	    std::string model = getModelNumber();
+	    if (!model.empty()) {
+	        strncpy(tmpbuf, model.c_str(), sizeof(tmpbuf) - 1);
+	        tmpbuf[sizeof(tmpbuf) - 1] = '\0';
+	        len = strlen(tmpbuf);
+	    }
+	}
+#else
 	len = GetModelNum( tmpbuf, sizeof(tmpbuf) );
+#endif
         if( len )
         {
 	     _model_number = tmpbuf;
