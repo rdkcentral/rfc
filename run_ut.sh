@@ -19,7 +19,7 @@
 # limitations under the License.
 ####################################################################################
 
-ENABLE_COV=false
+ENABLE_COV=true
 
 if [ "x$1" = "x--enable-cov" ]; then
       echo "Enabling coverage options"

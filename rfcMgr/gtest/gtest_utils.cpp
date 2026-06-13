@@ -195,6 +195,11 @@ TEST(utilsTest, cleanAllFiles) {
     std::remove("/opt/secure/RFC/.RFC_LIST_SNMP2WL.ini");
 }
 
+TEST(utilsTest, legacyRfcEnabled_returnsFalseIfFileMissing) {
+    // This test expects the .RFC_LegacyRFCEnabled.ini file does not exist
+    // Should return false
+    EXPECT_FALSE(legacyRfcEnabled());
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
