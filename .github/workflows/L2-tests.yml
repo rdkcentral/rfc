@@ -88,12 +88,12 @@ jobs:
         uses: docker/setup-buildx-action@v1
         with:
           install: true
-      
+    
       - name: Run RDK CI Container
         run: |
           docker run -d --name ci-container -e AUTOMATICS_UNAME=${{ secrets.AUTOMATICS_UNAME }} -e AUTOMATICS_PASSCODE=${{ secrets.AUTOMATICS_PASSCODE }} -v /tmp/L2_TEST_RESULTS:/tmp/L2_TEST_RESULTS ghcr.io/rdkcentral/docker-rdk-ci:latest tail -f /dev/null
 
-      - name: Upload results
+      - name: Upload Results to Automatics
         if: github.repository_owner == 'rdkcentral'
         run: |
           docker cp /tmp/L2_TEST_RESULTS ci-container:/tmp/L2_TEST_RESULTS
