@@ -2563,7 +2563,52 @@ void RuntimeFeatureControlProcessor::processXconfResponseConfigDataPart(JSON *fe
 		            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] Invalid Telemetry Config URL.\n", __FUNCTION__, __LINE__);
     		         }
   		    }
-                    std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
+             if (_ebuild_type == ePROD) {
+                        if(newKey == RFC_DEVICE_TYPE_KEY)
+                        {
+                            RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] DeviceType changed to '%s', checking dropbear -f state\n", __FUNCTION__, __LINE__, newValue.c_str());
+
+                            /* Check if dropbear is currently running with -f */
+                            bool dropbearHasF = false;
+                            FILE *checkFp = v_secure_popen("r", "ps w 2>/dev/null | grep '[d]ropbear'");
+                            if (checkFp)
+                            {
+                                char checkBuf[512] = {0};
+                                while (fgets(checkBuf, sizeof(checkBuf) - 1, checkFp))
+                                {
+                                    if (strstr(checkBuf, " -f"))
+                                    {
+                                        dropbearHasF = true;
+                                    }
+                                }
+                                v_secure_pclose(checkFp);
+                            }
+
+                            if (newValue == "TEST" && !dropbearHasF)
+                            {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] DeviceType=TEST, restarting dropbear with -f\n", __FUNCTION__, __LINE__);
+                                int svcRet = v_secure_system("systemctl restart dropbear.service");
+                                if (svcRet != 0)
+                                {
+                                     RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Failed to restart dropbear.service, rc=%d\n", __FUNCTION__, __LINE__, svcRet);
+                                }
+                            }
+                            else if (newValue == "PROD" && dropbearHasF)
+                            {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] DeviceType=PROD, restarting dropbear without -f\n", __FUNCTION__, __LINE__);
+                                int svcRet = v_secure_system("systemctl restart dropbear.service");
+                                if (svcRet != 0)
+                                {
+                                    RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s:%d] Failed to restart dropbear.service, rc=%d\n", __FUNCTION__, __LINE__, svcRet);
+                                }
+                            }
+                            else
+                            {
+                                RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s:%d] dropbear already in correct state for DeviceType=%s\n", __FUNCTION__, __LINE__, newValue.c_str());
+                            }
+                        }
+                    }
+					std::string account_key_str = RFC_ACCOUNT_ID_KEY_STR;
                     bool isAccountKey = (newKey.find(account_key_str) != std::string::npos) ? true : false;
                     if(isAccountKey == true)
                     {
