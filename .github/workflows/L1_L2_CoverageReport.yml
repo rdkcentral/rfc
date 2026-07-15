@@ -172,28 +172,28 @@ jobs:
           functional_coverage_pct=$(awk -v total="$feature_scenarios" -v gap="$c_api_gap" 'BEGIN { if (total > 0) printf "%.2f", ((total-gap)/total)*100; else print "0.00" }')
           gap_to_100_pct=$(awk -v cov="$functional_coverage_pct" 'BEGIN { printf "%.2f", 100-cov }')
 
-          python3 - << 'PY' > /tmp/l2_runtime.env
-import glob
-import json
+          python3 - <<'PY' > /tmp/l2_runtime.env
+          import glob
+          import json
 
-totals = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
-for path in glob.glob('/tmp/L2_TEST_RESULTS/*.json'):
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        s = data.get('summary', {})
-        totals['collected'] += int(s.get('collected', s.get('total', 0) or 0))
-        totals['passed'] += int(s.get('passed', 0) or 0)
-        totals['failed'] += int(s.get('failed', 0) or 0)
-        totals['skipped'] += int(s.get('skipped', 0) or 0)
-    except Exception:
-        continue
+          totals = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
+          for path in glob.glob("/tmp/L2_TEST_RESULTS/*.json"):
+              try:
+                  with open(path, "r", encoding="utf-8") as f:
+                      data = json.load(f)
+                  s = data.get("summary", {})
+                  totals["collected"] += int(s.get("collected", s.get("total", 0) or 0))
+                  totals["passed"] += int(s.get("passed", 0) or 0)
+                  totals["failed"] += int(s.get("failed", 0) or 0)
+                  totals["skipped"] += int(s.get("skipped", 0) or 0)
+              except Exception:
+                  continue
 
-print(f"L2_COLLECTED={totals['collected']}")
-print(f"L2_PASSED={totals['passed']}")
-print(f"L2_FAILED={totals['failed']}")
-print(f"L2_SKIPPED={totals['skipped']}")
-PY
+          print(f"L2_COLLECTED={totals['collected']}")
+          print(f"L2_PASSED={totals['passed']}")
+          print(f"L2_FAILED={totals['failed']}")
+          print(f"L2_SKIPPED={totals['skipped']}")
+          PY
 
           {
             echo "FEATURE_FILES=$feature_files"
