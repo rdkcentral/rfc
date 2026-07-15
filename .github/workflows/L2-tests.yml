@@ -89,9 +89,8 @@ jobs:
         with:
           install: true
 
-      - name: Run RDK CI Container
-        run: |
-          docker run -d --name ci-container -e AUTOMATICS_UNAME=${{ secrets.AUTOMATICS_UNAME }} -e AUTOMATICS_PASSCODE=${{ secrets.AUTOMATICS_PASSCODE }} -v /tmp/L2_TEST_RESULTS:/tmp/L2_TEST_RESULTS ghcr.io/rdkcentral/docker-rdk-ci:latest tail -f /dev/null
+      - name: Run CI container
+        run: docker run -e AUTOMATICS_UNAME=${{ secrets.AUTOMATICS_UNAME }} -e AUTOMATICS_PASSCODE=${{ secrets.AUTOMATICS_PASSCODE }} -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME --name ci-container -d ghcr.io/rdkcentral/docker-rdk-ci:latest tail -f /dev/null
 
       - name: Upload Results to Automatics
         if: github.repository_owner == 'rdkcentral'
