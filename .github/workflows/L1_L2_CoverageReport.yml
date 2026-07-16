@@ -1,4 +1,4 @@
-name: PR L1 and L2 Coverage Report
+name: L1 and L2 Coverage Report
 
 on:
   pull_request:
@@ -386,26 +386,26 @@ jobs:
           fi
 
           cat > /tmp/pr_coverage_comment.md << EOF
-<!-- pr-coverage-report -->
-## PR Coverage Summary
+          <!-- pr-coverage-report -->
+          ## PR Coverage Summary
 
-| Metric | Value |
-|---|---:|
-| L1 line coverage | $LINE_PCT% ($LINE_HIT / $LINE_TOTAL) |
-| L1 function coverage | $FUNC_PCT% ($FUNC_HIT / $FUNC_TOTAL) |
-| L2 collected/passed/failed/skipped | $L2_COLLECTED / $L2_PASSED / $L2_FAILED / $L2_SKIPPED |
-| L2 feature scenarios | $FEATURE_SCENARIOS |
-| L2 test functions | $TEST_FUNCTIONS |
-| Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
-| Gap to 100% | $GAP_TO_100_PCT% |
-| C API scenario gap | $C_API_GAP |
+          | Metric | Value |
+          |---|---:|
+          | L1 line coverage | $LINE_PCT% ($LINE_HIT / $LINE_TOTAL) |
+          | L1 function coverage | $FUNC_PCT% ($FUNC_HIT / $FUNC_TOTAL) |
+          | L2 collected/passed/failed/skipped | $L2_COLLECTED / $L2_PASSED / $L2_FAILED / $L2_SKIPPED |
+          | L2 feature scenarios | $FEATURE_SCENARIOS |
+          | L2 test functions | $TEST_FUNCTIONS |
+          | Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
+          | Gap to 100% | $GAP_TO_100_PCT% |
+          | C API scenario gap | $C_API_GAP |
 
-Coverage docs status: **$DOC_STATUS**
+          Coverage docs status: **$DOC_STATUS**
 
-Updated files:
-- \`test/functional-tests/docs/L1_Test_Coverage.md\`
-- \`test/functional-tests/docs/L2_Test_Coverage.md\`
-EOF
+          Updated files:
+          - \`test/functional-tests/docs/L1_Test_Coverage.md\`
+          - \`test/functional-tests/docs/L2_Test_Coverage.md\`
+          EOF
 
           cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
 
