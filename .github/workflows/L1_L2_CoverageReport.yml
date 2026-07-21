@@ -95,34 +95,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout remote_debugger
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: remote_debugger
-
-      - name: Checkout dependent repository rfc
-        uses: actions/checkout@v4
-        with:
-          repository: rdkcentral/rfc
-          path: rfc
-
-      - name: Checkout dependent repository iarmmgrs
-        uses: actions/checkout@v4
-        with:
-          repository: rdkcentral/iarmmgrs
-          path: iarmmgrs
-
-      - name: Checkout dependent repository iarmbus
-        uses: actions/checkout@v4
-        with:
-          repository: rdkcentral/iarmbus
-          path: iarmbus
-
-      - name: Checkout dependent repository tr69hostif
-        uses: actions/checkout@v4
-        with:
-          repository: rdkcentral/tr69hostif
-          path: tr69hostif
 
       - name: Pull required docker images
         run: |
@@ -134,13 +108,9 @@ jobs:
           docker run -d --name mockxconf -p 50050:50050 -p 50051:50051 -p 50052:50052 -p 50054:50054 -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
           docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
 
-      - name: Move dependencies into native-platform container
-        run: |
-          docker exec -i native-platform /bin/bash -c "rm -rf /usr/rfc && mv /mnt/L2_CONTAINER_SHARED_VOLUME/rfc /usr/ && mv /mnt/L2_CONTAINER_SHARED_VOLUME/iarmmgrs /usr/ && rm -rf /usr/iarmbus && mv /mnt/L2_CONTAINER_SHARED_VOLUME/iarmbus /usr/ && mv /mnt/L2_CONTAINER_SHARED_VOLUME/tr69hostif /usr/"
-
       - name: Build and run L2 tests
         run: |
-          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/remote_debugger && sh cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib: && sh run_l2.sh"
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME && sh cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
 
       - name: Copy L2 reports to runner
         run: |
@@ -152,22 +122,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          feature_files=$(find remote_debugger/test/functional-tests/features -name '*.feature' | wc -l | tr -d ' ')
-          feature_scenarios=$(grep -R "^[[:space:]]*Scenario:" remote_debugger/test/functional-tests/features/*.feature | wc -l | tr -d ' ')
-          feature_scenarios_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*Scenario:" remote_debugger/test/functional-tests/features/*.feature | wc -l | tr -d ' ' || true)
+          feature_files=$(find test/functional-tests/features -name '*.feature' | wc -l | tr -d ' ')
+          feature_scenarios=$(grep -R "^[[:space:]]*Scenario:" test/functional-tests/features/ | wc -l | tr -d ' ')
+          feature_scenarios_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*Scenario:" test/functional-tests/features/ | wc -l | tr -d ' ' || true)
 
-          test_files=$(find remote_debugger/test/functional-tests/tests -maxdepth 1 -name 'test_*.py' | wc -l | tr -d ' ')
-          test_functions=$(grep -R "^def test_" remote_debugger/test/functional-tests/tests/test_*.py | wc -l | tr -d ' ')
-          test_functions_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*def test_" remote_debugger/test/functional-tests/tests/test_*.py | wc -l | tr -d ' ' || true)
+          test_files=$(find test/functional-tests/tests -maxdepth 1 -name 'test_*.py' | wc -l | tr -d ' ')
+          test_functions=$(grep -R "^def test_" test/functional-tests/tests/ | wc -l | tr -d ' ')
+          test_functions_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*def test_" test/functional-tests/tests/ | wc -l | tr -d ' ' || true)
 
-          src_functions=$(grep -R "^[A-Za-z_][A-Za-z0-9_[:space:]\*]*([^;]*)[[:space:]]*{" remote_debugger/src/*.c | wc -l | tr -d ' ')
+          src_functions=$(grep -R "^[A-Za-z_][A-Za-z0-9_[:space:]\*]*([^;]*)[[:space:]]*{" rfcMgr/ rfcapi/ tr181api/ utils/ --include='*.cpp' --include='*.c' | wc -l | tr -d ' ')
 
-          c_api_scenarios=$(grep -n "^[[:space:]]*Scenario:" remote_debugger/test/functional-tests/features/rrd_c_api_upload.feature | wc -l | tr -d ' ')
-          c_api_tests=$(grep -n "^def test_" remote_debugger/test/functional-tests/tests/test_rrd_c_api_upload.py | wc -l | tr -d ' ')
-          c_api_gap=$((c_api_scenarios - c_api_tests))
-          if [ "$c_api_gap" -lt 0 ]; then
-            c_api_gap=0
-          fi
+          c_api_gap=0
 
           functional_coverage_pct=$(awk -v total="$feature_scenarios" -v gap="$c_api_gap" 'BEGIN { if (total > 0) printf "%.2f", ((total-gap)/total)*100; else print "0.00" }')
           gap_to_100_pct=$(awk -v cov="$functional_coverage_pct" 'BEGIN { printf "%.2f", 100-cov }')
@@ -268,11 +233,12 @@ jobs:
           source /tmp/l2/l2_metrics.env
           GENERATED_DATE="$(date -u +%Y-%m-%d)"
 
-          cat > test/functional-tests/docs/L1_Test_Coverage.md <<EOF
-          # Remote Debugger L1 Coverage Report
+          mkdir -p test/docs
+          cat > test/docs/L1_Test_Coverage.md <<EOF
+          # RFC L1 Coverage Report
 
           **Generated:** $GENERATED_DATE
-          **Component:** `remotedebugger`
+          **Component:** `rfc`
           **Source:** PR pipeline coverage run
 
           ---
@@ -294,11 +260,11 @@ jobs:
           - This file is updated automatically on pull requests.
           EOF
 
-          cat > test/functional-tests/docs/L2_Test_Coverage.md <<EOF
-          # Remote Debugger L2 Test Coverage Report
+          cat > test/docs/L2_Test_Coverage.md <<EOF
+          # RFC L2 Test Coverage Report
 
           **Generated:** $GENERATED_DATE
-          **Component:** `remotedebugger`
+          **Component:** `rfc`
           **Test Suite:** `test/functional-tests`
 
           ---
@@ -325,14 +291,11 @@ jobs:
 
           ## Gap Highlights
 
-          1. `rrd_c_api_upload.feature` scenarios: $C_API_SCENARIOS
-             `test_rrd_c_api_upload.py` test functions: $C_API_TESTS
-             **Current gap:** $C_API_GAP
-
-          2. Coverage focus areas to improve:
-             - WebConfig MsgPack decode/error flows
-             - Upload lock contention and cleanup failure branches
-             - Startup and RBUS/IARM negative branches
+          Coverage focus areas to improve:
+          - XConf communication error/retry flows
+          - mTLS certificate selection negative branches
+          - IARM bus startup and failure branches
+          - RFC parameter set/get edge cases
 
           ---
 
@@ -362,12 +325,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet -- test/functional-tests/docs/L1_Test_Coverage.md test/functional-tests/docs/L2_Test_Coverage.md; then
+          if git diff --quiet -- test/docs/L1_Test_Coverage.md test/docs/L2_Test_Coverage.md; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git add test/functional-tests/docs/L1_Test_Coverage.md test/functional-tests/docs/L2_Test_Coverage.md
+          git add test/docs/L1_Test_Coverage.md test/docs/L2_Test_Coverage.md
           git commit -m "docs(coverage): refresh L1/L2 coverage for PR #${{ github.event.pull_request.number }}"
           git push origin HEAD:${{ github.head_ref }}
           echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -403,8 +366,8 @@ jobs:
           Coverage docs status: **$DOC_STATUS**
 
           Updated files:
-          - \`test/functional-tests/docs/L1_Test_Coverage.md\`
-          - \`test/functional-tests/docs/L2_Test_Coverage.md\`
+          - \`test/docs/L1_Test_Coverage.md\`
+          - \`test/docs/L2_Test_Coverage.md\`
           EOF
 
           cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
