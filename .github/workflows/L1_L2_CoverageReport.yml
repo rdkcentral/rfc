@@ -168,8 +168,6 @@ jobs:
             echo "TEST_FUNCTIONS=$test_functions"
             echo "TEST_FUNCTIONS_DISABLED=$test_functions_disabled"
             echo "SRC_FUNCTIONS_APPROX=$src_functions"
-            echo "C_API_SCENARIOS=$c_api_scenarios"
-            echo "C_API_TESTS=$c_api_tests"
             echo "C_API_GAP=$c_api_gap"
             echo "FUNCTIONAL_COVERAGE_PCT=$functional_coverage_pct"
             echo "GAP_TO_100_PCT=$gap_to_100_pct"
