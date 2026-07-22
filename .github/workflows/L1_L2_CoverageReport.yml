@@ -218,20 +218,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: l1-coverage-artifacts
-          path: /tmp/l1
+          path: ci-artifacts/l1
 
       - name: Download L2 artifacts
         uses: actions/download-artifact@v4
         with:
           name: l2-coverage-artifacts
-          path: /tmp/l2
+          path: ci-artifacts/l2
 
       - name: Regenerate L1 and L2 markdown docs
         shell: bash
         run: |
           set -euo pipefail
-          source /tmp/l1/l1_metrics.env
-          source /tmp/l2/l2_metrics.env
+          source ci-artifacts/l1/l1_metrics.env
+          source ci-artifacts/l2/l2_metrics.env
           GENERATED_DATE="$(date -u +%Y-%m-%d)"
 
           mkdir -p test/docs
@@ -340,8 +340,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          source /tmp/l1/l1_metrics.env
-          source /tmp/l2/l2_metrics.env
+          source ci-artifacts/l1/l1_metrics.env
+          source ci-artifacts/l2/l2_metrics.env
           DOC_STATUS="updated in PR branch"
           if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
             DOC_STATUS="not auto-committed (fork PR)"
