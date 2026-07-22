@@ -132,11 +132,7 @@ jobs:
 
           src_functions=$(grep -R "^[A-Za-z_][A-Za-z0-9_[:space:]\*]*([^;]*)[[:space:]]*{" rfcMgr/ rfcapi/ tr181api/ utils/ --include='*.cpp' --include='*.c' | wc -l | tr -d ' ')
 
-          c_api_gap=0
-
-          functional_coverage_pct=$(awk -v total="$feature_scenarios" -v gap="$c_api_gap" 'BEGIN { if (total > 0) printf "%.2f", ((total-gap)/total)*100; else print "0.00" }')
-          gap_to_100_pct=$(awk -v cov="$functional_coverage_pct" 'BEGIN { printf "%.2f", 100-cov }')
-
+          # Parse L2 JSON results first so pass count can drive coverage formula
           python3 - <<'PY' > /tmp/l2_runtime.env
           import glob
           import json
@@ -160,6 +156,15 @@ jobs:
           print(f"L2_SKIPPED={totals['skipped']}")
           PY
 
+          # Source the results so L2_PASSED is available for the coverage formula
+          # shellcheck source=/dev/null
+          source /tmp/l2_runtime.env
+
+          # Coverage = tests that actually passed / total feature scenarios
+          # (not 100% just because every scenario has a test function)
+          functional_coverage_pct=$(awk -v passed="$L2_PASSED" -v total="$feature_scenarios" 'BEGIN { if (total > 0) printf "%.2f", (passed/total)*100; else print "0.00" }')
+          gap_to_100_pct=$(awk -v cov="$functional_coverage_pct" 'BEGIN { printf "%.2f", 100-cov }')
+
           {
             echo "FEATURE_FILES=$feature_files"
             echo "FEATURE_SCENARIOS=$feature_scenarios"
@@ -168,7 +173,6 @@ jobs:
             echo "TEST_FUNCTIONS=$test_functions"
             echo "TEST_FUNCTIONS_DISABLED=$test_functions_disabled"
             echo "SRC_FUNCTIONS_APPROX=$src_functions"
-            echo "C_API_GAP=$c_api_gap"
             echo "FUNCTIONAL_COVERAGE_PCT=$functional_coverage_pct"
             echo "GAP_TO_100_PCT=$gap_to_100_pct"
             cat /tmp/l2_runtime.env
@@ -183,13 +187,12 @@ jobs:
             echo "| Feature scenarios | $feature_scenarios |"
             echo "| Test files | $test_files |"
             echo "| Test functions | $test_functions |"
-            echo "| L2 collected | $(grep '^L2_COLLECTED=' /tmp/l2_runtime.env | cut -d= -f2) |"
-            echo "| L2 passed | $(grep '^L2_PASSED=' /tmp/l2_runtime.env | cut -d= -f2) |"
-            echo "| L2 failed | $(grep '^L2_FAILED=' /tmp/l2_runtime.env | cut -d= -f2) |"
-            echo "| L2 skipped | $(grep '^L2_SKIPPED=' /tmp/l2_runtime.env | cut -d= -f2) |"
+            echo "| L2 collected | $L2_COLLECTED |"
+            echo "| L2 passed | $L2_PASSED |"
+            echo "| L2 failed | $L2_FAILED |"
+            echo "| L2 skipped | $L2_SKIPPED |"
             echo "| Estimated functional coverage | $functional_coverage_pct% |"
             echo "| Gap to 100% functional coverage | $gap_to_100_pct% |"
-            echo "| C API scenario gap | $c_api_gap |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload L2 artifacts
@@ -301,10 +304,10 @@ jobs:
 
           - Current estimated functional coverage: **$FUNCTIONAL_COVERAGE_PCT%**
           - Remaining gap to target (100%): **$GAP_TO_100_PCT%**
-          - Missing scenario implementations tracked in this run: **$C_API_GAP**
+          - L2 failed tests: **$L2_FAILED**
 
           > Coverage estimate formula used by CI in this report:
-          > `((Feature Scenarios - Missing Implemented Scenarios) / Feature Scenarios) * 100`
+          > `(L2 Passed Tests / Feature Scenarios) * 100`
 
           ---
 
@@ -359,7 +362,6 @@ jobs:
           | L2 test functions | $TEST_FUNCTIONS |
           | Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
           | Gap to 100% | $GAP_TO_100_PCT% |
-          | C API scenario gap | $C_API_GAP |
 
           Coverage docs status: **$DOC_STATUS**
 
