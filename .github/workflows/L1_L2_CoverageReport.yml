@@ -70,7 +70,7 @@ jobs:
             echo "FUNC_PCT=${{ steps.cov.outputs.func_pct }}"
             echo "FUNC_HIT=${{ steps.cov.outputs.func_hit }}"
             echo "FUNC_TOTAL=${{ steps.cov.outputs.func_total }}"
-          } > /tmp/l1_metrics.env
+          } > l1_metrics.env
 
           {
             echo "## L1 Coverage Summary"
@@ -88,7 +88,7 @@ jobs:
           path: |
             rfcMgr/gtest/coverage.info
             /tmp/coverage_summary.txt
-            /tmp/l1_metrics.env
+            l1_metrics.env
 
   l2-coverage:
     name: L2 functional coverage metrics
@@ -176,7 +176,7 @@ jobs:
             echo "FUNCTIONAL_COVERAGE_PCT=$functional_coverage_pct"
             echo "GAP_TO_100_PCT=$gap_to_100_pct"
             cat /tmp/l2_runtime.env
-          } > /tmp/l2_metrics.env
+          } > l2_metrics.env
 
           {
             echo "## L2 Coverage Summary"
@@ -201,7 +201,7 @@ jobs:
           name: l2-coverage-artifacts
           path: |
             /tmp/L2_TEST_RESULTS
-            /tmp/l2_metrics.env
+            l2_metrics.env
 
   update-docs:
     name: Update L1/L2 coverage markdowns
