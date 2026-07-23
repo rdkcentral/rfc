@@ -70,7 +70,7 @@ jobs:
             echo "FUNC_PCT=${{ steps.cov.outputs.func_pct }}"
             echo "FUNC_HIT=${{ steps.cov.outputs.func_hit }}"
             echo "FUNC_TOTAL=${{ steps.cov.outputs.func_total }}"
-          } > l1_metrics.env
+          } > "$GITHUB_WORKSPACE/l1_metrics.env"
 
           {
             echo "## L1 Coverage Summary"
@@ -88,7 +88,14 @@ jobs:
           path: |
             rfcMgr/gtest/coverage.info
             /tmp/coverage_summary.txt
-            l1_metrics.env
+          if-no-files-found: warn
+
+      - name: Upload L1 metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: l1-metrics
+          path: ${{ github.workspace }}/l1_metrics.env
+          if-no-files-found: error
 
   l2-coverage:
     name: L2 functional coverage metrics
@@ -199,9 +206,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: l2-coverage-artifacts
-          path: |
-            /tmp/L2_TEST_RESULTS
-            l2_metrics.env
+          path: /tmp/L2_TEST_RESULTS
+          if-no-files-found: warn
+
+      - name: Upload L2 metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: l2-metrics
+          path: l2_metrics.env
 
   update-docs:
     name: Update L1/L2 coverage markdowns
