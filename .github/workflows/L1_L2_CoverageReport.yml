@@ -214,16 +214,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download L1 artifacts
+      - name: Download L1 metrics
         uses: actions/download-artifact@v4
         with:
-          name: l1-coverage-artifacts
+          name: l1-metrics
           path: ci-artifacts/l1
 
-      - name: Download L2 artifacts
+      - name: Download L2 metrics
         uses: actions/download-artifact@v4
         with:
-          name: l2-coverage-artifacts
+          name: l2-metrics
           path: ci-artifacts/l2
 
       - name: Regenerate L1 and L2 markdown docs
