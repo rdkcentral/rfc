@@ -1,0 +1,422 @@
+name: L1 and L2 Coverage Report
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  l1-coverage:
+    name: L1 unit coverage metrics
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rdkcentral/docker-rdk-ci:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run unit tests with coverage enabled
+        run: sh run_ut.sh --enable-cov
+
+      - name: Extract line and function coverage
+        id: cov
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COV_FILE="rfcMgr/gtest/coverage.info"
+          if [ ! -f "$COV_FILE" ]; then
+            echo "coverage.info was not generated at $COV_FILE"
+            exit 1
+          fi
+
+          SUMMARY="$(lcov --summary "$COV_FILE" 2>&1)"
+          echo "$SUMMARY" > /tmp/coverage_summary.txt
+
+          line_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
+          line_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
+          line_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
+
+          func_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
+          func_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
+          func_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
+
+          if [ -z "$line_pct" ] || [ -z "$func_pct" ]; then
+            echo "Failed to parse line/function coverage from lcov summary"
+            echo "$SUMMARY"
+            exit 1
+          fi
+
+          {
+            echo "line_pct=$line_pct"
+            echo "line_hit=$line_hit"
+            echo "line_total=$line_total"
+            echo "func_pct=$func_pct"
+            echo "func_hit=$func_hit"
+            echo "func_total=$func_total"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Save L1 metrics artifact
+        shell: bash
+        run: |
+          {
+            echo "LINE_PCT=${{ steps.cov.outputs.line_pct }}"
+            echo "LINE_HIT=${{ steps.cov.outputs.line_hit }}"
+            echo "LINE_TOTAL=${{ steps.cov.outputs.line_total }}"
+            echo "FUNC_PCT=${{ steps.cov.outputs.func_pct }}"
+            echo "FUNC_HIT=${{ steps.cov.outputs.func_hit }}"
+            echo "FUNC_TOTAL=${{ steps.cov.outputs.func_total }}"
+          } > "$GITHUB_WORKSPACE/l1_metrics.env"
+
+          {
+            echo "## L1 Coverage Summary"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|---|---:|"
+            echo "| Line coverage | ${{ steps.cov.outputs.line_pct }}% (${{ steps.cov.outputs.line_hit }} / ${{ steps.cov.outputs.line_total }}) |"
+            echo "| Function coverage | ${{ steps.cov.outputs.func_pct }}% (${{ steps.cov.outputs.func_hit }} / ${{ steps.cov.outputs.func_total }}) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload L1 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: l1-coverage-artifacts
+          path: |
+            rfcMgr/gtest/coverage.info
+            /tmp/coverage_summary.txt
+          if-no-files-found: warn
+
+      - name: Upload L1 metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: l1-metrics
+          path: ${{ github.workspace }}/l1_metrics.env
+          if-no-files-found: error
+
+  l2-coverage:
+    name: L2 functional coverage metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pull required docker images
+        run: |
+          docker pull ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
+          docker pull ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+
+      - name: Start mockxconf and native-platform containers
+        run: |
+          docker run -d --name mockxconf -p 50050:50050 -p 50051:50051 -p 50052:50052 -p 50054:50054 -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
+          docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+
+      - name: Build and run L2 tests
+        run: |
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME && sh cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
+
+      - name: Copy L2 reports to runner
+        run: |
+          docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS
+          ls -l /tmp/L2_TEST_RESULTS
+
+      - name: Extract L2 metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          feature_files=$(find test/functional-tests/features -name '*.feature' | wc -l | tr -d ' ')
+          feature_scenarios=$(grep -R "^[[:space:]]*Scenario:" test/functional-tests/features/ | wc -l | tr -d ' ')
+          feature_scenarios_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*Scenario:" test/functional-tests/features/ | wc -l | tr -d ' ' || true)
+
+          test_files=$(find test/functional-tests/tests -maxdepth 1 -name 'test_*.py' | wc -l | tr -d ' ')
+          test_functions=$(grep -R "^def test_" test/functional-tests/tests/ | wc -l | tr -d ' ')
+          test_functions_disabled=$(grep -R "^[[:space:]]*#[[:space:]]*def test_" test/functional-tests/tests/ | wc -l | tr -d ' ' || true)
+
+          src_functions=$(grep -R "^[A-Za-z_][A-Za-z0-9_[:space:]\*]*([^;]*)[[:space:]]*{" rfcMgr/ rfcapi/ tr181api/ utils/ --include='*.cpp' --include='*.c' | wc -l | tr -d ' ')
+
+          # Parse L2 JSON results first so pass count can drive coverage formula
+          python3 - <<'PY' > /tmp/l2_runtime.env
+          import glob
+          import json
+
+          totals = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
+          for path in glob.glob("/tmp/L2_TEST_RESULTS/*.json"):
+              try:
+                  with open(path, "r", encoding="utf-8") as f:
+                      data = json.load(f)
+                  s = data.get("summary", {})
+                  totals["collected"] += int(s.get("collected", s.get("total", 0) or 0))
+                  totals["passed"] += int(s.get("passed", 0) or 0)
+                  totals["failed"] += int(s.get("failed", 0) or 0)
+                  totals["skipped"] += int(s.get("skipped", 0) or 0)
+              except Exception:
+                  continue
+
+          print(f"L2_COLLECTED={totals['collected']}")
+          print(f"L2_PASSED={totals['passed']}")
+          print(f"L2_FAILED={totals['failed']}")
+          print(f"L2_SKIPPED={totals['skipped']}")
+          PY
+
+          # Source the results so L2_PASSED is available for the coverage formula
+          # shellcheck source=/dev/null
+          source /tmp/l2_runtime.env
+
+          # Coverage = tests that actually passed / total feature scenarios
+          # (not 100% just because every scenario has a test function)
+          functional_coverage_pct=$(awk -v passed="$L2_PASSED" -v total="$feature_scenarios" 'BEGIN { if (total > 0) printf "%.2f", (passed/total)*100; else print "0.00" }')
+          gap_to_100_pct=$(awk -v cov="$functional_coverage_pct" 'BEGIN { printf "%.2f", 100-cov }')
+
+          {
+            echo "FEATURE_FILES=$feature_files"
+            echo "FEATURE_SCENARIOS=$feature_scenarios"
+            echo "FEATURE_SCENARIOS_DISABLED=$feature_scenarios_disabled"
+            echo "TEST_FILES=$test_files"
+            echo "TEST_FUNCTIONS=$test_functions"
+            echo "TEST_FUNCTIONS_DISABLED=$test_functions_disabled"
+            echo "SRC_FUNCTIONS_APPROX=$src_functions"
+            echo "FUNCTIONAL_COVERAGE_PCT=$functional_coverage_pct"
+            echo "GAP_TO_100_PCT=$gap_to_100_pct"
+            cat /tmp/l2_runtime.env
+          } > l2_metrics.env
+
+          {
+            echo "## L2 Coverage Summary"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|---|---:|"
+            echo "| Feature files | $feature_files |"
+            echo "| Feature scenarios | $feature_scenarios |"
+            echo "| Test files | $test_files |"
+            echo "| Test functions | $test_functions |"
+            echo "| L2 collected | $L2_COLLECTED |"
+            echo "| L2 passed | $L2_PASSED |"
+            echo "| L2 failed | $L2_FAILED |"
+            echo "| L2 skipped | $L2_SKIPPED |"
+            echo "| Estimated functional coverage | $functional_coverage_pct% |"
+            echo "| Gap to 100% functional coverage | $gap_to_100_pct% |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload L2 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: l2-coverage-artifacts
+          path: /tmp/L2_TEST_RESULTS
+          if-no-files-found: warn
+
+      - name: Upload L2 metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: l2-metrics
+          path: l2_metrics.env
+
+  update-docs:
+    name: Update L1/L2 coverage markdowns
+    runs-on: ubuntu-latest
+    needs: [l1-coverage, l2-coverage]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download L1 metrics
+        uses: actions/download-artifact@v4
+        with:
+          name: l1-metrics
+          path: ci-artifacts/l1
+
+      - name: Download L2 metrics
+        uses: actions/download-artifact@v4
+        with:
+          name: l2-metrics
+          path: ci-artifacts/l2
+
+      - name: Regenerate L1 and L2 markdown docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci-artifacts/l1/l1_metrics.env
+          source ci-artifacts/l2/l2_metrics.env
+          GENERATED_DATE="$(date -u +%Y-%m-%d)"
+
+          mkdir -p test/docs
+          cat > test/docs/L1_Test_Coverage.md <<EOF
+          # RFC L1 Coverage Report
+
+          **Generated:** $GENERATED_DATE
+          **Component:** \`rfc\`
+          **Source:** PR pipeline coverage run
+
+          ---
+
+          ## Executive Summary
+
+          | Metric | Value |
+          |---|---:|
+          | Line coverage | $LINE_PCT% ($LINE_HIT / $LINE_TOTAL) |
+          | Function coverage | $FUNC_PCT% ($FUNC_HIT / $FUNC_TOTAL) |
+          | Unit test framework | GoogleTest |
+
+          ---
+
+          ## Notes
+
+          - Coverage is generated by running \`sh run_ut.sh --enable-cov\`.
+          - Source artifact: \`rfcMgr/gtest/coverage.info\`.
+          - This file is updated automatically on pull requests.
+          EOF
+
+          cat > test/docs/L2_Test_Coverage.md <<EOF
+          # RFC L2 Test Coverage Report
+
+          **Generated:** $GENERATED_DATE
+          **Component:** \`rfc\`
+          **Test Suite:** \`test/functional-tests\`
+
+          ---
+
+          ## Executive Summary
+
+          | Metric | Count |
+          |---|---:|
+          | Feature files | $FEATURE_FILES |
+          | Feature scenarios | $FEATURE_SCENARIOS |
+          | Disabled feature scenarios | $FEATURE_SCENARIOS_DISABLED |
+          | Test files (pytest) | $TEST_FILES |
+          | Test functions (\`def test_*\`) | $TEST_FUNCTIONS |
+          | Disabled test functions | $TEST_FUNCTIONS_DISABLED |
+          | Approx source functions | $SRC_FUNCTIONS_APPROX |
+          | L2 collected tests | $L2_COLLECTED |
+          | L2 passed tests | $L2_PASSED |
+          | L2 failed tests | $L2_FAILED |
+          | L2 skipped tests | $L2_SKIPPED |
+          | Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
+          | Gap to 100% functional coverage | $GAP_TO_100_PCT% |
+
+          ---
+
+          ## Gap Highlights
+
+          Coverage focus areas to improve:
+          - XConf communication error/retry flows
+          - mTLS certificate selection negative branches
+          - IARM bus startup and failure branches
+          - RFC parameter set/get edge cases
+
+          ---
+
+          ## Progress To 100% Functional Coverage
+
+          - Current estimated functional coverage: **$FUNCTIONAL_COVERAGE_PCT%**
+          - Remaining gap to target (100%): **$GAP_TO_100_PCT%**
+          - L2 failed tests: **$L2_FAILED**
+
+          > Coverage estimate formula used by CI in this report:
+          > \`(L2 Passed Tests / Feature Scenarios) * 100\`
+
+          ---
+
+          ## Notes
+
+          - L2 results are generated by \`run_l2.sh\` in the PR workflow.
+          - This file is refreshed automatically on pull requests.
+          EOF
+
+      - name: Commit docs to PR branch (same-repo PRs only)
+        id: commit_docs
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add test/docs/L1_Test_Coverage.md test/docs/L2_Test_Coverage.md
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "docs(coverage): refresh L1/L2 coverage for PR #${{ github.event.pull_request.number }}"
+          git push origin HEAD:${{ github.head_ref }}
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build PR comment body
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci-artifacts/l1/l1_metrics.env
+          source ci-artifacts/l2/l2_metrics.env
+          DOC_STATUS="updated in PR branch"
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            DOC_STATUS="not auto-committed (fork PR)"
+          elif [ "${{ steps.commit_docs.outputs.changed || 'false' }}" = "false" ]; then
+            DOC_STATUS="no doc changes detected"
+          fi
+
+          cat > /tmp/pr_coverage_comment.md << EOF
+          <!-- pr-coverage-report -->
+          ## PR Coverage Summary
+
+          | Metric | Value |
+          |---|---:|
+          | L1 line coverage | $LINE_PCT% ($LINE_HIT / $LINE_TOTAL) |
+          | L1 function coverage | $FUNC_PCT% ($FUNC_HIT / $FUNC_TOTAL) |
+          | L2 collected/passed/failed/skipped | $L2_COLLECTED / $L2_PASSED / $L2_FAILED / $L2_SKIPPED |
+          | L2 feature scenarios | $FEATURE_SCENARIOS |
+          | L2 test functions | $TEST_FUNCTIONS |
+          | Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
+          | Gap to 100% | $GAP_TO_100_PCT% |
+
+          Coverage docs status: **$DOC_STATUS**
+
+          Updated files:
+          - \`test/docs/L1_Test_Coverage.md\`
+          - \`test/docs/L2_Test_Coverage.md\`
+          EOF
+
+          cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upsert PR coverage comment
+        uses: actions/github-script@v7
+        env:
+          COMMENT_PATH: /tmp/pr_coverage_comment.md
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync(process.env.COMMENT_PATH, 'utf8');
+            const marker = '<!-- pr-coverage-report -->';
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number
+            });
+
+            const existing = comments.find(c =>
+              c.user && c.user.type === 'Bot' && c.body && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body
+              });
+            }
