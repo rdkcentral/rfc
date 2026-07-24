@@ -1,102 +1,15 @@
 name: L1 and L2 Coverage Report
 
 on:
-  pull_request:
-    branches: [ develop, main ]
+  workflow_run:
+    workflows: ["Code Coverage"]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  l1-coverage:
-    name: L1 unit coverage metrics
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/rdkcentral/docker-rdk-ci:latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run unit tests with coverage enabled
-        run: sh run_ut.sh --enable-cov
-
-      - name: Extract line and function coverage
-        id: cov
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          COV_FILE="rfcMgr/gtest/coverage.info"
-          if [ ! -f "$COV_FILE" ]; then
-            echo "coverage.info was not generated at $COV_FILE"
-            exit 1
-          fi
-
-          SUMMARY="$(lcov --summary "$COV_FILE" 2>&1)"
-          echo "$SUMMARY" > /tmp/coverage_summary.txt
-
-          line_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
-          line_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
-          line_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
-
-          func_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
-          func_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
-          func_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
-
-          if [ -z "$line_pct" ] || [ -z "$func_pct" ]; then
-            echo "Failed to parse line/function coverage from lcov summary"
-            echo "$SUMMARY"
-            exit 1
-          fi
-
-          {
-            echo "line_pct=$line_pct"
-            echo "line_hit=$line_hit"
-            echo "line_total=$line_total"
-            echo "func_pct=$func_pct"
-            echo "func_hit=$func_hit"
-            echo "func_total=$func_total"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Save L1 metrics artifact
-        shell: bash
-        run: |
-          {
-            echo "LINE_PCT=${{ steps.cov.outputs.line_pct }}"
-            echo "LINE_HIT=${{ steps.cov.outputs.line_hit }}"
-            echo "LINE_TOTAL=${{ steps.cov.outputs.line_total }}"
-            echo "FUNC_PCT=${{ steps.cov.outputs.func_pct }}"
-            echo "FUNC_HIT=${{ steps.cov.outputs.func_hit }}"
-            echo "FUNC_TOTAL=${{ steps.cov.outputs.func_total }}"
-          } > "$GITHUB_WORKSPACE/l1_metrics.env"
-
-          {
-            echo "## L1 Coverage Summary"
-            echo ""
-            echo "| Metric | Value |"
-            echo "|---|---:|"
-            echo "| Line coverage | ${{ steps.cov.outputs.line_pct }}% (${{ steps.cov.outputs.line_hit }} / ${{ steps.cov.outputs.line_total }}) |"
-            echo "| Function coverage | ${{ steps.cov.outputs.func_pct }}% (${{ steps.cov.outputs.func_hit }} / ${{ steps.cov.outputs.func_total }}) |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload L1 artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: l1-coverage-artifacts
-          path: |
-            rfcMgr/gtest/coverage.info
-            /tmp/coverage_summary.txt
-          if-no-files-found: warn
-
-      - name: Upload L1 metrics
-        uses: actions/upload-artifact@v4
-        with:
-          name: l1-metrics
-          path: ${{ github.workspace }}/l1_metrics.env
-          if-no-files-found: error
-
   l2-coverage:
     name: L2 functional coverage metrics
     runs-on: ubuntu-latest
@@ -104,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Pull required docker images
         run: |
@@ -202,10 +117,10 @@ jobs:
             echo "| Gap to 100% functional coverage | $gap_to_100_pct% |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload L2 artifacts
+      - name: Upload L2 per-test JSON reports
         uses: actions/upload-artifact@v4
         with:
-          name: l2-coverage-artifacts
+          name: l2-test-reports
           path: /tmp/L2_TEST_RESULTS
           if-no-files-found: warn
 
@@ -218,18 +133,23 @@ jobs:
   update-docs:
     name: Update L1/L2 coverage markdowns
     runs-on: ubuntu-latest
-    needs: [l1-coverage, l2-coverage]
+    needs: [l2-coverage]
+    # Only update docs when code-coverage.yml succeeded (l1-metrics exists)
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Download L1 metrics
         uses: actions/download-artifact@v4
         with:
           name: l1-metrics
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ci-artifacts/l1
 
       - name: Download L2 metrics
@@ -238,90 +158,24 @@ jobs:
           name: l2-metrics
           path: ci-artifacts/l2
 
+      - name: Download L2 per-test JSON reports
+        uses: actions/download-artifact@v4
+        with:
+          name: l2-test-reports
+          path: ci-artifacts/l2-reports
+
       - name: Regenerate L1 and L2 markdown docs
         shell: bash
         run: |
           set -euo pipefail
-          source ci-artifacts/l1/l1_metrics.env
-          source ci-artifacts/l2/l2_metrics.env
-          GENERATED_DATE="$(date -u +%Y-%m-%d)"
-
-          export GENERATED_DATE LINE_PCT LINE_HIT LINE_TOTAL FUNC_PCT FUNC_HIT FUNC_TOTAL \
-            FEATURE_FILES FEATURE_SCENARIOS FEATURE_SCENARIOS_DISABLED TEST_FILES \
-            TEST_FUNCTIONS TEST_FUNCTIONS_DISABLED SRC_FUNCTIONS_APPROX \
-            L2_COLLECTED L2_PASSED L2_FAILED L2_SKIPPED FUNCTIONAL_COVERAGE_PCT GAP_TO_100_PCT
-
-          python3 - <<PY
-          import os, re
-
-          d = os.environ
-
-          # ---- L1_Analysis_Report.md: replace the top summary section ----
-          l1_new_header = (
-              "# L1 Code Coverage Report\n\n"
-              "**Test File:** coverage.info  \n"
-              f"**Date:** {d['GENERATED_DATE']}  \n\n"
-              "## Summary\n"
-              f"- **Line Coverage:** {d['LINE_HIT']} / {d['LINE_TOTAL']} (**{d['LINE_PCT']}%**)\n"
-              f"- **Function Coverage:** {d['FUNC_HIT']} / {d['FUNC_TOTAL']} (**{d['FUNC_PCT']}%**)\n\n"
-          )
-
-          with open('test/docs/L1_Analysis_Report.md', 'r') as f:
-              content = f.read()
-
-          new_content = re.sub(
-              r'\A.*?(?=^## Directory Breakdown)',
-              l1_new_header,
-              content, count=1, flags=re.DOTALL | re.MULTILINE
-          )
-          if new_content == content:
-              new_content = re.sub(r'\A.*?(?=^---)', l1_new_header, content, count=1, flags=re.DOTALL | re.MULTILINE)
-          if new_content == content:
-              new_content = l1_new_header + content
-
-          with open('test/docs/L1_Analysis_Report.md', 'w') as f:
-              f.write(new_content)
-          print("L1_Analysis_Report.md updated")
-
-          # ---- L2_Analysis_Report.md: update individual lines inside the ``` block ----
-          LINE_REPLACEMENTS = [
-              (r'(Active L2 test functions:\s+)[\d~]+',       r'\g<1>' + d['TEST_FUNCTIONS']),
-              (r'(Disabled L2 test functions:\s+)[\d~]+',     r'\g<1>' + d['TEST_FUNCTIONS_DISABLED']),
-              (r'(Active feature scenarios:\s+)[\d~]+',       r'\g<1>' + d['FEATURE_SCENARIOS']),
-              (r'(Test files active:\s+)[\d~]+',              r'\g<1>' + d['TEST_FILES']),
-              (r'(Test files disabled[^:]*:\s+)[\d~]+',       r'\g<1>' + d['TEST_FUNCTIONS_DISABLED']),
-              (r'(Estimated current L2 functional coverage:\s+)~?[\d.]+%',
-                                                               r'\g<1>' + d['FUNCTIONAL_COVERAGE_PCT'] + '%'),
-          ]
-
-          with open('test/docs/L2_Analysis_Report.md', 'r') as f:
-              content = f.read()
-
-          def update_block(m):
-              block = m.group(0)
-              for pattern, repl in LINE_REPLACEMENTS:
-                  block = re.sub(pattern, repl, block)
-              return block
-
-          new_content = re.sub(
-              r'(?<=\*\*Test Coverage Summary\*\*\n```\n).*?(?=```)',
-              update_block,
-              content, count=1, flags=re.DOTALL
-          )
-
-          gen_line = f'\n*Generated: {d["GENERATED_DATE"]} - L2 passed: {d["L2_PASSED"]}/{d["L2_COLLECTED"]}, failed: {d["L2_FAILED"]}*'
-          new_content = re.sub(r'\n\*Generated:.*?\*(?=\n```)', gen_line, new_content, count=1)
-          if '*Generated:' not in new_content:
-              new_content = re.sub(r'(\n```)', gen_line + r'\1', new_content, count=1)
-
-          with open('test/docs/L2_Analysis_Report.md', 'w') as f:
-              f.write(new_content)
-          print("L2_Analysis_Report.md updated")
-          PY
+          python3 test/scripts/update_coverage_docs.py \
+            --reports-dir ci-artifacts/l2-reports \
+            --l1-env     ci-artifacts/l1/l1_metrics.env \
+            --l2-env     ci-artifacts/l2/l2_metrics.env
 
       - name: Commit docs to PR branch (same-repo PRs only)
         id: commit_docs
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ github.event.workflow_run.head_repository.full_name == github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -334,8 +188,8 @@ jobs:
             exit 0
           fi
 
-          git commit -m "docs(coverage): refresh L1/L2 coverage for PR #${{ github.event.pull_request.number }}"
-          git push origin HEAD:${{ github.head_ref }}
+          git commit -m "docs(coverage): refresh L1/L2 coverage for PR #${{ github.event.workflow_run.pull_requests[0].number }}"
+          git push origin HEAD:${{ github.event.workflow_run.head_branch }}
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Build PR comment body
@@ -345,32 +199,38 @@ jobs:
           source ci-artifacts/l1/l1_metrics.env
           source ci-artifacts/l2/l2_metrics.env
           DOC_STATUS="updated in PR branch"
-          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+          if [ "${{ github.event.workflow_run.head_repository.full_name }}" != "${{ github.repository }}" ]; then
             DOC_STATUS="not auto-committed (fork PR)"
           elif [ "${{ steps.commit_docs.outputs.changed || 'false' }}" = "false" ]; then
             DOC_STATUS="no doc changes detected"
           fi
 
+          # Extract the CI-generated component table from the updated doc
+          COMPONENT_TABLE=$(python3 - <<'PY'
+import re, sys
+with open("test/docs/L2_Analysis_Report.md", "r") as f:
+    content = f.read()
+m = re.search(r"<!-- CI-GENERATED-START -->\n(.*?)\n<!-- CI-GENERATED-END -->", content, re.DOTALL)
+print(m.group(1) if m else "_Component table not available_")
+PY
+)
+
           cat > /tmp/pr_coverage_comment.md << EOF
-          <!-- pr-coverage-report -->
-          ## PR Coverage Summary
+<!-- pr-coverage-report -->
+## PR Coverage Summary
 
-          | Metric | Value |
-          |---|---:|
-          | L1 line coverage | $LINE_PCT% ($LINE_HIT / $LINE_TOTAL) |
-          | L1 function coverage | $FUNC_PCT% ($FUNC_HIT / $FUNC_TOTAL) |
-          | L2 collected/passed/failed/skipped | $L2_COLLECTED / $L2_PASSED / $L2_FAILED / $L2_SKIPPED |
-          | L2 feature scenarios | $FEATURE_SCENARIOS |
-          | L2 test functions | $TEST_FUNCTIONS |
-          | Estimated functional coverage | $FUNCTIONAL_COVERAGE_PCT% |
-          | Gap to 100% | $GAP_TO_100_PCT% |
+### L1 Code Coverage
+| Metric | Value |
+|---|---:|
+| Line coverage | ${LINE_PCT}% (${LINE_HIT} / ${LINE_TOTAL}) |
+| Function coverage | ${FUNC_PCT}% (${FUNC_HIT} / ${FUNC_TOTAL}) |
 
-          Coverage docs status: **$DOC_STATUS**
+### L2 Functional Coverage by Component
+${COMPONENT_TABLE}
 
-          Updated files:
-          - \`test/docs/L1_Analysis_Report.md\`
-          - \`test/docs/L2_Analysis_Report.md\`
-          EOF
+Coverage docs status: **${DOC_STATUS}**
+Updated: \`test/docs/L1_Analysis_Report.md\` · \`test/docs/L2_Analysis_Report.md\`
+EOF
 
           cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -378,12 +238,14 @@ jobs:
         uses: actions/github-script@v7
         env:
           COMMENT_PATH: /tmp/pr_coverage_comment.md
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
         with:
           script: |
             const fs = require('fs');
             const body = fs.readFileSync(process.env.COMMENT_PATH, 'utf8');
             const marker = '<!-- pr-coverage-report -->';
-            const issue_number = context.issue.number;
+            const issue_number = parseInt(process.env.PR_NUMBER);
+            if (!issue_number) { console.log('No PR number — skipping comment'); return; }
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
