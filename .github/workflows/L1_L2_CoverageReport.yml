@@ -216,21 +216,21 @@ jobs:
           )
 
           cat > /tmp/pr_coverage_comment.md << EOF
-<!-- pr-coverage-report -->
-## PR Coverage Summary
+          <!-- pr-coverage-report -->
+          ## PR Coverage Summary
 
-### L1 Code Coverage
-| Metric | Value |
-|---|---:|
-| Line coverage | ${LINE_PCT}% (${LINE_HIT} / ${LINE_TOTAL}) |
-| Function coverage | ${FUNC_PCT}% (${FUNC_HIT} / ${FUNC_TOTAL}) |
+          ### L1 Code Coverage
+          | Metric | Value |
+          |---|---:|
+          | Line coverage | ${LINE_PCT}% (${LINE_HIT} / ${LINE_TOTAL}) |
+          | Function coverage | ${FUNC_PCT}% (${FUNC_HIT} / ${FUNC_TOTAL}) |
 
-### L2 Functional Coverage by Component
-${COMPONENT_TABLE}
+          ### L2 Functional Coverage by Component
+          ${COMPONENT_TABLE}
 
-Coverage docs status: **${DOC_STATUS}**
-Updated: \`test/docs/L1_Analysis_Report.md\` · \`test/docs/L2_Analysis_Report.md\`
-EOF
+          Coverage docs status: **${DOC_STATUS}**
+          Updated: \`test/docs/L1_Analysis_Report.md\` · \`test/docs/L2_Analysis_Report.md\`
+          EOF
 
           cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
 
