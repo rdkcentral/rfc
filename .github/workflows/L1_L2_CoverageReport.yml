@@ -215,22 +215,19 @@ jobs:
           PY
           )
 
-          cat > /tmp/pr_coverage_comment.md << EOF
-          <!-- pr-coverage-report -->
-          ## PR Coverage Summary
-
-          ### L1 Code Coverage
-          | Metric | Value |
-          |---|---:|
-          | Line coverage | ${LINE_PCT}% (${LINE_HIT} / ${LINE_TOTAL}) |
-          | Function coverage | ${FUNC_PCT}% (${FUNC_HIT} / ${FUNC_TOTAL}) |
-
-          ### L2 Functional Coverage by Component
-          ${COMPONENT_TABLE}
-
-          Coverage docs status: **${DOC_STATUS}**
-          Updated: \`test/docs/L1_Analysis_Report.md\` · \`test/docs/L2_Analysis_Report.md\`
-          EOF
+          {
+            printf '<!-- pr-coverage-report -->\n'
+            printf '## PR Coverage Summary\n\n'
+            printf '### L1 Code Coverage\n'
+            printf '| Metric | Value |\n'
+            printf '|---|---:|\n'
+            printf '| Line coverage | %s%%%% (%s / %s) |\n' "${LINE_PCT}" "${LINE_HIT}" "${LINE_TOTAL}"
+            printf '| Function coverage | %s%%%% (%s / %s) |\n' "${FUNC_PCT}" "${FUNC_HIT}" "${FUNC_TOTAL}"
+            printf '\n### L2 Functional Coverage by Component\n'
+            printf '%s\n' "${COMPONENT_TABLE}"
+            printf '\nCoverage docs status: **%s**\n' "${DOC_STATUS}"
+            printf 'Updated: `test/docs/L1_Analysis_Report.md` . `test/docs/L2_Analysis_Report.md`\n'
+          } > /tmp/pr_coverage_comment.md
 
           cat /tmp/pr_coverage_comment.md >> "$GITHUB_STEP_SUMMARY"
 
