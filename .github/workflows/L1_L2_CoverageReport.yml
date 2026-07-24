@@ -207,13 +207,13 @@ jobs:
 
           # Extract the CI-generated component table from the updated doc
           COMPONENT_TABLE=$(python3 - <<'PY'
-import re, sys
-with open("test/docs/L2_Analysis_Report.md", "r") as f:
-    content = f.read()
-m = re.search(r"<!-- CI-GENERATED-START -->\n(.*?)\n<!-- CI-GENERATED-END -->", content, re.DOTALL)
-print(m.group(1) if m else "_Component table not available_")
-PY
-)
+          import re, sys
+          with open("test/docs/L2_Analysis_Report.md", "r") as f:
+              content = f.read()
+          m = re.search(r"<!-- CI-GENERATED-START -->\n(.*?)\n<!-- CI-GENERATED-END -->", content, re.DOTALL)
+          print(m.group(1) if m else "_Component table not available_")
+          PY
+          )
 
           cat > /tmp/pr_coverage_comment.md << EOF
 <!-- pr-coverage-report -->
