@@ -251,7 +251,7 @@ jobs:
             TEST_FUNCTIONS TEST_FUNCTIONS_DISABLED SRC_FUNCTIONS_APPROX \
             L2_COLLECTED L2_PASSED L2_FAILED L2_SKIPPED FUNCTIONAL_COVERAGE_PCT GAP_TO_100_PCT
 
-          python3 - <<'PY'
+          python3 - <<PY
 import os, re
 
 d = os.environ
