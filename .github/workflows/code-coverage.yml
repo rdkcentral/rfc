@@ -49,28 +49,28 @@ jobs:
           path: l1_metrics.env
           if-no-files-found: error
 
-      - name: Caculate the code coverage summary
+      - name: Calculate the code coverage summary
         run: |
           cd ./rfcMgr/gtest
           lcov --list coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
           cd -
-        
+
       - name: Update the coverage report to Pull request using actions
         uses: actions/github-script@v4
         with:
           script: |
             const fs = require('fs');
-            const lcov_result = fs.readFileSync('/tmp/coverage_summary.txt', 'utf8'); 
-          
+            const lcov_result = fs.readFileSync('/tmp/coverage_summary.txt', 'utf8');
+
             github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 
+              body:
                     '## Code Coverage Summary \n' +
                     ' ' +
                     '```' +
-                    lcov_result + 
+                    lcov_result +
                     '```'
             });
 
@@ -80,9 +80,8 @@ jobs:
           genhtml coverage.info --output-directory /tmp/coverage_report
           cd -
 
-      - name: Upload the coverage report to Pull request using actions
+      - name: Upload the coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: /tmp/coverage_report
-
