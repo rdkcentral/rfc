@@ -277,7 +277,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	int getJRPCTokenData( char *, char *, unsigned int );
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-	bool isDebugServicesEnabled(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
