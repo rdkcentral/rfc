@@ -54,7 +54,7 @@ extern "C" {
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
-     bool dbgServices = isDebugServicesEnabled();
+     //bool dbgServices = isDebugServicesEnabled();
 	
 #ifndef RDKC
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
@@ -68,7 +68,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     
     GetRFCPartnerID();
 
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (_ebuild_type != ePROD || dbgServices == true))
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isSecureDbgSrvUnlocked())
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
@@ -139,26 +139,6 @@ bool RuntimeFeatureControlProcessor::checkWhoamiSupport()
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Whoami support is %s\n", __FUNCTION__, __LINE__, enabled ? "ENABLED" : "DISABLED");
     return enabled;
 }
-
-bool RuntimeFeatureControlProcessor::isDebugServicesEnabled(void)
-{
-    bool result = false;
-    int ret = -1;
-    char rfc_data[RFC_VALUE_BUF_SIZE];
-
-    *rfc_data = 0;
-    ret = read_RFCProperty("DEBUGSRV", RFC_DEBUGSRV, rfc_data, sizeof(rfc_data));
-    if (ret == -1) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] rfc Debug services =%s failed Status %d\n", __FUNCTION__, __LINE__, RFC_DEBUGSRV, ret);
-    } else {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] rfc Debug services = %s\n", __FUNCTION__, __LINE__, rfc_data);
-        if (strncmp(rfc_data, "true", sizeof(rfc_data)+1 ) == 0) {
-            result = true;
-        }
-    }
-    return result;
-}
-
 
 bool RuntimeFeatureControlProcessor::IsNewFirmwareFirstRequest(void)
 {
@@ -1537,7 +1517,7 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
-    bool dbgServices = isDebugServicesEnabled();
+    //bool dbgServices = isDebugServicesEnabled();
 
     if(skip_direct == false)
     {
