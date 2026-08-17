@@ -43,7 +43,6 @@ extern "C" {
 #include "urlHelper.h"
 #include <json_parse.h>
 #include <rdk_fwdl_utils.h>
-#include <common_device_api.h>
 #include <downloadUtil.h>
 
 #ifdef __cplusplus
