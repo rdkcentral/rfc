@@ -82,7 +82,6 @@ extern "C" {
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
 #define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini" 
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
-#define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
