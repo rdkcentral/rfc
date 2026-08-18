@@ -36,6 +36,7 @@ extern "C"
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 #include <wdmp-c/wdmp-c.h>
+bool isSecureDbgSrvUnlocked(void);
 #endif
 
 #define MAX_PARAM_LEN     (2*1024)  /**< Maximum length of a parameter name or value. */
