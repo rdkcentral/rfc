@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <stdio.h>
 #include "rfcapi.h"
 #include "rdk_debug.h"
 using namespace std;
@@ -197,7 +198,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName\n", __FUNCTION__);
        return ret;
    }
-
+   printf("Faizal getRFCParameter: pcCallerID = %s, pcParameterName = %s\n", pcCallerID, pcParameterName);
    if(!tr69hostif_http_server_ready)
    {
       ifstream ifs_rfc("/tmp/.tr69hostif_http_server_ready");
@@ -393,7 +394,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    string response;
    CURL *curl_handle = NULL;
    CURLcode res = CURLE_FAILED_INIT;
-
+   
    if(!strcmp(pcParameterName+strlen(pcParameterName)-1,".") && pcParameterValue == NULL)
    {
 #ifdef TEMP_LOGGING
@@ -402,7 +403,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
        RDK_LOG (RDK_LOG_DEBUG, LOG_RFCAPI, "%s: RFC API doesn't support wildcard parameterName or NULL parameterValue\n", __FUNCTION__);
        return ret;
    }
-
+   printf("Faizal setRFCParameter: pcCallerID = %s, pcParameterName = %s, pcParameterValue = %s\n", pcCallerID, pcParameterName, pcParameterValue);
    curl_handle = curl_easy_init();
 
    ostringstream ss;
