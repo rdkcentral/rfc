@@ -76,56 +76,62 @@ static string prefix()
 }
 #endif
 
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
+
 bool isSecureDbgSrvUnlocked(void)
 {
     BUILDTYPE eBuildType = eUNKNOWN;
-	char buildType[32] = {0};
+    char buildType[32] = {0};
     char labSigned[32] = {0};
-	RFC_ParamData_t deviceType = {};
+    RFC_ParamData_t deviceType = {};
     RFC_ParamData_t dbgServices = {};
-	WDMP_STATUS ret = WDMP_FAILURE;
-	bool isDebugServicesUnlocked = false;
+    WDMP_STATUS dbgServicesRet = WDMP_FAILURE;
+    WDMP_STATUS deviceTypeRet = WDMP_FAILURE;
+    int ret = -1;
+    bool isDebugServicesUnlocked = false;
 
-	GetBuildType(buildType,sizeof(buildType),&eBuildType);
+    GetBuildType(buildType, sizeof(buildType), &eBuildType);
 
-	if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
+    if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
     {
         isDebugServicesUnlocked = true;
     }
-
-	else if (eBuildType == eSIGNEDLAB)
+    else if (eBuildType == eSIGNEDLAB)
     {
-		dbgServicesRet = getRFCParameter("rfcapi",RFC_DEBUGSRV,&dbgServices);
-        deviceTypeRet  = getRFCParameter("rfcapi",RFC_DEVICETYPE,&deviceType);
-        ret = getDevicePropertyData("LABSIGNED_ENABLED",labsigned,sizeof(labsigned));
+        dbgServicesRet = getRFCParameter(RFC_CALLER_ID, RFC_DBG_SERVICES, &dbgServices);
+        deviceTypeRet = getRFCParameter(RFC_CALLER_ID, RFC_DEVICE_TYPE, &deviceType);
+        ret = getDevicePropertyData(LABSIGNED_PROPERTY, labSigned, sizeof(labSigned));
 
-        if ((dbgServicesRet == WDMP_SUCCESS) && (deviceTypeRet == WDMP_SUCCESS) &&(ret == UTILS_SUCCESS))
+        if ((dbgServicesRet == WDMP_SUCCESS) && (deviceTypeRet == WDMP_SUCCESS) && (ret == UTILS_SUCCESS))
         {
-            if ((strcmp(labsigned, "true") == 0) && (strcmp(deviceType.value, "test") == 0) && (strcmp(dbgServices.value, "true") == 0))
+            if ((strcasecmp(labSigned, "true") == 0) && (strcasecmp(deviceType.value, "test") == 0) && (strcasecmp(dbgServices.value, "true") == 0))
             {
                 isDebugServicesUnlocked = true;
             }
             else
             {
-                RDK_LOG(RDK_LOG_ERROR,LOG_RFCAPI,"%s: Unable to enable debug services\n",__FUNCTION__);
+                RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "%s: Secure debug conditions not satisfied\n", __FUNCTION__);
             }
         }
         else
         {
-            RDK_LOG(RDK_LOG_ERROR,LOG_RFCAPI,"%s: Failed to read required values\n",__FUNCTION__);
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Failed to read required values\n", __FUNCTION__);
         }
 
-        RDK_LOG(RDK_LOG_DEBUG,LOG_RFCAPI,"%s: dbgServices=%s, deviceType=%s, LABSIGNED_ENABLED=%s\n",__FUNCTION__,dbgServices.value,deviceType.value,labsigned);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "%s: dbgServices=%s, deviceType=%s, LABSIGNED_ENABLED=%s\n", __FUNCTION__, dbgServices.value, deviceType.value, labSigned);
     }
 
     if (isDebugServicesUnlocked)
     {
-        RDK_LOG(RDK_LOG_INFO,LOG_RFCAPI,"%s: Enabling debug services...\n",__FUNCTION__);
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI, "%s: Enabling debug services...\n", __FUNCTION__);
         /* TODO: Add proper T2 marker */
         // t2ValNotify("SYST_INFO_FW_DbgSrv", "true");
     }
+
     return isDebugServicesUnlocked;
 }
+
+#endif
 	
 /**
  * @brief Merge per-feature rfcdefaults ini files into a single combined file.
