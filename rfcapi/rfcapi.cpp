@@ -248,6 +248,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "getRFCParam data = " << data << " dataLen = " << data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"getRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
+   printf("Faizal getRFCParameter: data = %s, datalen = %zu\n", data.c_str(), data.length()); 
    if (curl_handle) 
    {
        char pcCallerIDHeader[128];
@@ -295,6 +296,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
        logofs  << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
        RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+	   printf("Faizal getRFCParameter: curl response : %d http response code: %ld\n", res, http_code);
        curl_easy_cleanup(curl_handle);
 
        curl_slist_free_all(customHeadersList);
@@ -305,6 +307,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
       logofs << prefix() << "Could not perform curl" << endl;
 #endif
       RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"Could not perform curl \n");
+	   printf("Faizal getRFCParameter: Could not perform curl \n");
    }
    if (res == CURLE_OK)
    {
@@ -313,6 +316,7 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
       logofs << prefix() << "curl response: " << response << endl;
 #endif
       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+	  printf("Faizal getRFCParameter: Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
 
       if (response_json)
@@ -421,7 +425,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "setRFCParam data = " << data << " dataLen = " <<  data.length() << endl;
 #endif
    RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"setRFCParam data = %s, datalen = %zu\n", data.c_str(), data.length());
-
+   printf("Faizal setRFCParameter: data = %s, datalen = %zu\n", data.c_str(), data.length());
    if (curl_handle)
    {
        char pcCallerIDHeader[128];
@@ -463,6 +467,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "curl response = " << res << "http response code = " << http_code << endl;
 #endif
       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"curl response : %d http response code: %ld\n", res, http_code);
+	  printf("Faizal setRFCParameter: curl response : %d http response code: %ld\n", res, http_code);
       curl_easy_cleanup(curl_handle);
 
       curl_slist_free_all(customHeadersList);
@@ -473,6 +478,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "Could not perform curl" << endl;
 #endif
       RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI,"Could not perform curl \n");
+	  printf("Faizal setRFCParameter: Could not perform curl \n");
    }
    if (res == CURLE_OK)
    {
@@ -481,6 +487,7 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
    logofs << prefix() << "curl response: " << response << endl;
 #endif
       RDK_LOG(RDK_LOG_INFO, LOG_RFCAPI,"Curl response: %s\n", response.c_str());
+	  printf("Faizal setRFCParameter: Curl response: %s\n", response.c_str());
       response_json = cJSON_Parse(response.c_str());
       if (response_json)
       {
