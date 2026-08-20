@@ -28,6 +28,7 @@
 #endif
 #include <string>
 #include <vector>
+#include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -103,6 +104,18 @@ bool init_rfcdefaults()
 }
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
+
+/* curl_global_init is not thread-safe; run it once before any curl_easy_init. */
+static std::once_flag s_curl_global_init_flag;
+static CURLcode s_curl_global_init_rc = CURLE_OK;
+
+static void curl_global_init_once()
+{
+    std::call_once(s_curl_global_init_flag, []() {
+        s_curl_global_init_rc = curl_global_init(CURL_GLOBAL_DEFAULT);
+    });
+}
+
 /**
  * @brief Look up a parameter by name in an ini-style file (WDMP path).
  * @param[in]  fileName         Path to the ini file.
@@ -239,6 +252,12 @@ WDMP_STATUS getRFCParameter(const char *pcCallerID, const char* pcParameterName,
       }
    }
   
+   curl_global_init_once();
+   if (s_curl_global_init_rc != CURLE_OK)
+   {
+       RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "curl_global_init failed: %d (%s)\n", (int)s_curl_global_init_rc, curl_easy_strerror(s_curl_global_init_rc));
+       return ret;
+   }
    curl_handle = curl_easy_init();
    string data = "{\"names\" : [\"";
    data.append(pcParameterName);
@@ -403,6 +422,12 @@ WDMP_STATUS setRFCParameter(const char *pcCallerID, const char* pcParameterName,
        return ret;
    }
 
+   curl_global_init_once();
+   if (s_curl_global_init_rc != CURLE_OK)
+   {
+       RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "curl_global_init failed: %d (%s)\n", (int)s_curl_global_init_rc, curl_easy_strerror(s_curl_global_init_rc));
+       return ret;
+   }
    curl_handle = curl_easy_init();
 
    ostringstream ss;
