@@ -1364,11 +1364,10 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
     set_RFCProperty(name, ClearDB, clearValue);
     set_RFCProperty(name, BootstrapClearDB, std::move(clearValue));
-    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
+    set_RFCProperty(name, ConfigChangeTimeKey, std::move(ConfigChangeTime));
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
-    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] %s set to %s\n", __FUNCTION__,__LINE__,ConfigChangeTimeKey.c_str(), ConfigChangeTime.c_str());
 
 #else
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing tr181 store\n", __FUNCTION__,__LINE__);
@@ -1576,12 +1575,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
         else
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s][%d] RFC: Last direct failed blocking has expired, removing %s, allowing direct \n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME);
-            if (remove(DIRECT_BLOCK_FILENAME) != 0)
+            if (remove(DIRECT_BLOCK_FILENAME) != 0 && errno != ENOENT)
             {
-				if (errno != ENOENT)
-				{
                 RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR,"[%s][%d]Failed to remove file %s,errno=%d\n", __FUNCTION__, __LINE__, DIRECT_BLOCK_FILENAME,errno);
-				}
             }
         }
     }
