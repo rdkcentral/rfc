@@ -607,7 +607,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured for %s\n", __FUNCTION__, __LINE__, rfcObj->name.c_str());
             } else {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                rfcList += rfcObj->featureInstance + "=true,";
+                rfcList += rfcObj->featureInstance + "=" + (rfcObj->enable ? "true" : "false") + ",";
                 writeRemoteFeatureCntrlFile(filename, rfcObj);
             }
 
@@ -2326,7 +2326,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponse(char *featureXConfMsg)
             else
             {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                rfcList += rfcObj->featureInstance + "=true,";
+                rfcList += rfcObj->featureInstance + "=" + (rfcObj->enable ? "true" : "false") + ",";
                 writeRemoteFeatureCntrlFile(filename,rfcObj);
             }
             writeRemoteFeatureCntrlFile(VARFILE,rfcObj);
