@@ -2419,7 +2419,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponse(char *featureXConfMsg)
             else
             {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                rfcList += rfcObj->featureInstance + "=true,";
+                rfcList += rfcObj->featureInstance + "=" + (rfcObj->enable ? "true" : "false") + ",";
                 writeRemoteFeatureCntrlFile(filename,rfcObj);
             }
             writeRemoteFeatureCntrlFile(VARFILE,rfcObj);
