@@ -131,6 +131,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         RuntimeFeatureControlProcessor() 
         {
             isRebootRequired = false;
+            rfc_state = Invalid;
         }
 
         RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete; /**< Copy disabled. */
@@ -197,7 +198,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
                bool enable;                    /**< Feature enable flag. */
                bool effectiveImmediate;        /**< Apply without reboot. */
         }RuntimeFeatureControlObject;
-		
+	
 	std::map<std::string, std::string> _RFCKeyAndValueMap; /**< Parsed config key-value map. */
 	RfcState     rfc_state;              /**< Current RFC state-machine phase. */
 	std::string _last_firmware;          /**< Last firmware version processed. */
@@ -214,7 +215,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         bool _is_first_request = false;      /**< First request after FW upgrade. */
         bool _url_validation_in_progress = false; /**< URL validation in flight. */
         std:: string rfcSelectorSlot;        /**< Xconf selector slot (prod/ci). */
-		 
+	 
         bool checkWhoamiSupport();
         bool IsNewFirmwareFirstRequest(void);
         int GetLastProcessedFirmware(const char *lastVesrionFile);
