@@ -300,6 +300,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, notifyTelemetry2RemoteFeatures);
     FRIEND_TEST(rfcMgrTest, writeFile);
     FRIEND_TEST(rfcMgrTest, writeRemoteFeatureCntrlFile);
+    FRIEND_TEST(rfcMgrTest, processJsonResponse_FeatureInstanceEnableStates);
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
