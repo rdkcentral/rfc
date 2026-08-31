@@ -49,7 +49,7 @@ namespace xconf {
     class XconfHandler {
         public :
         /** @brief Default constructor. */
-        XconfHandler(){ }
+        XconfHandler() : _ebuild_type(eUNKNOWN) { }
 
         /**
          * @brief Populate all device-identity fields.
