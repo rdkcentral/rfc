@@ -244,6 +244,40 @@ char xconfRespValidAccountId[] = R"({
     }
 })";
 
+char xconfRespFeatureInstanceEnableStates[] = R"({
+    "featureControl": {
+        "features": [
+            {
+                "name": "FeatureD",
+                "enable": true,
+                "effectiveImmediate": false,
+                "configData": {},
+                "featureInstance": "D"
+            },
+            {
+                "name": "FeatureDN",
+                "enable": false,
+                "effectiveImmediate": false,
+                "configData": {},
+                "featureInstance": "D_N"
+            },
+            {
+                "name": "FeatureE",
+                "enable": true,
+                "effectiveImmediate": false,
+                "configData": {},
+                "featureInstance": "E"
+            },
+            {
+                "name": "FeatureEN",
+                "enable": false,
+                "effectiveImmediate": false,
+                "configData": {},
+                "featureInstance": "E_N"
+            }
+        ]
+    }
+})";
 
 TEST(rfcMgrTest, getMtlscert) {
     MtlsAuth_t sec;
@@ -487,9 +521,15 @@ TEST(rfcMgrTest, processJsonResponse) {
     // Read content from the file
     std::string actualContent = readFileContent("/opt/secure/RFC/rfcFeature.list");
 
-    // Check if the content of the file is equal to "TEMP_VERSION"
-    EXPECT_EQ(actualContent, "11=true,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,PartnerId=true,XconfURL=true,");
+    EXPECT_EQ(actualContent, "11=false,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,PartnerId=true,XconfURL=true,");
     
+}
+
+TEST(rfcMgrTest, processJsonResponse_FeatureInstanceEnableStates) {
+    RuntimeFeatureControlProcessor rfcObj;
+    ASSERT_EQ(rfcObj.ProcessJsonResponse(xconfRespFeatureInstanceEnableStates), SUCCESS);
+
+    EXPECT_EQ(readFileContent("/opt/secure/RFC/rfcFeature.list"), "D=true,D_N=false,E=true,E_N=false,");
 }
 
 TEST(rfcMgrTest, getRuntimeFeatureControlJSON) {
