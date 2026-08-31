@@ -29,8 +29,10 @@
 #include <errno.h>
 #include <fstream>
 #include "mtlsUtils.h"
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
@@ -592,7 +594,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponseB(char* featureXConfMsg)
                 RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] RFC Feature Instance not configured for %s\n", __FUNCTION__, __LINE__, rfcObj->name.c_str());
             } else {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                rfcList += rfcObj->featureInstance + "=true,";
+                rfcList += rfcObj->featureInstance + "=" + (rfcObj->enable ? "true" : "false") + ",";
                 writeRemoteFeatureCntrlFile(filename, rfcObj);
             }
 
@@ -1281,7 +1283,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
     set_RFCProperty(name, ClearDB, clearValue);
     set_RFCProperty(name, BootstrapClearDB, std::move(clearValue));
-    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
+    set_RFCProperty(std::move(name), ConfigChangeTimeKey, ConfigChangeTime);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
@@ -1474,8 +1476,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 #if !defined(RDKB_SUPPORT)
     const unsigned int direct_block_time = 86400;
     struct stat fileStat;
+    int directBlockFd = open(DIRECT_BLOCK_FILENAME, O_RDONLY | O_CLOEXEC);
 
-    if (stat(DIRECT_BLOCK_FILENAME, &fileStat) == 0) {
+    if (directBlockFd >= 0 && fstat(directBlockFd, &fileStat) == 0) {
         // Get current time
         time_t currentTime;
         time(&currentTime);
@@ -1501,6 +1504,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 				}
             }
         }
+    }
+    if (directBlockFd >= 0) {
+        close(directBlockFd);
     }
 #endif
 
@@ -2336,7 +2342,7 @@ int RuntimeFeatureControlProcessor::ProcessJsonResponse(char *featureXConfMsg)
             else
             {
                 std::string filename = ".RFC_" + rfcObj->name + ".ini";
-                rfcList += rfcObj->featureInstance + "=true,";
+                rfcList += rfcObj->featureInstance + "=" + (rfcObj->enable ? "true" : "false") + ",";
                 writeRemoteFeatureCntrlFile(filename,rfcObj);
             }
             writeRemoteFeatureCntrlFile(VARFILE,rfcObj);
