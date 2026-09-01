@@ -1,6 +1,6 @@
 /**
  * @file rfcapi.cpp
- * @brief RFC parameter API implementation — get/set via hostif, rbus, or flat files.
+ * @brief RFC parameter API implementation - get/set via hostif, rbus, or flat files.
  *
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
@@ -104,12 +104,12 @@ bool init_rfcdefaults()
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 /**
- * @brief Look up a parameter by name in an ini-style file (WDMP path).
- * @param[in]  fileName         Path to the ini file.
- * @param[in]  pcParameterName  Parameter name to search for.
- * @param[out] pstParam         Filled with name/value/type on success.
- * @return WDMP_SUCCESS, WDMP_ERR_VALUE_IS_EMPTY, or WDMP_FAILURE.
- */
+ * @brief Look up a parameter by name in an ini-style file (WDMP path).
+ * @param[in]  fileName         Path to the ini file.
+ * @param[in]  pcParameterName  Parameter name to search for.
+ * @param[out] pstParam         Filled with name/value/type on success.
+ * @return WDMP_SUCCESS, WDMP_ERR_VALUE_IS_EMPTY, or WDMP_FAILURE.
+ */
 WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_ParamData_t *pstParam)
 {
     ifstream ifs_rfcVar(fileName);
@@ -161,7 +161,7 @@ WDMP_STATUS getValue(const char* fileName, const char* pcParameterName, RFC_Para
 }
 #endif
 
-/** @brief cURL write callback — appends received data to a std::string. */
+/** @brief cURL write callback - appends received data to a std::string. */
 static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, string stream)
 {
    size_t realsize = size * nmemb;

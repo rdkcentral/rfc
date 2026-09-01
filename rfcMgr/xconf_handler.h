@@ -1,6 +1,6 @@
 /**
  * @file xconf_handler.h
- * @brief Base Xconf HTTP handler — device identity and download primitives.
+ * @brief Base Xconf HTTP handler - device identity and download primitives.
  *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
