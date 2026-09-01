@@ -18,6 +18,7 @@
 ####################################################################################
 
 import os
+import shutil
 from rfc_test_helper import *
 
 def modify_rfc_url(new_url: str) -> None:
@@ -56,10 +57,43 @@ def modify_rfc_url(new_url: str) -> None:
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
 
-def test_Set_DbgServices_value():
-    command_to_check = "tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
-    result = run_shell_command(command_to_check)
-    assert "Set operation success" in result, '"Set operation success" not found in the output'
+DEVICE_PROPERTIES_FILE = "/etc/device.properties"
+DEVICE_PROPERTIES_BACKUP = "/tmp/device.properties.rfc_override_l2.bak"
+
+
+def set_device_property(key: str, value: str) -> None:
+    with open(DEVICE_PROPERTIES_FILE, "r") as device_props:
+        lines = device_props.readlines()
+
+    found = False
+
+    for index, line in enumerate(lines):
+        if line.startswith(key + "="):
+            lines[index] = f"{key}={value}\n"
+            found = True
+            break
+
+    if not found:
+        lines.append(f"{key}={value}\n")
+
+    with open(DEVICE_PROPERTIES_FILE, "w") as device_props:
+        device_props.writelines(lines)
+
+
+def read_rfc_log() -> str:
+    if not os.path.exists(RFC_LOG_FILE):
+        return ""
+
+    with open(RFC_LOG_FILE, "r", errors="ignore") as log_file:
+        return log_file.read()
+
+
+def get_new_log(before: str, after: str) -> str:
+    if after.startswith(before):
+        return after[len(before):]
+
+    return after
+
 
 def test_rfc_override_rfc_prop():
     """
@@ -68,6 +102,14 @@ def test_rfc_override_rfc_prop():
     This function checks the creation of the TR181 INI file,
     verifies the firmware version update, and checks the key-value pair in the TR181 INI file.
     """
+
+    shutil.copy2(
+        DEVICE_PROPERTIES_FILE,
+        DEVICE_PROPERTIES_BACKUP
+    )
+
+    # DEV => isRuntimeFeatureEnabled() returns true.
+    set_device_property("BUILD_TYPE", "dev")
     if os.path.exists(TR181_INI_FILE):
         os.remove(TR181_INI_FILE)
 
@@ -89,4 +131,76 @@ def test_rfc_override_rfc_prop():
         assert grep_log_file(RFC_LOG_FILE, OVERRIDE_MSG), f"Expected '{OVERRIDE_MSG}' in log file."
     except Exception as e:
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
-        assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
+        assert False, f"Exception during Validate the Override function for rfc.properties file: {e}"
+    finally:
+        shutil.copy2(
+            DEVICE_PROPERTIES_BACKUP,
+            DEVICE_PROPERTIES_FILE
+        )
+
+        if os.path.exists(DEVICE_PROPERTIES_BACKUP):
+            os.remove(DEVICE_PROPERTIES_BACKUP)
+
+def test_rfc_override_runtime_feature_disabled():
+    """
+    Runtime feature disabled while /opt/rfc.properties exists.
+
+    Expected:
+    RFC must not select the local override URL.
+    """
+    shutil.copy2(
+        DEVICE_PROPERTIES_FILE,
+        DEVICE_PROPERTIES_BACKUP
+    )
+
+    try:
+        # PROD => isRuntimeFeatureEnabled() returns false.
+        set_device_property("BUILD_TYPE", "prod")
+
+        # Keep /opt/rfc.properties present intentionally.
+        modify_rfc_url(RFC_XCONF_OVERRIDE_URL)
+
+        before = read_rfc_log()
+
+        rfc_run_binary()
+
+        log_delta = get_new_log(
+            before,
+            read_rfc_log()
+        )
+
+        persistent_msg = (
+            f"Found Persistent file "
+            f"{RFC_PROPERTIES_PERSISTENCE_FILE}"
+        )
+
+        override_msg = (
+            f"Setting URL from local override to "
+            f"{RFC_XCONF_OVERRIDE_URL}"
+        )
+
+        bootstrap_msg = "Setting URL from Bootstrap config XCONF_BS_URL:"
+
+        assert persistent_msg not in log_delta, (
+            "RFC selected /opt/rfc.properties while "
+            "runtime feature was disabled"
+        )
+
+        assert override_msg not in log_delta, (
+            "RFC used /opt/rfc.properties while "
+            "runtime feature was disabled"
+        )
+
+        assert bootstrap_msg in log_delta, (
+            "RFC did not fall back to Bootstrap URL while "
+            "runtime feature was disabled"
+        )
+
+    finally:
+        shutil.copy2(
+            DEVICE_PROPERTIES_BACKUP,
+            DEVICE_PROPERTIES_FILE
+        )
+
+        if os.path.exists(DEVICE_PROPERTIES_BACKUP):
+            os.remove(DEVICE_PROPERTIES_BACKUP)

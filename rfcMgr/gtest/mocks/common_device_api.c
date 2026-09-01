@@ -396,3 +396,35 @@ bool CurrentRunningInst(const char *file)
 
     return false;
 }
+
+
+/*
+ * L1 controllable mock for common_utilities::isRuntimeFeatureEnabled().
+ *
+ * RFC must treat this API as a boolean dependency.  BUILD_TYPE,
+ * LABSIGNED_ENABLED and secure-debug state-file logic are tested by
+ * common_utilities and must not be duplicated in RFC L1.
+ */
+#ifdef GTEST_ENABLE
+
+static bool g_runtime_feature_enabled = true;
+static unsigned int g_runtime_feature_call_count = 0;
+
+void setRuntimeFeatureEnabledMock(bool enabled)
+{
+    g_runtime_feature_enabled = enabled;
+    g_runtime_feature_call_count = 0;
+}
+
+unsigned int getRuntimeFeatureEnabledCallCountMock(void)
+{
+    return g_runtime_feature_call_count;
+}
+
+bool isRuntimeFeatureEnabled(void)
+{
+    ++g_runtime_feature_call_count;
+    return g_runtime_feature_enabled;
+}
+
+#endif /* GTEST_ENABLE */

@@ -44,6 +44,18 @@ using namespace rfc;
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 extern bool tr69hostif_http_server_ready;
 
+/*
+ * Controllable common_utilities mock used by RFC runtime-feature L1 tests.
+ */
+extern "C" {
+    void setRuntimeFeatureEnabledMock(bool enabled);
+    unsigned int getRuntimeFeatureEnabledCallCountMock(void);
+}
+
+/* Defined by gtest/mocks/mock_curl.cpp */
+extern long simulated_http_code;
+
+
 
 // Helper function to trim right whitespace or specific characters
 std::string rtrim(const std::string &s) {
@@ -1555,6 +1567,454 @@ TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID)
     
     EXPECT_GE(result, 0);
 }
+
+
+/* =====================================================================
+ * isRuntimeFeatureEnabled() integration L1 tests
+ *
+ * RFC owns only this decision:
+ *
+ *   persistent file present && runtime feature enabled
+ *                      |
+ *                      +--> use local RFC override
+ *
+ * All BUILD_TYPE / SIGNEDLAB / LABSIGNED_ENABLED / secure-debug-file
+ * truth-table handling belongs to common_utilities.
+ * ===================================================================== */
+
+static const char *RUNTIME_FEATURE_LOCAL_URL =
+    "https://local.mock/featureControl/getSettings";
+
+static const char *RUNTIME_FEATURE_DEFAULT_URL =
+    "https://default.mock/featureControl/getSettings";
+
+static const char *RUNTIME_FEATURE_BOOTSTRAP_URL =
+    "https://bootstrap.mock";
+
+static const char *RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL =
+    "https://bootstrap.mock/featureControl/getSettings";
+
+
+static bool writeRuntimeFeatureL1File(
+    const char *path,
+    const char *contents)
+{
+    std::ofstream file(path, std::ios::out | std::ios::trunc);
+
+    if (!file.is_open())
+    {
+        return false;
+    }
+
+    file << contents;
+    file.close();
+
+    return true;
+}
+
+
+static void prepareRuntimeFeatureL1Environment()
+{
+    /*
+     * Prevent IsDirectBlocked() from affecting ProcessRuntimeFeatureControlReq().
+     */
+    std::remove(DIRECT_BLOCK_FILENAME);
+
+    /*
+     * XconfHandler test inputs.
+     */
+    writeRuntimeFeatureL1File(
+        "/tmp/partnerId3.dat",
+        "default-partner\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/estbmacfile",
+        "01:23:45:67:89:ab\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/version.txt",
+        "imagename:TestImage\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/device.properties",
+        "MODEL_NUM=SKXI11ADS\n"
+        "BUILD_TYPE=dev\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/.manufacturer",
+        "TestMFRname\n");
+
+    /*
+     * Default RFC configuration.
+     */
+    writeToTr181storeFile(
+        "RFC_CONFIG_SERVER_URL",
+        RUNTIME_FEATURE_DEFAULT_URL,
+        RFC_PROPERTIES_FILE,
+        Plain);
+
+    /*
+     * Bootstrap RFC URL used when local override is unavailable/disabled.
+     */
+    writeToTr181storeFile(
+        "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl",
+        RUNTIME_FEATURE_BOOTSTRAP_URL,
+        BS_STORE_FILENAME,
+        Quoted);
+}
+
+
+static void createRuntimeFeatureLocalOverride()
+{
+    writeToTr181storeFile(
+        "RFC_CONFIG_SERVER_URL",
+        RUNTIME_FEATURE_LOCAL_URL,
+        RFC_PROPERTIES_PERSISTENCE_FILE,
+        Plain);
+}
+
+
+static void removeRuntimeFeatureLocalOverride()
+{
+    std::remove(RFC_PROPERTIES_PERSISTENCE_FILE);
+}
+
+
+/*
+ * ---------------------------------------------------------------------
+ * InitializeRuntimeFeatureControlProcessor()
+ * ---------------------------------------------------------------------
+ *
+ * Truth table:
+ *
+ * file present | feature enabled | expected
+ * -------------------------------------------------------
+ * yes          | true            | Local
+ * yes          | false           | Init/default
+ * no           | true            | Init/default
+ * no           | false           | Init/default
+ */
+
+
+/*
+ * Positive case:
+ *
+ * Local file exists AND runtime feature is enabled.
+ * RFC must select /opt/rfc.properties.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(true);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Local);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Security-negative case:
+ *
+ * Local override exists, but runtime feature is disabled.
+ * Presence of /opt/rfc.properties must NOT bypass the runtime-feature gate.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(false);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_NE(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Runtime feature enabled but no persistent override exists.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(true);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+}
+
+
+/*
+ * Neither condition permits local override.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(false);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+}
+
+
+/*
+ * ---------------------------------------------------------------------
+ * ProcessRuntimeFeatureControlReq()
+ * ---------------------------------------------------------------------
+ *
+ * These validate the second runtime-feature gate in the request path.
+ *
+ * HTTP 304 is intentionally used so DownloadRuntimeFeatutres() exits
+ * through NO_RFC_UPDATE_REQUIRED without exercising unrelated JSON logic.
+ */
+
+
+/*
+ * Local override remains selected when:
+ *
+ *     file present && runtime feature enabled
+ */
+TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(true);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Local;
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_LOCAL_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    simulated_http_code = 200;
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Critical negative request-path case:
+ *
+ * Persistent override exists but Common Utilities reports the runtime
+ * feature disabled. RFC must switch to Bootstrap.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(false);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_LOCAL_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_NE(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Feature enabled alone is insufficient.
+ * Persistent override must also exist.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(true);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_DEFAULT_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+}
+
+
+/*
+ * File absent and runtime feature disabled.
+ * Bootstrap path must be selected.
+ */
+TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setRuntimeFeatureEnabledMock(false);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_DEFAULT_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getRuntimeFeatureEnabledCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+}
+
 
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
