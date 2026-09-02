@@ -399,7 +399,7 @@ bool CurrentRunningInst(const char *file)
 
 
 /*
- * L1 controllable mock for common_utilities::isRuntimeFeatureEnabled().
+ * L1 controllable mock for common_utilities::RDK_isDbgSrvUnlocked().
  *
  * RFC must treat this API as a boolean dependency.  BUILD_TYPE,
  * LABSIGNED_ENABLED and secure-debug state-file logic are tested by
@@ -407,24 +407,24 @@ bool CurrentRunningInst(const char *file)
  */
 #ifdef GTEST_ENABLE
 
-static bool g_runtime_feature_enabled = true;
-static unsigned int g_runtime_feature_call_count = 0;
+static bool g_dbg_srv_unlocked = true;
+static unsigned int g_dbg_srv_unlock_call_count = 0;
 
-void setRuntimeFeatureEnabledMock(bool enabled)
+void setDbgSrvUnlockedMock(bool enabled)
 {
-    g_runtime_feature_enabled = enabled;
-    g_runtime_feature_call_count = 0;
+    g_dbg_srv_unlocked = enabled;
+    g_dbg_srv_unlock_call_count = 0;
 }
 
-unsigned int getRuntimeFeatureEnabledCallCountMock(void)
+unsigned int getDbgSrvUnlockedCallCountMock(void)
 {
-    return g_runtime_feature_call_count;
+    return g_dbg_srv_unlock_call_count;
 }
 
-bool isRuntimeFeatureEnabled(void)
+bool RDK_isDbgSrvUnlocked(void)
 {
-    ++g_runtime_feature_call_count;
-    return g_runtime_feature_enabled;
+    ++g_dbg_srv_unlock_call_count;
+    return g_dbg_srv_unlocked;
 }
 
 #endif /* GTEST_ENABLE */

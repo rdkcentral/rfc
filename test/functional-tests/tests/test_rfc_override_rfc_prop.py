@@ -108,7 +108,7 @@ def test_rfc_override_rfc_prop():
         DEVICE_PROPERTIES_BACKUP
     )
 
-    # DEV => isRuntimeFeatureEnabled() returns true.
+    # DEV => RDK_isDbgSrvUnlocked() returns true.
     set_device_property("BUILD_TYPE", "dev")
     if os.path.exists(TR181_INI_FILE):
         os.remove(TR181_INI_FILE)
@@ -141,9 +141,9 @@ def test_rfc_override_rfc_prop():
         if os.path.exists(DEVICE_PROPERTIES_BACKUP):
             os.remove(DEVICE_PROPERTIES_BACKUP)
 
-def test_rfc_override_runtime_feature_disabled():
+def test_rfc_override_dbg_srv_locked():
     """
-    Runtime feature disabled while /opt/rfc.properties exists.
+    Debug services locked while /opt/rfc.properties exists.
 
     Expected:
     RFC must not select the local override URL.
@@ -154,7 +154,7 @@ def test_rfc_override_runtime_feature_disabled():
     )
 
     try:
-        # PROD => isRuntimeFeatureEnabled() returns false.
+        # PROD => RDK_isDbgSrvUnlocked() returns false.
         set_device_property("BUILD_TYPE", "prod")
 
         # Keep /opt/rfc.properties present intentionally.

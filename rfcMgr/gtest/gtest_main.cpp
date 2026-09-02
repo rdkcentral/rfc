@@ -45,11 +45,11 @@ using namespace rfc;
 extern bool tr69hostif_http_server_ready;
 
 /*
- * Controllable common_utilities mock used by RFC runtime-feature L1 tests.
+ * Controllable common_utilities mock used by RFC secure-debug gating L1 tests.
  */
 extern "C" {
-    void setRuntimeFeatureEnabledMock(bool enabled);
-    unsigned int getRuntimeFeatureEnabledCallCountMock(void);
+    void setDbgSrvUnlockedMock(bool enabled);
+    unsigned int getDbgSrvUnlockedCallCountMock(void);
 }
 
 /* Defined by gtest/mocks/mock_curl.cpp */
@@ -1570,11 +1570,11 @@ TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID)
 
 
 /* =====================================================================
- * isRuntimeFeatureEnabled() integration L1 tests
+ * RDK_isDbgSrvUnlocked() integration L1 tests
  *
  * RFC owns only this decision:
  *
- *   persistent file present && runtime feature enabled
+ *   persistent file present && debug services unlocked
  *                      |
  *                      +--> use local RFC override
  *
@@ -1699,15 +1699,15 @@ static void removeRuntimeFeatureLocalOverride()
 /*
  * Positive case:
  *
- * Local file exists AND runtime feature is enabled.
+ * Local file exists AND debug services are unlocked.
  * RFC must select /opt/rfc.properties.
  */
-TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FilePresent)
+TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent)
 {
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(true);
+    setDbgSrvUnlockedMock(true);
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1717,7 +1717,7 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FilePresent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1735,15 +1735,15 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FilePresent)
 /*
  * Security-negative case:
  *
- * Local override exists, but runtime feature is disabled.
- * Presence of /opt/rfc.properties must NOT bypass the runtime-feature gate.
+ * Local override exists, but debug services are locked.
+ * Presence of /opt/rfc.properties must NOT bypass the secure-debug gate.
  */
-TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FilePresent)
+TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent)
 {
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(false);
+    setDbgSrvUnlockedMock(false);
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1753,7 +1753,7 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FilePresent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1773,14 +1773,14 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FilePresent)
 
 
 /*
- * Runtime feature enabled but no persistent override exists.
+ * Debug services unlocked but no persistent override exists.
  */
-TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FileAbsent)
+TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent)
 {
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(true);
+    setDbgSrvUnlockedMock(true);
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1790,7 +1790,7 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FileAbsent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1806,12 +1806,12 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FileAbsent)
 /*
  * Neither condition permits local override.
  */
-TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent)
+TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent)
 {
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(false);
+    setDbgSrvUnlockedMock(false);
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1821,7 +1821,7 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1839,7 +1839,7 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent)
  * ProcessRuntimeFeatureControlReq()
  * ---------------------------------------------------------------------
  *
- * These validate the second runtime-feature gate in the request path.
+ * These validate the second secure-debug gate in the request path.
  *
  * HTTP 304 is intentionally used so DownloadRuntimeFeatutres() exits
  * through NO_RFC_UPDATE_REQUIRED without exercising unrelated JSON logic.
@@ -1849,14 +1849,14 @@ TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent)
 /*
  * Local override remains selected when:
  *
- *     file present && runtime feature enabled
+ *     file present && debug services unlocked
  */
-TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FilePresent)
+TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent)
 {
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(true);
+    setDbgSrvUnlockedMock(true);
 
     simulated_http_code = 304;
 
@@ -1875,7 +1875,7 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FilePresent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1894,12 +1894,12 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FilePresent)
  * Persistent override exists but Common Utilities reports the runtime
  * feature disabled. RFC must switch to Bootstrap.
  */
-TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FilePresent)
+TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent)
 {
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(false);
+    setDbgSrvUnlockedMock(false);
 
     simulated_http_code = 304;
 
@@ -1919,7 +1919,7 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FilePresent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_NE(
@@ -1937,15 +1937,15 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FilePresent)
 
 
 /*
- * Feature enabled alone is insufficient.
+ * Debug services unlocked alone is insufficient.
  * Persistent override must also exist.
  */
-TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FileAbsent)
+TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent)
 {
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(true);
+    setDbgSrvUnlockedMock(true);
 
     simulated_http_code = 304;
 
@@ -1965,7 +1965,7 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FileAbsent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(
@@ -1977,15 +1977,15 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FileAbsent)
 
 
 /*
- * File absent and runtime feature disabled.
+ * File absent and debug services locked.
  * Bootstrap path must be selected.
  */
-TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FileAbsent)
+TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent)
 {
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setRuntimeFeatureEnabledMock(false);
+    setDbgSrvUnlockedMock(false);
 
     simulated_http_code = 304;
 
@@ -2005,7 +2005,7 @@ TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FileAbsent)
     EXPECT_EQ(result, SUCCESS);
 
     EXPECT_EQ(
-        getRuntimeFeatureEnabledCallCountMock(),
+        getDbgSrvUnlockedCallCountMock(),
         1u);
 
     EXPECT_EQ(

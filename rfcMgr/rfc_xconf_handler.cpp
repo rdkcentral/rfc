@@ -56,7 +56,7 @@ extern "C" {
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
-     bool runtimeFeatureEnabled = isRuntimeFeatureEnabled();
+     bool isDbgSrvUnlocked = RDK_isDbgSrvUnlocked();
 	
 #ifndef RDKC
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
@@ -70,7 +70,7 @@ int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(vo
     
     GetRFCPartnerID();
 
-    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && runtimeFeatureEnabled)
+    if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && isDbgSrvUnlocked)
     {
 	rfc_file = RFC_PROPERTIES_PERSISTENCE_FILE;
 	rfc_state = Local;
@@ -1523,13 +1523,13 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
-    bool runtimeFeatureEnabled = isRuntimeFeatureEnabled();
+    bool isDbgSrvUnlocked = RDK_isDbgSrvUnlocked();
 
     if(skip_direct == false)
     {
         while(retries < RETRY_COUNT)
         {
-            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (runtimeFeatureEnabled))
+            if((filePresentCheck(RFC_PROPERTIES_PERSISTENCE_FILE) == RDK_API_SUCCESS) && (isDbgSrvUnlocked))
             {
                 RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Setting URL from local override to %s\n", __FUNCTION__, __LINE__, _xconf_server_url.c_str());
                 NotifyTelemetry2Value("SYST_INFO_RFC_XconflocalURL", _xconf_server_url.c_str());

@@ -371,16 +371,16 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, Removed_PERSISTENCE_FILE);
     FRIEND_TEST(rfcMgrTest, EmptyFeatures);
 
-    /* isRuntimeFeatureEnabled() integration L1 tests */
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FilePresent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FilePresent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Init_Enabled_FileAbsent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Init_Disabled_FileAbsent);
+    /* RDK_isDbgSrvUnlocked() integration L1 tests */
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent);
 
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FilePresent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FilePresent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Process_Enabled_FileAbsent);
-    FRIEND_TEST(rfcMgrTest, RuntimeFeature_Process_Disabled_FileAbsent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent);
 
 #endif
 };
