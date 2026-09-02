@@ -19,28 +19,58 @@ jobs:
         run: |
           sh run_ut.sh --enable-cov
 
-      - name: Caculate the code coverage summary
+      - name: Parse coverage and upload l1-metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          COV_FILE="rfcMgr/gtest/coverage.info"
+          SUMMARY="$(lcov --summary "$COV_FILE" 2>&1)"
+
+          line_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
+          line_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
+          line_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*lines\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
+          func_pct="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*\([0-9.]*\)%.*/\1/p' | head -n1)"
+          func_hit="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% (\([0-9]*\) of [0-9]*.*/\1/p' | head -n1)"
+          func_total="$(echo "$SUMMARY" | sed -n 's/^[[:space:]]*functions\.*:[[:space:]]*[0-9.]*% ([0-9]* of \([0-9]*\).*/\1/p' | head -n1)"
+
+          {
+            echo "LINE_PCT=$line_pct"
+            echo "LINE_HIT=$line_hit"
+            echo "LINE_TOTAL=$line_total"
+            echo "FUNC_PCT=$func_pct"
+            echo "FUNC_HIT=$func_hit"
+            echo "FUNC_TOTAL=$func_total"
+          } > l1_metrics.env
+
+      - name: Upload l1-metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: l1-metrics
+          path: l1_metrics.env
+          if-no-files-found: error
+
+      - name: Calculate the code coverage summary
         run: |
           cd ./rfcMgr/gtest
           lcov --list coverage.info | grep "Lines\|Total" > /tmp/coverage_summary.txt
           cd -
-        
+
       - name: Update the coverage report to Pull request using actions
         uses: actions/github-script@v4
         with:
           script: |
             const fs = require('fs');
-            const lcov_result = fs.readFileSync('/tmp/coverage_summary.txt', 'utf8'); 
-          
+            const lcov_result = fs.readFileSync('/tmp/coverage_summary.txt', 'utf8');
+
             github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 
+              body:
                     '## Code Coverage Summary \n' +
                     ' ' +
                     '```' +
-                    lcov_result + 
+                    lcov_result +
                     '```'
             });
 
@@ -50,9 +80,8 @@ jobs:
           genhtml coverage.info --output-directory /tmp/coverage_report
           cd -
 
-      - name: Upload the coverage report to Pull request using actions
+      - name: Upload the coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: /tmp/coverage_report
-
