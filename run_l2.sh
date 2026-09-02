@@ -21,6 +21,14 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
+git clone https://github.com/rdkcentral/common_utilities.git
+cd common_utilities
+git checkout topic/RDKEMW-21926-tr
+autoreconf -i
+./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER "
+make && make install
+cd ../
+
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
