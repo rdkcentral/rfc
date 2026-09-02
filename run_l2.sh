@@ -21,14 +21,22 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
+mkdir -p /opt/logs
+touch /opt/logs/rfcscript.txt
+
 : "${INSTALL_DIR:=/usr}"
- rm -rf common_utilities
- git clone --depth 1 https://github.com/rdkcentral/common_utilities.git
- cd common_utilities || exit 1
-git checkout topic/RDKEMW-21926-tr
+rm -rf common_utilities
+git clone --depth 1 --branch topic/RDKEMW-21926-tr \
+    https://github.com/rdkcentral/common_utilities.git \
+    common_utilities
+
+cd common_utilities || exit 1
 autoreconf -i
-INSTALL_DIR=/usr
- ./configure --enable-rdkcertselector --prefix="${INSTALL_DIR}" CFLAGS="-DGTEST_ENABLE"
+
+./configure --enable-rdkcertselector \
+    --prefix="${INSTALL_DIR}" \
+    CFLAGS="-DGTEST_ENABLE"
+
 make && make install
 cd ../
 
