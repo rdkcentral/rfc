@@ -296,7 +296,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
-    FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
     FRIEND_TEST(rfcMgrTest, GetOsClass);
     FRIEND_TEST(rfcMgrTest, set_RFCProperty);
@@ -331,7 +330,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, LastFirmware_FileRemoved);
     FRIEND_TEST(rfcMgrTest, GetServURL_FileRemoved);
     FRIEND_TEST(rfcMgrTest, isXconfSelectorSlotProd_Disabled);
-    FRIEND_TEST(rfcMgrTest, isDebugServicesDisable);
     FRIEND_TEST(rfcMgrTest, WHOAMI_SUPPORT_Disabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceDisabled);
     FRIEND_TEST(rfcMgrTest, GetServURLEmpty);

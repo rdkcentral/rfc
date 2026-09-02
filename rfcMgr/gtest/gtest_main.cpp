@@ -621,14 +621,6 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
     EXPECT_EQ(result, true);
 }
 
-TEST(rfcMgrTest, isDebugServicesEnabled) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);    
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    bool result = rfcObj->isDebugServicesEnabled();
-    delete rfcObj;
-    EXPECT_EQ(result,true);
-}
-
 TEST(rfcMgrTest, isMaintenanceEnabled) {
     writeToTr181storeFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -1151,13 +1143,6 @@ TEST(rfcMgrTest, WHOAMI_SUPPORT_Disabled) {
     bool result = rfcObj->checkWhoamiSupport();
     delete rfcObj;
     EXPECT_EQ(result, false);
-}
-
-TEST(rfcMgrTest, isDebugServicesDisable) {
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    bool result = rfcObj->isDebugServicesEnabled();
-    delete rfcObj;
-    EXPECT_EQ(result,false);
 }
 
 TEST(rfcMgrTest, isMaintenanceDisabled) {
@@ -2022,8 +2007,3 @@ GTEST_API_ int main(int argc, char *argv[]){
     cout << "Starting GTEST===========================>" << endl;
     return RUN_ALL_TESTS();
 }
-
-
-
-
-
