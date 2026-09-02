@@ -1,6 +1,6 @@
 /**
  * @file rfc_xconf_handler.cpp
- * @brief RuntimeFeatureControlProcessor implementation — Xconf query, JSON
+ * @brief RuntimeFeatureControlProcessor implementation - Xconf query, JSON
  *        response parsing, and RFC parameter application.
  *
  * If not stated otherwise in this file or this component's LICENSE file the
@@ -1791,7 +1791,7 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         /*Both the input strings are equal.*/
 #ifdef RDKC
-        /* Camera (XHC1) always retrieves hash/time from RAM files —
+        /* Camera (XHC1) always retrieves hash/time from RAM files -
          * it never checks XconfSelector slot. */
         RetrieveHashAndTimeFromPreviousDataSet(valueHash, valueTime);
 #else
