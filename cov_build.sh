@@ -32,7 +32,7 @@ export CXXFLAGS="-Wno-format -Wno-unused-variable"
 
 cd $RFC_ROOT
 rm -rf common_utilities
-git clone https://github.com/rdkcentral/common_utilities.git -b develop
+git clone https://github.com/rdkcentral/common_utilities.git -b topic/RDKEMW-21926-tr
 cd common_utilities
 sed -i 's/-Werror //g' utils/Makefile.am
 autoreconf -i
