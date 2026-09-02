@@ -92,6 +92,12 @@ int main()
     {
         exit(EXIT_SUCCESS);
     }
+    
+  
+   #ifdef INCLUDE_BREAKPAD
+     breakpad_ExceptionHandler();
+   #endif
+
     atexit(cleanup_lock_file);
 
     signal(SIGINT, signal_handler);
@@ -109,6 +115,8 @@ int main()
     if (!createDirectoryIfNotExists("/tmp/RFC")) {
         RDK_LOG(RDK_LOG_WARN, LOG_RFCMGR, "[%s][%d] RFC: Failed to create /tmp/RFC directory\n", __FUNCTION__, __LINE__);
     }
+    int *ptr = NULL;
+    *ptr = 10;
 #endif
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC: Starting service, creating lock \n", __FUNCTION__, __LINE__);
@@ -116,6 +124,7 @@ int main()
 #if defined(RDKB_SUPPORT)
     waitForRfcCompletion();
 #endif
+
 
      /* Abort if another instance of rfcMgr is already running */
     if (CurrentRunningInst(RFC_MGR_SERVICE_LOCK_FILE))
@@ -158,9 +167,6 @@ int main()
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
     }
 
-#ifdef INCLUDE_BREAKPAD
-     breakpad_ExceptionHandler();
-#endif
 
     delete rfcMgr;
 
