@@ -21,25 +21,6 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
-mkdir -p /opt/logs
-touch /opt/logs/rfcscript.txt
-
-: "${INSTALL_DIR:=/usr}"
-rm -rf common_utilities
-git clone --depth 1 --branch topic/RDKEMW-21926-tr \
-    https://github.com/rdkcentral/common_utilities.git \
-    common_utilities
-
-cd common_utilities || exit 1
-autoreconf -i
-
-./configure --enable-rdkcertselector \
-    --prefix="${INSTALL_DIR}" \
-    CFLAGS="-DGTEST_ENABLE"
-
-make && make install
-cd ../
-
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
@@ -54,7 +35,6 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_de
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_init_failure.json test/functional-tests/tests/test_rfc_initialization_failure.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_communication_success.json test/functional-tests/tests/test_rfc_xconf_communication.py
-
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
 
