@@ -21,27 +21,13 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
-git clone https://github.com/rdkcentral/common_utilities.git
-cd common_utilities
-git checkout develop
-git checkout topic/RDKEMW-21926-tr
-autoreconf -i
-./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER "
-make && make install
+export LD_LIBRARY_PATH="/usr/common_utilities/lib:${LD_LIBRARY_PATH:-}"
 
-cd ../
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
-
-
-echo "=== RDK_isDbgSrvUnlocked symbol ==="
-nm -D /usr/common_utilities/lib/libfwutils.so | grep RDK_isDbgSrvUnlocked || true
-
-echo "=== rfcMgr libfwutils resolution ==="
-ldd /usr/bin/rfcMgr | grep libfwutils || true
 
 # Run L2 Test cases
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
