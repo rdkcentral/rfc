@@ -66,9 +66,33 @@ jobs:
         run: |
           docker run -d --name native-platform --link mockxconf -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
 
+
       - name: Build RFC and Run L2 inside Native Platform Container
         run: |
           docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
+
+      - name: Enable core dump
+        run: ulimit -c unlimited
+
+      - name: Debug parodus binary
+        run: |
+          pwd
+          ls -l /usr/local/bin
+          file /usr/local/bin/parodus
+          ldd /usr/local/bin/parodus || true
+
+      - name: Run test
+        run: |
+          cd /usr/local/bin
+          ./parodus '{"command":"SET","parameters":[{"name":"Device.DeviceInfo.X_RDKCENTRAL-COM_FirmwareToDownload","dataType":0,"value":"TESTIMAGE_DEV.bin"}]}'
+
+      - name: Print stacktrace
+        if: failure()
+        run: |
+          core=$(ls core* 2>/dev/null | head -n1)
+          if [ -n "$core" ]; then
+            gdb -batch -ex "bt full" /tmp/parodus $core
+          fi
 
       - name: Copy unknown-accountid-xconf-rfc-response json to mockxconf service
         run: |
