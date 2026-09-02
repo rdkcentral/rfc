@@ -36,7 +36,7 @@ git clone https://github.com/rdkcentral/common_utilities.git -b topic/RDKEMW-219
 cd common_utilities
 sed -i 's/-Werror //g' utils/Makefile.am
 autoreconf -i
-./configure
+./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER "
 make && make install
 cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
