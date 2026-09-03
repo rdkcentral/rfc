@@ -29,6 +29,15 @@ if [ "x$1" = "x--enable-cov" ]; then
       ENABLE_COV=true
 fi
 
+git clone https://github.com/rdkcentral/common_utilities.git
+cd common_utilities
+git checkout topic/RDKEMW-21926-tr
+autoreconf -i
+INSTALL_DIR=/usr
+./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS="-DGTEST_ENABLE"
+make && make install
+cd ../
+
 cp ./rfcMgr/gtest/mocks/rfc.properties /etc/rfc.properties
 cp ./rfcMgr/gtest/mocks/rfcdefaults.ini /tmp/rfcdefaults.ini
 

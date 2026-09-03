@@ -81,8 +81,6 @@ extern "C" {
 #define TR181LISTFILE                      "/opt/secure/RFC/tr181.list"
 #define TR181STOREFILE                      "/opt/secure/RFC/tr181store.ini" 
 #define DIRECT_BLOCK_FILENAME              "/tmp/.lastdirectfail_rfc"
-#define RFC_DEBUGSRV                       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
-#define RFC_DEVICETYPE                     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
 
 #define RFC_VIDEO_CONTROL_ID               2504
 #define RFC_VIDEO_VOD_ID                   15660
@@ -275,9 +273,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
 	int getJRPCTokenData( char *, char *, unsigned int );
 	void cleanAllFile();
         int ProcessXconfUrl(const char *XconfUrl);
-	bool isDebugServicesEnabled(void);
-    void getDeviceTypeRFC(char *deviceType, size_t size);
-    bool isSecureDbgSrvUnlocked(void);
 
 #if defined(GTEST_ENABLE)
     FRIEND_TEST(rfcMgrTest, isNewFirmwareFirstRequest);
@@ -301,12 +296,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
-    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dev);
-    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_true);
-    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_prod);
-    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dType_prod);
-    FRIEND_TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_DbgSrv_false);
-    FRIEND_TEST(rfcMgrTest, isDebugServicesEnabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceEnabled);
     FRIEND_TEST(rfcMgrTest, GetOsClass);
     FRIEND_TEST(rfcMgrTest, set_RFCProperty);
@@ -341,7 +330,6 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, LastFirmware_FileRemoved);
     FRIEND_TEST(rfcMgrTest, GetServURL_FileRemoved);
     FRIEND_TEST(rfcMgrTest, isXconfSelectorSlotProd_Disabled);
-    FRIEND_TEST(rfcMgrTest, isDebugServicesDisable);
     FRIEND_TEST(rfcMgrTest, WHOAMI_SUPPORT_Disabled);
     FRIEND_TEST(rfcMgrTest, isMaintenanceDisabled);
     FRIEND_TEST(rfcMgrTest, GetServURLEmpty);
@@ -380,6 +368,17 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, ValidPartnerId);
     FRIEND_TEST(rfcMgrTest, Removed_PERSISTENCE_FILE);
     FRIEND_TEST(rfcMgrTest, EmptyFeatures);
+
+    /* RDK_isDbgSrvUnlocked() integration L1 tests */
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent);
+
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent);
+    FRIEND_TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent);
 
 #endif
 };

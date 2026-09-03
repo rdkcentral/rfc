@@ -50,7 +50,6 @@ DEFAULTS_CONTENT: str = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.ThunderT
 PARODUS_LOG_FILE: str = "/opt/logs/parodus.log"
 RFC_PROPERTIES_PERSISTENCE_FILE: str = "/opt/rfc.properties"
 RFC_XCONF_OVERRIDE_URL: str = "https://mockxconf_opt_rfc_properties/featureControl/getSettings"
-DEVICE_PROPERTIES: str = "/etc/device.properties"
 
 def write_on_file(file: str, content: str) -> None:
     """
@@ -168,24 +167,36 @@ def search_log_file(log_file: str, search_string: str) -> str:
         return result.stderr
 
 
-def rfc_run_binary() -> None:
+def rfc_run_binary() -> str:
     """
-    Executes the RFC Manager binary.
-
-    This function attempts to run the RFC Manager specified by RFC_MGR_PATH.
-    It captures both standard output and standard error. If an exception occurs
-    during the execution, it prints an error message indicating what went wrong.
-
-    Returns:
-        None
+    Executes RFC Manager and prints runtime diagnostics.
     """
     try:
         result = subprocess.run(
-            [RFC_MGR_PATH], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            [RFC_MGR_PATH],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
+
+        print(f"rfcMgr return code: {result.returncode}")
+
+        if result.stdout:
+            print(f"rfcMgr stdout:\n{result.stdout}")
+
+        if result.stderr:
+            print(f"rfcMgr stderr:\n{result.stderr}")
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"rfcMgr failed with return code {result.returncode}"
+            )
+
+        return result.stdout
+
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
-
+        raise
 
 def initial_rfc_setup():
     # /tmp/route_available

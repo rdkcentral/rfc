@@ -21,6 +21,8 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
+export LD_LIBRARY_PATH="/usr/common_utilities/lib:${LD_LIBRARY_PATH:-}"
+
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
@@ -35,7 +37,6 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_de
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_init_failure.json test/functional-tests/tests/test_rfc_initialization_failure.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_communication_success.json test/functional-tests/tests/test_rfc_xconf_communication.py
-
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
 

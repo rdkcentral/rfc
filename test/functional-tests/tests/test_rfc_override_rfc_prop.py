@@ -18,6 +18,7 @@
 ####################################################################################
 
 import os
+import shutil
 from rfc_test_helper import *
 
 def modify_rfc_url(new_url: str) -> None:
@@ -55,64 +56,44 @@ def modify_rfc_url(new_url: str) -> None:
             rfc_props.write('\n'.join(lines) + '\n')
             print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
 
-def modify_labsigned_value(device_properties_path: str) -> None:
-    """
-    Modifies the LABSIGNED_ENABLED value in device.properties file to true.
 
-    If the properties file does not exist, it creates one with LABSIGNED_ENABLED set to true.
-    If the file exists but is empty, it adds the field as true.
-    If it already contains LABSIGNED_ENABLED, it sets the parameter to true.
-    """
-    if not os.path.exists(device_properties_path):
-        with open(device_properties_path, "w") as dev_props:
-            dev_props.write("LABSIGNED_ENABLED=true\n")
-        return
+DEVICE_PROPERTIES_FILE = "/etc/device.properties"
+DEVICE_PROPERTIES_BACKUP = "/tmp/device.properties.rfc_override_l2.bak"
 
-    with open(device_properties_path, "r+") as dev_props:
-        content = dev_props.read()
 
-        if not content.strip():
-            dev_props.write("LABSIGNED_ENABLED=true\n")
-            return
+def set_device_property(key: str, value: str) -> None:
+    with open(DEVICE_PROPERTIES_FILE, "r") as device_props:
+        lines = device_props.readlines()
 
-        lines = content.splitlines()
-        labsigned_found = False
+    found = False
 
-        for i in range(len(lines)):
-            if lines[i].startswith("LABSIGNED_ENABLED="):
-                lines[i] = "LABSIGNED_ENABLED=true"
-                labsigned_found = True
-                break
+    for index, line in enumerate(lines):
+        if line.startswith(key + "="):
+            lines[index] = f"{key}={value}\n"
+            found = True
+            break
 
-        if not labsigned_found:
-            lines.append("LABSIGNED_ENABLED=true")
+    if not found:
+        lines.append(f"{key}={value}\n")
 
-        dev_props.seek(0)
-        dev_props.truncate()
-        dev_props.write("\n".join(lines) + "\n")
+    with open(DEVICE_PROPERTIES_FILE, "w") as device_props:
+        device_props.writelines(lines)
 
-def modify_devicetype_test():
-    command_to_check = "tr181 -d -s -t string -v test Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
-    result = run_shell_command(command_to_check)
-    assert "Set operation success" in result, '"Set operation success" not found in the output'
 
-def enable_dbg_services():
-    command_to_check = "tr181 -d -s -t bool -v true Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
-    result = run_shell_command(command_to_check)
-    assert "Set operation success" in result, '"Set operation success" not found in the output'
+def read_rfc_log() -> str:
+    if not os.path.exists(RFC_LOG_FILE):
+        return ""
 
-def set_secure_dbgsrv_preconditions():
-    """
-    Set all required TR-181 preconditions for isSecureDbgSrvUnlocked() in PROD builds
-    """
-    modify_devicetype_test()
-    enable_dbg_services()
+    with open(RFC_LOG_FILE, "r", errors="ignore") as log_file:
+        return log_file.read()
 
-def test_Set_DeviceType_value():
-    modify_devicetype_test()
 
-def test_set_enable_dbg_services():
-    enable_dbg_services()
+def get_new_log(before: str, after: str) -> str:
+    if after.startswith(before):
+        return after[len(before):]
+
+    return after
+
 
 def test_rfc_override_rfc_prop():
     """
@@ -121,22 +102,23 @@ def test_rfc_override_rfc_prop():
     This function checks the creation of the TR181 INI file,
     verifies the firmware version update, and checks the key-value pair in the TR181 INI file.
     """
-    if os.path.exists(TR181_INI_FILE):
-        os.remove(TR181_INI_FILE)
 
-    if os.path.exists(RFC_OLD_FW_FILE):
-        rename_file(RFC_OLD_FW_FILE, RFC_OLD_FW_FILE + "_bak")
+    shutil.copy2(
+        DEVICE_PROPERTIES_FILE,
+        DEVICE_PROPERTIES_BACKUP
+    )
 
-    modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
-
-    device_properties_existed = os.path.exists(DEVICE_PROPERTIES)
-    original_content = ""
-    if device_properties_existed:
-        with open(DEVICE_PROPERTIES, "r") as f:
-            original_content = f.read()
     try:
-        set_secure_dbgsrv_preconditions()
-        modify_labsigned_value(DEVICE_PROPERTIES)
+        # DEV => RDK_isDbgSrvUnlocked() returns true.
+        set_device_property("BUILD_TYPE", "dev")
+        if os.path.exists(TR181_INI_FILE):
+            os.remove(TR181_INI_FILE)
+
+        if os.path.exists(RFC_OLD_FW_FILE):
+            rename_file(RFC_OLD_FW_FILE, RFC_OLD_FW_FILE + "_bak")
+
+        modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
+
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
@@ -149,9 +131,94 @@ def test_rfc_override_rfc_prop():
         assert grep_log_file(RFC_LOG_FILE, OVERRIDE_MSG), f"Expected '{OVERRIDE_MSG}' in log file."
     except Exception as e:
         print(f"Exception during Validate the Override function for rfc.properties file: {e}")
-        assert False, f"Exception during Validate the Override function for rfc.properties file: {e}" 
+        assert False, f"Exception during Validate the Override function for rfc.properties file: {e}"
     finally:
-        if device_properties_existed:
-            if os.path.exists(DEVICE_PROPERTIES):
-                with open(DEVICE_PROPERTIES, "w") as f:
-                    f.write(original_content)
+        shutil.copy2(
+            DEVICE_PROPERTIES_BACKUP,
+            DEVICE_PROPERTIES_FILE
+        )
+
+        if os.path.exists(DEVICE_PROPERTIES_BACKUP):
+            os.remove(DEVICE_PROPERTIES_BACKUP)
+
+def test_rfc_override_dbg_srv_locked():
+    """
+    Debug services locked while /opt/rfc.properties exists.
+
+    Expected:
+    RFC must ignore the local override and select the normal
+    /etc/rfc.properties URL.
+    """
+    debug_ini_file = "/etc/debug.ini"
+    debug_ini_backup = "/tmp/debug.ini.rfc_override_l2.bak"
+
+    shutil.copy2(
+        DEVICE_PROPERTIES_FILE,
+        DEVICE_PROPERTIES_BACKUP
+    )
+
+    debug_ini_existed = os.path.exists(debug_ini_file)
+
+    if debug_ini_existed:
+        shutil.copy2(debug_ini_file, debug_ini_backup)
+    else:
+        # Required so RDK logger writes the messages validated below.
+        with open(debug_ini_file, "w") as debug_ini:
+            debug_ini.write("LOG.RDK.DEFAULT=DEBUG\n")
+
+    try:
+        # PROD => RDK_isDbgSrvUnlocked() returns false.
+        set_device_property("BUILD_TYPE", "prod")
+
+        # Keep /opt/rfc.properties present intentionally.
+        modify_rfc_url(RFC_XCONF_OVERRIDE_URL)
+
+        # Validate output from this exact rfcMgr invocation.
+        rfc_output = rfc_run_binary()
+
+        persistent_msg = (
+            f"Found Persistent file "
+            f"{RFC_PROPERTIES_PERSISTENCE_FILE}"
+        )
+
+        override_msg = (
+            f"Setting URL from local override to "
+            f"{RFC_XCONF_OVERRIDE_URL}"
+        )
+
+        default_url_msg = (
+            f"_xconf_server_url: [{RFC_XCONF_URL}]"
+        )
+
+        # Positive verification: PROD selected /etc/rfc.properties.
+        assert default_url_msg in rfc_output, (
+            "RFC did not select the normal /etc/rfc.properties URL "
+            "while debug services were locked"
+        )
+
+        # Negative verification: /opt/rfc.properties was ignored.
+        assert persistent_msg not in rfc_output, (
+            "RFC selected /opt/rfc.properties while "
+            "debug services were locked"
+        )
+
+        assert override_msg not in rfc_output, (
+            "RFC used the local override URL while "
+            "debug services were locked"
+        )
+
+    finally:
+        shutil.copy2(
+            DEVICE_PROPERTIES_BACKUP,
+            DEVICE_PROPERTIES_FILE
+        )
+
+        if os.path.exists(DEVICE_PROPERTIES_BACKUP):
+            os.remove(DEVICE_PROPERTIES_BACKUP)
+
+        if debug_ini_existed:
+            shutil.copy2(debug_ini_backup, debug_ini_file)
+            if os.path.exists(debug_ini_backup):
+                os.remove(debug_ini_backup)
+        elif os.path.exists(debug_ini_file):
+            os.remove(debug_ini_file)

@@ -32,11 +32,12 @@ export CXXFLAGS="-Wno-format -Wno-unused-variable"
 
 cd $RFC_ROOT
 rm -rf common_utilities
-git clone https://github.com/rdkcentral/common_utilities.git -b develop
+git clone https://github.com/rdkcentral/common_utilities.git -b topic/RDKEMW-21926-tr
 cd common_utilities
+INSTALL_DIR=/usr/common_utilities
 sed -i 's/-Werror //g' utils/Makefile.am
 autoreconf -i
-./configure
+./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR}
 make && make install
 cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr

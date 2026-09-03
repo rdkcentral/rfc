@@ -25,6 +25,8 @@
 #include <gmock/gmock.h>
 #include <iostream>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"
@@ -43,6 +45,18 @@ using namespace rfc;
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 extern bool tr69hostif_http_server_ready;
+
+/*
+ * Controllable common_utilities mock used by RFC secure-debug gating L1 tests.
+ */
+extern "C" {
+    void setDbgSrvUnlockedMock(bool enabled);
+    unsigned int getDbgSrvUnlockedCallCountMock(void);
+}
+
+/* Defined by gtest/mocks/mock_curl.cpp */
+extern long simulated_http_code;
+
 
 
 // Helper function to trim right whitespace or specific characters
@@ -609,68 +623,6 @@ TEST(rfcMgrTest, checkWhoamiSupport) {
     EXPECT_EQ(result, true);
 }
 
-TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dev) {
-    writeToTr181storeFile("BUILD_TYPE", "dev", "/tmp/device.properties", Plain);
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->initializeXconfHandler();
-    bool result = rfcObj->isSecureDbgSrvUnlocked();
-    delete rfcObj;
-    EXPECT_EQ(result, true);
-}
-
-TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_true) {
-    writeToTr181storeFile("BUILD_TYPE", "prod", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("LABSIGNED_ENABLED", "true", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType", "test", "/opt/secure/RFC/tr181store.ini", Quoted);
-	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->initializeXconfHandler();
-    bool result = rfcObj->isSecureDbgSrvUnlocked();
-    delete rfcObj;
-    EXPECT_EQ(result, true);
-}
-
-TEST(rfcMgrTest, isSecureDbgSrvUnlocked_prod) {
-    writeToTr181storeFile("BUILD_TYPE", "prod", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("LABSIGNED_ENABLED", "false", "/tmp/device.properties", Plain);
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->initializeXconfHandler();
-    bool result = rfcObj->isSecureDbgSrvUnlocked();
-    delete rfcObj;
-    EXPECT_EQ(result, false);
-}
-
-TEST(rfcMgrTest, isSecureDbgSrvUnlocked_dType_prod) {
-    writeToTr181storeFile("BUILD_TYPE", "prod", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("LABSIGNED_ENABLED", "true", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType", "prod", "/opt/secure/RFC/tr181store.ini", Quoted);
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->initializeXconfHandler();
-    bool result = rfcObj->isSecureDbgSrvUnlocked();
-    delete rfcObj;
-    EXPECT_EQ(result, false);
-}
-
-TEST(rfcMgrTest, isSecureDbgSrvUnlocked_labsigned_DbgSrv_false) {
-    writeToTr181storeFile("BUILD_TYPE", "prod", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("LABSIGNED_ENABLED", "true", "/tmp/device.properties", Plain);
-	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType", "test", "/opt/secure/RFC/tr181store.ini", Quoted);
-	writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "false", "/opt/secure/RFC/tr181store.ini", Quoted);
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    rfcObj->initializeXconfHandler();
-    bool result = rfcObj->isSecureDbgSrvUnlocked();
-    delete rfcObj;
-    EXPECT_EQ(result, false);
-}
-
-TEST(rfcMgrTest, isDebugServicesEnabled) {
-    writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);    
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    bool result = rfcObj->isDebugServicesEnabled();
-    delete rfcObj;
-    EXPECT_EQ(result,true);
-}
-
 TEST(rfcMgrTest, isMaintenanceEnabled) {
     writeToTr181storeFile("ENABLE_MAINTENANCE", "true", "/tmp/device.properties", Plain);
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
@@ -1195,13 +1147,6 @@ TEST(rfcMgrTest, WHOAMI_SUPPORT_Disabled) {
     EXPECT_EQ(result, false);
 }
 
-TEST(rfcMgrTest, isDebugServicesDisable) {
-    RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
-    bool result = rfcObj->isDebugServicesEnabled();
-    delete rfcObj;
-    EXPECT_EQ(result,false);
-}
-
 TEST(rfcMgrTest, isMaintenanceDisabled) {
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->isMaintenanceEnabled();
@@ -1610,14 +1555,457 @@ TEST(rfcMgrTest, ProcessXconfResponse_WithValidAccountID)
     EXPECT_GE(result, 0);
 }
 
+
+/* =====================================================================
+ * RDK_isDbgSrvUnlocked() integration L1 tests
+ *
+ * RFC owns only this decision:
+ *
+ *   persistent file present && debug services unlocked
+ *                      |
+ *                      +--> use local RFC override
+ *
+ * All BUILD_TYPE / SIGNEDLAB / LABSIGNED_ENABLED / secure-debug-file
+ * truth-table handling belongs to common_utilities.
+ * ===================================================================== */
+
+static const char *RUNTIME_FEATURE_LOCAL_URL =
+    "https://local.mock/featureControl/getSettings";
+
+static const char *RUNTIME_FEATURE_DEFAULT_URL =
+    "https://default.mock/featureControl/getSettings";
+
+static const char *RUNTIME_FEATURE_BOOTSTRAP_URL =
+    "https://bootstrap.mock";
+
+static const char *RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL =
+    "https://bootstrap.mock/featureControl/getSettings";
+
+
+static bool writeRuntimeFeatureL1File(
+    const char *path,
+    const char *contents)
+{
+    std::ofstream file(path, std::ios::out | std::ios::trunc);
+
+    if (!file.is_open())
+    {
+        return false;
+    }
+
+    file << contents;
+    file.close();
+
+    return true;
+}
+
+
+static void prepareRuntimeFeatureL1Environment()
+{
+    /*
+     * Prevent IsDirectBlocked() from affecting ProcessRuntimeFeatureControlReq().
+     */
+    std::remove(DIRECT_BLOCK_FILENAME);
+
+    /*
+     * XconfHandler test inputs.
+     */
+    writeRuntimeFeatureL1File(
+        "/tmp/partnerId3.dat",
+        "default-partner\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/estbmacfile",
+        "01:23:45:67:89:ab\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/version.txt",
+        "imagename:TestImage\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/device.properties",
+        "MODEL_NUM=SKXI11ADS\n"
+        "BUILD_TYPE=dev\n");
+
+    writeRuntimeFeatureL1File(
+        "/tmp/.manufacturer",
+        "TestMFRname\n");
+
+    /*
+     * Default RFC configuration.
+     */
+    writeToTr181storeFile(
+        "RFC_CONFIG_SERVER_URL",
+        RUNTIME_FEATURE_DEFAULT_URL,
+        RFC_PROPERTIES_FILE,
+        Plain);
+
+    /*
+     * Bootstrap RFC URL used when local override is unavailable/disabled.
+     */
+    writeToTr181storeFile(
+        "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.XconfUrl",
+        RUNTIME_FEATURE_BOOTSTRAP_URL,
+        BS_STORE_FILENAME,
+        Quoted);
+}
+
+
+static void createRuntimeFeatureLocalOverride()
+{
+    writeToTr181storeFile(
+        "RFC_CONFIG_SERVER_URL",
+        RUNTIME_FEATURE_LOCAL_URL,
+        RFC_PROPERTIES_PERSISTENCE_FILE,
+        Plain);
+}
+
+
+static void removeRuntimeFeatureLocalOverride()
+{
+    std::remove(RFC_PROPERTIES_PERSISTENCE_FILE);
+}
+
+
+/*
+ * ---------------------------------------------------------------------
+ * InitializeRuntimeFeatureControlProcessor()
+ * ---------------------------------------------------------------------
+ *
+ * Truth table:
+ *
+ * file present | feature enabled | expected
+ * -------------------------------------------------------
+ * yes          | true            | Local
+ * yes          | false           | Init/default
+ * no           | true            | Init/default
+ * no           | false           | Init/default
+ */
+
+
+/*
+ * Positive case:
+ *
+ * Local file exists AND debug services are unlocked.
+ * RFC must select /opt/rfc.properties.
+ */
+TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(true);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Local);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Security-negative case:
+ *
+ * Local override exists, but debug services are locked.
+ * Presence of /opt/rfc.properties must NOT bypass the secure-debug gate.
+ */
+TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(false);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_NE(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Debug services unlocked but no persistent override exists.
+ */
+TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(true);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+}
+
+
+/*
+ * Neither condition permits local override.
+ */
+TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(false);
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    int result =
+        rfcObj.InitializeRuntimeFeatureControlProcessor();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj.rfc_state,
+        Init);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_DEFAULT_URL);
+}
+
+
+/*
+ * ---------------------------------------------------------------------
+ * ProcessRuntimeFeatureControlReq()
+ * ---------------------------------------------------------------------
+ *
+ * These validate the second secure-debug gate in the request path.
+ *
+ * HTTP 304 is intentionally used so DownloadRuntimeFeatutres() exits
+ * through NO_RFC_UPDATE_REQUIRED without exercising unrelated JSON logic.
+ */
+
+
+/*
+ * Local override remains selected when:
+ *
+ *     file present && debug services unlocked
+ */
+TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(true);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Local;
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_LOCAL_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    simulated_http_code = 200;
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Critical negative request-path case:
+ *
+ * Persistent override exists but Common Utilities reports the runtime
+ * feature disabled. RFC must switch to Bootstrap.
+ */
+TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent)
+{
+    prepareRuntimeFeatureL1Environment();
+    createRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(false);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_LOCAL_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_NE(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_LOCAL_URL);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+
+    removeRuntimeFeatureLocalOverride();
+}
+
+
+/*
+ * Debug services unlocked alone is insufficient.
+ * Persistent override must also exist.
+ */
+TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(true);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_DEFAULT_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+}
+
+
+/*
+ * File absent and debug services locked.
+ * Bootstrap path must be selected.
+ */
+TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent)
+{
+    prepareRuntimeFeatureL1Environment();
+    removeRuntimeFeatureLocalOverride();
+
+    setDbgSrvUnlockedMock(false);
+
+    simulated_http_code = 304;
+
+    RuntimeFeatureControlProcessor rfcObj;
+
+    rfcObj.rfc_state = Init;
+
+    rfcObj._xconf_server_url =
+        RUNTIME_FEATURE_DEFAULT_URL;
+
+    rfcObj._boot_strap_xconf_url =
+        RUNTIME_FEATURE_BOOTSTRAP_URL;
+
+    int result =
+        rfcObj.ProcessRuntimeFeatureControlReq();
+
+    EXPECT_EQ(result, SUCCESS);
+
+    EXPECT_EQ(
+        getDbgSrvUnlockedCallCountMock(),
+        1u);
+
+    EXPECT_EQ(
+        rfcObj._xconf_server_url,
+        RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
+
+    simulated_http_code = 200;
+}
+
+
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
     cout << "Starting GTEST===========================>" << endl;
     return RUN_ALL_TESTS();
 }
-
-
-
-
-
