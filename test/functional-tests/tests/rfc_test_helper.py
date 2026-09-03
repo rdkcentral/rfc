@@ -167,7 +167,7 @@ def search_log_file(log_file: str, search_string: str) -> str:
         return result.stderr
 
 
-def rfc_run_binary() -> None:
+def rfc_run_binary() -> str:
     """
     Executes RFC Manager and prints runtime diagnostics.
     """
@@ -191,6 +191,8 @@ def rfc_run_binary() -> None:
             raise RuntimeError(
                 f"rfcMgr failed with return code {result.returncode}"
             )
+
+        return result.stdout
 
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")

@@ -141,7 +141,7 @@ def test_rfc_override_rfc_prop():
         if os.path.exists(DEVICE_PROPERTIES_BACKUP):
             os.remove(DEVICE_PROPERTIES_BACKUP)
 
-def test_rfc_override_dbg_srv_locked(capfd):
+def test_rfc_override_dbg_srv_locked():
     """
     Debug services locked while /opt/rfc.properties exists.
 
@@ -173,13 +173,8 @@ def test_rfc_override_dbg_srv_locked(capfd):
         # Keep /opt/rfc.properties present intentionally.
         modify_rfc_url(RFC_XCONF_OVERRIDE_URL)
 
-        # Capture only the new RFC log output produced by this run.
-        before_log = read_rfc_log()
-
-        rfc_run_binary()
-
-        after_log = read_rfc_log()
-        rfc_output = get_new_log(before_log, after_log)
+        # Validate output from this exact rfcMgr invocation.
+        rfc_output = rfc_run_binary()
 
         persistent_msg = (
             f"Found Persistent file "
