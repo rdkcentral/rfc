@@ -146,12 +146,25 @@ def test_rfc_override_dbg_srv_locked():
     Debug services locked while /opt/rfc.properties exists.
 
     Expected:
-    RFC must not select the local override URL.
+    RFC must ignore the local override and select the normal
+    /etc/rfc.properties URL.
     """
+    debug_ini_file = "/etc/debug.ini"
+    debug_ini_backup = "/tmp/debug.ini.rfc_override_l2.bak"
+
     shutil.copy2(
         DEVICE_PROPERTIES_FILE,
         DEVICE_PROPERTIES_BACKUP
     )
+
+    debug_ini_existed = os.path.exists(debug_ini_file)
+
+    if debug_ini_existed:
+        shutil.copy2(debug_ini_file, debug_ini_backup)
+    else:
+        # Required so RDK logger writes the messages validated below.
+        with open(debug_ini_file, "w") as debug_ini:
+            debug_ini.write("LOG.RDK.DEFAULT=DEBUG\n")
 
     try:
         # PROD => RDK_isDbgSrvUnlocked() returns false.
@@ -179,21 +192,25 @@ def test_rfc_override_dbg_srv_locked():
             f"{RFC_XCONF_OVERRIDE_URL}"
         )
 
-        bootstrap_msg = "Setting URL from Bootstrap config XCONF_BS_URL:"
+        default_url_msg = (
+            f"_xconf_server_url: [{RFC_XCONF_URL}]"
+        )
 
+        # Positive verification: PROD selected /etc/rfc.properties.
+        assert default_url_msg in log_delta, (
+            "RFC did not select the normal /etc/rfc.properties URL "
+            "while debug services were locked"
+        )
+
+        # Negative verification: /opt/rfc.properties was ignored.
         assert persistent_msg not in log_delta, (
             "RFC selected /opt/rfc.properties while "
-            "runtime feature was disabled"
+            "debug services were locked"
         )
 
         assert override_msg not in log_delta, (
-            "RFC used /opt/rfc.properties while "
-            "runtime feature was disabled"
-        )
-
-        assert bootstrap_msg in log_delta, (
-            "RFC did not fall back to Bootstrap URL while "
-            "runtime feature was disabled"
+            "RFC used the local override URL while "
+            "debug services were locked"
         )
 
     finally:
@@ -204,3 +221,10 @@ def test_rfc_override_dbg_srv_locked():
 
         if os.path.exists(DEVICE_PROPERTIES_BACKUP):
             os.remove(DEVICE_PROPERTIES_BACKUP)
+
+        if debug_ini_existed:
+            shutil.copy2(debug_ini_backup, debug_ini_file)
+            if os.path.exists(debug_ini_backup):
+                os.remove(debug_ini_backup)
+        elif os.path.exists(debug_ini_file):
+            os.remove(debug_ini_file)
