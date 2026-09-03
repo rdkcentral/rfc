@@ -37,7 +37,7 @@ cd common_utilities
 INSTALL_DIR=/usr/common_utilities
 sed -i 's/-Werror //g' utils/Makefile.am
 autoreconf -i
-./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS="-DGTEST_ENABLE"
+./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR}
 make && make install
 cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
