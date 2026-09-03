@@ -173,13 +173,13 @@ def test_rfc_override_dbg_srv_locked(capfd):
         # Keep /opt/rfc.properties present intentionally.
         modify_rfc_url(RFC_XCONF_OVERRIDE_URL)
 
-        # Clear output generated during test setup.
-        capfd.readouterr()
+        # Capture only the new RFC log output produced by this run.
+        before_log = read_rfc_log()
 
         rfc_run_binary()
 
-        # rfc_run_binary() prints captured rfcMgr stdout.
-        rfc_output = capfd.readouterr().out
+        after_log = read_rfc_log()
+        rfc_output = get_new_log(before_log, after_log)
 
         persistent_msg = (
             f"Found Persistent file "
