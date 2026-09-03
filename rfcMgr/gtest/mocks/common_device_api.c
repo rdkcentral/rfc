@@ -407,7 +407,7 @@ bool CurrentRunningInst(const char *file)
  */
 #ifdef GTEST_ENABLE
 
-static bool g_dbg_srv_unlocked = true;
+static bool g_dbg_srv_unlocked = false;
 static unsigned int g_dbg_srv_unlock_call_count = 0;
 
 void setDbgSrvUnlockedMock(bool enabled)

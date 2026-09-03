@@ -187,8 +187,14 @@ def rfc_run_binary() -> None:
         if result.stderr:
             print(f"rfcMgr stderr:\n{result.stderr}")
 
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"rfcMgr failed with return code {result.returncode}"
+            )
+
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
+        raise
 
 def initial_rfc_setup():
     # /tmp/route_available

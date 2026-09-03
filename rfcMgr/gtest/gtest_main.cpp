@@ -25,6 +25,8 @@
 #include <gmock/gmock.h>
 #include <iostream>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"

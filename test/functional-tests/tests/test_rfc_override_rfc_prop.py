@@ -108,17 +108,17 @@ def test_rfc_override_rfc_prop():
         DEVICE_PROPERTIES_BACKUP
     )
 
-    # DEV => RDK_isDbgSrvUnlocked() returns true.
-    set_device_property("BUILD_TYPE", "dev")
-    if os.path.exists(TR181_INI_FILE):
-        os.remove(TR181_INI_FILE)
-
-    if os.path.exists(RFC_OLD_FW_FILE):
-        rename_file(RFC_OLD_FW_FILE, RFC_OLD_FW_FILE + "_bak")
-
-    modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
-
     try:
+        # DEV => RDK_isDbgSrvUnlocked() returns true.
+        set_device_property("BUILD_TYPE", "dev")
+        if os.path.exists(TR181_INI_FILE):
+            os.remove(TR181_INI_FILE)
+
+        if os.path.exists(RFC_OLD_FW_FILE):
+            rename_file(RFC_OLD_FW_FILE, RFC_OLD_FW_FILE + "_bak")
+
+        modify_rfc_url(RFC_XCONF_OVERRIDE_URL) # update an unresolved URL to props file
+
         rfc_run_binary()
         RFC_FILE_PATH_MSG = f"Found Persistent file /opt/rfc.properties"
         XCONF_URL_MSG = f"_xconf_server_url: [https://mockxconf_opt_rfc_properties/featureControl/getSettings]"
