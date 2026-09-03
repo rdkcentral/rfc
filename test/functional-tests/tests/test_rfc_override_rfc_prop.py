@@ -141,7 +141,7 @@ def test_rfc_override_rfc_prop():
         if os.path.exists(DEVICE_PROPERTIES_BACKUP):
             os.remove(DEVICE_PROPERTIES_BACKUP)
 
-def test_rfc_override_dbg_srv_locked():
+def test_rfc_override_dbg_srv_locked(capfd):
     """
     Debug services locked while /opt/rfc.properties exists.
 
@@ -173,14 +173,13 @@ def test_rfc_override_dbg_srv_locked():
         # Keep /opt/rfc.properties present intentionally.
         modify_rfc_url(RFC_XCONF_OVERRIDE_URL)
 
-        before = read_rfc_log()
+        # Clear output generated during test setup.
+        capfd.readouterr()
 
         rfc_run_binary()
 
-        log_delta = get_new_log(
-            before,
-            read_rfc_log()
-        )
+        # rfc_run_binary() prints captured rfcMgr stdout.
+        rfc_output = capfd.readouterr().out
 
         persistent_msg = (
             f"Found Persistent file "
@@ -197,18 +196,18 @@ def test_rfc_override_dbg_srv_locked():
         )
 
         # Positive verification: PROD selected /etc/rfc.properties.
-        assert default_url_msg in log_delta, (
+        assert default_url_msg in rfc_output, (
             "RFC did not select the normal /etc/rfc.properties URL "
             "while debug services were locked"
         )
 
         # Negative verification: /opt/rfc.properties was ignored.
-        assert persistent_msg not in log_delta, (
+        assert persistent_msg not in rfc_output, (
             "RFC selected /opt/rfc.properties while "
             "debug services were locked"
         )
 
-        assert override_msg not in log_delta, (
+        assert override_msg not in rfc_output, (
             "RFC used the local override URL while "
             "debug services were locked"
         )
