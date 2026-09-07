@@ -40,6 +40,28 @@ autoreconf -i
 make && make install
 cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
+
+echo "===== common_utilities diagnostics ====="
+
+cd /usr/common_utilities
+
+echo "common_utilities HEAD:"
+git rev-parse HEAD
+git log -1 --oneline
+
+echo "Source contains API:"
+grep -n "RDK_isDbgSrvUnlocked" \
+    utils/common_device_api.c \
+    utils/common_device_api.h || true
+
+echo "Installed common_utilities lib:"
+nm -D /usr/common_utilities/lib/libfwutils.so | \
+    grep RDK_isDbgSrvUnlocked || true
+
+echo "Copied /usr/lib version:"
+nm -D /usr/lib/libfwutils.so.0 | \
+    grep RDK_isDbgSrvUnlocked || true
+
 cd $WORKDIR 
 
 # rfcapi/
@@ -61,4 +83,8 @@ make && make install
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
 make && make install
+
+
+echo "===== rfcMgr runtime dependency ====="
+ldd /usr/bin/rfcMgr | grep fwutils || true
 
