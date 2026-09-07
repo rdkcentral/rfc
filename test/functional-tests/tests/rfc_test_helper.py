@@ -21,6 +21,7 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import time
 
 
 RFC_MGR_PATH: str = "/usr/bin/rfcMgr"
@@ -197,6 +198,36 @@ def rfc_run_binary() -> str:
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
         raise
+
+
+def wait_for_rfc_completion(log_before: str, timeout: float = 30.0) -> str:
+    """
+    Wait until the forked rfcMgr child completes.
+
+    Returns only the RFC log content generated after log_before.
+    """
+    completion_msg = "RFC: Completed service, deleting lock"
+    deadline = time.monotonic() + timeout
+
+    while time.monotonic() < deadline:
+        if os.path.exists(RFC_LOG_FILE):
+            with open(RFC_LOG_FILE, "r", errors="ignore") as log_file:
+                log_after = log_file.read()
+
+            if log_after.startswith(log_before):
+                new_log = log_after[len(log_before):]
+            else:
+                # Log rotation/truncation happened.
+                new_log = log_after
+
+            if completion_msg in new_log:
+                return new_log
+
+        time.sleep(0.1)
+
+    raise TimeoutError(
+        f"Timed out waiting for rfcMgr completion after {timeout} seconds"
+    )
 
 def initial_rfc_setup():
     # /tmp/route_available
