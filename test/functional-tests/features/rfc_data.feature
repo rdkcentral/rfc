@@ -34,4 +34,8 @@ Feature: Verify RFC data population
     And the directory "/opt/secure/RFC" should contain the file "rfcFeature.list"
     And each RFC data file should have a size greater than 0 bytes
 
+  Scenario: Validate feature instance enable states in rfcFeature.list
+    When the RFC binary is run
+    Then the file "/opt/secure/RFC/rfcFeature.list" should contain "D=true,D_N=false,E=true,E_N=false,"
+
 

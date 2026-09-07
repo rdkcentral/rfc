@@ -73,7 +73,7 @@ typedef struct _RFC_Param_t {
 
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 /**
- * @brief Retrieve an RFC parameter value (RDKB / RDKC — int return path).
+ * @brief Retrieve an RFC parameter value (RDKB / RDKC - int return path).
  * @param[in]  pcParameterName  TR181 parameter name.
  * @param[out] pstParamData     Filled with the retrieved name/value/type.
  * @return SUCCESS (0) or FAILURE (1).
@@ -81,7 +81,7 @@ typedef struct _RFC_Param_t {
 int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParamData);
 #else
 /**
- * @brief Retrieve an RFC parameter value (STB — WDMP_STATUS return path).
+ * @brief Retrieve an RFC parameter value (STB - WDMP_STATUS return path).
  * @param[in]  pcCallerID       Caller identifier string.
  * @param[in]  pcParameterName  TR181 parameter name.
  * @param[out] pstParamData     Filled with the retrieved name/value/type.

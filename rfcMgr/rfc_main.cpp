@@ -42,7 +42,7 @@ void cleanup_lock_file(void)
     unlink(RFC_MGR_SERVICE_LOCK_FILE);
 }
 
-/** @brief Signal handler — clean up and exit gracefully. */
+/** @brief Signal handler - clean up and exit gracefully. */
 void signal_handler(int sig)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	

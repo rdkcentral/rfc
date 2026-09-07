@@ -1,6 +1,6 @@
 /**
  * @file rfc_manager.h
- * @brief RFC Manager — orchestrates the RFC feature-control lifecycle.
+ * @brief RFC Manager - orchestrates the RFC feature-control lifecycle.
  *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
@@ -102,7 +102,7 @@ class RFCManager {
         RFCManager &operator=(const RFCManager &) = delete;  /**< Copy assignment disabled. */
 
         /**
-         * @brief Entry point — run the full RFC Xconf request cycle.
+         * @brief Entry point - run the full RFC Xconf request cycle.
          * @return SUCCESS (0) on success, FAILURE (-1) on error.
          */
         int RFCManagerProcessXconfRequest();

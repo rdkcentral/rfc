@@ -1,6 +1,6 @@
 /**
  * @file rfc_xconf_handler.cpp
- * @brief RuntimeFeatureControlProcessor implementation — Xconf query, JSON
+ * @brief RuntimeFeatureControlProcessor implementation - Xconf query, JSON
  *        response parsing, and RFC parameter application.
  *
  * If not stated otherwise in this file or this component's LICENSE file the
@@ -29,8 +29,10 @@
 #include <errno.h>
 #include <fstream>
 #include "mtlsUtils.h"
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
@@ -1364,7 +1366,7 @@ void RuntimeFeatureControlProcessor::clearDB(void)
 
     set_RFCProperty(name, ClearDB, clearValue);
     set_RFCProperty(name, BootstrapClearDB, std::move(clearValue));
-    set_RFCProperty(name, ConfigChangeTimeKey, ConfigChangeTime);
+    set_RFCProperty(std::move(name), ConfigChangeTimeKey, ConfigChangeTime);
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Clearing DB Value: %s\n", __FUNCTION__,__LINE__,ClearDB.c_str());
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Bootstrap Clearing DB Value: %s\n", __FUNCTION__,__LINE__,BootstrapClearDB.c_str());
@@ -1557,8 +1559,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 #if !defined(RDKB_SUPPORT)
     const unsigned int direct_block_time = 86400;
     struct stat fileStat;
+    int directBlockFd = open(DIRECT_BLOCK_FILENAME, O_RDONLY | O_CLOEXEC);
 
-    if (stat(DIRECT_BLOCK_FILENAME, &fileStat) == 0) {
+    if (directBlockFd >= 0 && fstat(directBlockFd, &fileStat) == 0) {
         // Get current time
         time_t currentTime;
         time(&currentTime);
@@ -1584,6 +1587,9 @@ bool RuntimeFeatureControlProcessor::IsDirectBlocked()
 				}
             }
         }
+    }
+    if (directBlockFd >= 0) {
+        close(directBlockFd);
     }
 #endif
 
@@ -1868,7 +1874,7 @@ void RuntimeFeatureControlProcessor::GetStoredHashAndTime( std ::string &valueHa
 	RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Last Image version %s and current image version %s are same \n", __FUNCTION__, __LINE__, _last_firmware.c_str(), _firmware_version.c_str());
         /*Both the input strings are equal.*/
 #ifdef RDKC
-        /* Camera (XHC1) always retrieves hash/time from RAM files —
+        /* Camera (XHC1) always retrieves hash/time from RAM files -
          * it never checks XconfSelector slot. */
         RetrieveHashAndTimeFromPreviousDataSet(valueHash, valueTime);
 #else

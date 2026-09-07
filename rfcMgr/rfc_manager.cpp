@@ -1,6 +1,6 @@
 /**
  * @file rfc_manager.cpp
- * @brief RFC Manager implementation — device connectivity, IARM, Xconf lifecycle.
+ * @brief RFC Manager implementation - device connectivity, IARM, Xconf lifecycle.
  *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
@@ -364,7 +364,7 @@ namespace rfc {
      */
     bool RFCManager::WaitForIpAcquisition(void)
     {
-        constexpr int MAX_ATTEMPTS = 30;   /* 30 × 10s = 5 minutes */
+        constexpr int MAX_ATTEMPTS = 30;   /* 30 * 10s = 5 minutes */
         constexpr int POLL_INTERVAL = 10;  /* seconds */
         char ipBuf[INET6_ADDRSTRLEN] = {0};
 
@@ -579,7 +579,7 @@ namespace rfc {
     }
 
     /**
-     * @brief Entry point — run the full RFC Xconf request cycle.
+     * @brief Entry point - run the full RFC Xconf request cycle.
      * @return SUCCESS (0) or FAILURE (-1).
      */
     int RFCManager ::RFCManagerProcessXconfRequest() 

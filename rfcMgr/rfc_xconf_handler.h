@@ -1,6 +1,6 @@
 /**
  * @file rfc_xconf_handler.h
- * @brief RuntimeFeatureControlProcessor — Xconf query, JSON parsing, and RFC application.
+ * @brief RuntimeFeatureControlProcessor - Xconf query, JSON parsing, and RFC application.
  *
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
@@ -128,10 +128,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         public :
 
         /** @brief Construct with default state (reboot not required). */
-        RuntimeFeatureControlProcessor() 
-        {
-            isRebootRequired = false;
-        }
+        RuntimeFeatureControlProcessor() : isRebootRequired(false) { }
 
         RuntimeFeatureControlProcessor(const RuntimeFeatureControlProcessor&) = delete; /**< Copy disabled. */
         
@@ -199,7 +196,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
         }RuntimeFeatureControlObject;
 		
 	std::map<std::string, std::string> _RFCKeyAndValueMap; /**< Parsed config key-value map. */
-	RfcState     rfc_state;              /**< Current RFC state-machine phase. */
+        RfcState     rfc_state = Invalid;    /**< Current RFC state-machine phase. */
 	std::string _last_firmware;          /**< Last firmware version processed. */
         std::string _boot_strap_xconf_url;   /**< Bootstrap Xconf URL. */
 	std::string _valid_accountId;        /**< Validated account ID. */
@@ -300,6 +297,7 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, notifyTelemetry2RemoteFeatures);
     FRIEND_TEST(rfcMgrTest, writeFile);
     FRIEND_TEST(rfcMgrTest, writeRemoteFeatureCntrlFile);
+    FRIEND_TEST(rfcMgrTest, processJsonResponse_FeatureInstanceEnableStates);
     FRIEND_TEST(rfcMgrTest, getJsonRpc);
     FRIEND_TEST(rfcMgrTest, cleanAllFile);
     FRIEND_TEST(rfcMgrTest, checkWhoamiSupport);
