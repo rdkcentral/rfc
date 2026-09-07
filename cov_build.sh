@@ -34,7 +34,6 @@ cd $RFC_ROOT
 rm -rf common_utilities
 git clone https://github.com/rdkcentral/common_utilities.git -b develop
 cd common_utilities
-INSTALL_DIR=/usr/common_utilities
 sed -i 's/-Werror //g' utils/Makefile.am
 autoreconf -i
 ./configure
