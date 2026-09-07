@@ -68,7 +68,26 @@ jobs:
 
       - name: Build RFC and Run L2 inside Native Platform Container
         run: |
-          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
+          docker exec -i native-platform /bin/bash -c '
+            set -e
+
+            cd /mnt/L2_CONTAINER_SHARED_VOLUME/
+            sh ./cov_build.sh
+
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib
+
+            echo "===== TEST TIME LIB CHECK ====="
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+            ldd /usr/bin/rfcMgr | grep fwutils
+
+            LIB=$(ldd /usr/bin/rfcMgr | awk "/libfwutils/{print \$3}")
+            echo "Loaded libfwutils: $LIB"
+
+            nm -D "$LIB" | grep RDK_isDbgSrvUnlocked || true
+
+            sh run_l2.sh
+          '
 
       - name: Copy unknown-accountid-xconf-rfc-response json to mockxconf service
         run: |
