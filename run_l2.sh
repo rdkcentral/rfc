@@ -21,8 +21,6 @@
 RESULT_DIR="/tmp/rfc_test_report"
 mkdir -p "$RESULT_DIR"
 
-export LD_LIBRARY_PATH="/usr/common_utilities/lib:${LD_LIBRARY_PATH:-}"
-
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
