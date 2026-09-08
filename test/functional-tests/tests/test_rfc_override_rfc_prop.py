@@ -88,12 +88,6 @@ def read_rfc_log() -> str:
         return log_file.read()
 
 
-def get_new_log(before: str, after: str) -> str:
-    if after.startswith(before):
-        return after[len(before):]
-
-    return after
-
 
 def test_rfc_override_rfc_prop():
     """
