@@ -61,3 +61,4 @@ make && make install
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
 make && make install
+
