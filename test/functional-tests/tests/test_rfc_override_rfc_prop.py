@@ -172,8 +172,8 @@ def test_rfc_override_dbg_srv_locked():
 
         rfc_run_binary()
 
-        # rfcMgr forks; wait until the child finishes before validating logs.
-        new_log = wait_for_rfc_completion(log_before)
+        log_after = read_rfc_log()
+        new_log = get_new_log(log_before, log_after)
 
         persistent_msg = (
             f"Found Persistent file "
