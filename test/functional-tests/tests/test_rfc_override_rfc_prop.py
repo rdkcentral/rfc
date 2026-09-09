@@ -173,7 +173,7 @@ def test_rfc_override_dbg_srv_locked():
         rfc_run_binary()
 
         log_after = read_rfc_log()
-        new_log = get_new_log(log_before, log_after)
+        new_log = log_after[len(log_before):] if log_after.startswith(log_before) else log_after
 
         persistent_msg = (
             f"Found Persistent file "
