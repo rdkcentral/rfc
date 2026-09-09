@@ -192,7 +192,7 @@ def rfc_run_binary() -> str:
                 f"rfcMgr failed with return code {result.returncode}"
             )
 
-        return result.stdout
+        return result.stdout + result.stderr
 
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
