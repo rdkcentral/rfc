@@ -25,6 +25,9 @@
 #include <gmock/gmock.h>
 #include <iostream>
 #include <cstdio>
+#include <ctime>
+#include <fstream>
+#include <utime.h>
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"
@@ -750,11 +753,34 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
 }
 
 TEST(rfcMgrTest, IsDirectBlocked) {
+    remove(DIRECT_BLOCK_FILENAME);
     write_on_file(DIRECT_BLOCK_FILENAME, "currenttime");
     RuntimeFeatureControlProcessor *rfcObj = new RuntimeFeatureControlProcessor();
     bool result = rfcObj->IsDirectBlocked();
     EXPECT_EQ(result, true);
     delete rfcObj;
+    remove(DIRECT_BLOCK_FILENAME);
+}
+
+TEST(rfcMgrTest, IsDirectBlockedWithoutMarker) {
+    remove(DIRECT_BLOCK_FILENAME);
+    RuntimeFeatureControlProcessor rfcObj;
+
+    EXPECT_FALSE(rfcObj.IsDirectBlocked());
+}
+
+TEST(rfcMgrTest, IsDirectBlockedAfterMarkerExpires) {
+    remove(DIRECT_BLOCK_FILENAME);
+    write_on_file(DIRECT_BLOCK_FILENAME, "expired");
+
+    struct utimbuf markerTimes;
+    markerTimes.actime = std::time(nullptr) - 86401;
+    markerTimes.modtime = markerTimes.actime;
+    ASSERT_EQ(utime(DIRECT_BLOCK_FILENAME, &markerTimes), 0);
+
+    RuntimeFeatureControlProcessor rfcObj;
+    EXPECT_FALSE(rfcObj.IsDirectBlocked());
+    EXPECT_FALSE(std::ifstream(DIRECT_BLOCK_FILENAME).good());
 }
 
 TEST(rfcMgrTest, getRFCName) {
