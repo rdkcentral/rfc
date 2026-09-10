@@ -25,6 +25,7 @@ import subprocess
 
 RFC_MGR_PATH: str = "/usr/bin/rfcMgr"
 RFC_LOCK_FILE: str = "/tmp/.rfcServiceLock"
+RFC_DIRECT_BLOCK_FILE: str = "/tmp/.lastdirectfail_rfc"
 RFC_LOG_FILE: str = "/opt/logs/rfcscript.txt"
 LOG_FILE: str = "/opt/logs/rfcscript.txt.1"
 SWUPDATE_LOG_FILE: str = "/opt/logs/swupdate.txt"
@@ -105,6 +106,13 @@ def remove_file(file_name: str) -> None:
     """
     if os.path.exists(file_name):
         os.remove(file_name)
+
+
+def write_direct_block_marker(age_seconds: int = 0) -> None:
+    """Create the direct-failure marker and optionally set its age."""
+    write_on_file(RFC_DIRECT_BLOCK_FILE, "direct failure")
+    marker_time = os.path.getmtime(RFC_DIRECT_BLOCK_FILE) - age_seconds
+    os.utime(RFC_DIRECT_BLOCK_FILE, (marker_time, marker_time))
 
 
 def rename_file(old_file_name: str, new_file_name: str) -> None:
