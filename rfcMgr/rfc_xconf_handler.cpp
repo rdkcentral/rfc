@@ -56,7 +56,6 @@ extern "C" {
 int RuntimeFeatureControlProcessor:: InitializeRuntimeFeatureControlProcessor(void)
 {
      std::string rfc_file;
-     bool isDbgSrvUnlocked = RDK_isDbgSrvUnlocked();
 	
 #ifndef RDKC
     int rc = GetBootstrapXconfUrl(_boot_strap_xconf_url);
@@ -1523,7 +1522,6 @@ int RuntimeFeatureControlProcessor::ProcessRuntimeFeatureControlReq()
     int result = FAILURE;
 
     bool skip_direct = IsDirectBlocked();
-    bool isDbgSrvUnlocked = RDK_isDbgSrvUnlocked();
 
     if(skip_direct == false)
     {
