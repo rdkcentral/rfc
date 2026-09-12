@@ -30,6 +30,8 @@
 #include <rbus/rbus.h>
 #endif	
 
+bool isDbgSrvUnlocked = false;
+
 /**
  * @brief Query a sysevent key via the CLI.
  * @param[in] key  Sysevent key name.

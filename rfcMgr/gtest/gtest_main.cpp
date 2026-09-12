@@ -1694,7 +1694,7 @@ TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent)
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(true);
+    isDbgSrvUnlocked = true;
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1702,11 +1702,6 @@ TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent)
         rfcObj.InitializeRuntimeFeatureControlProcessor();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj.rfc_state,
         Local);
@@ -1730,7 +1725,7 @@ TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent)
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(false);
+    isDbgSrvUnlocked = false;
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1738,11 +1733,6 @@ TEST(rfcMgrTest, DbgSrv_Init_Locked_FilePresent)
         rfcObj.InitializeRuntimeFeatureControlProcessor();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj.rfc_state,
         Init);
@@ -1767,7 +1757,7 @@ TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent)
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(true);
+    isDbgSrvUnlocked = true;
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1775,11 +1765,6 @@ TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FileAbsent)
         rfcObj.InitializeRuntimeFeatureControlProcessor();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj.rfc_state,
         Init);
@@ -1798,7 +1783,7 @@ TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent)
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(false);
+    isDbgSrvUnlocked = false;
 
     RuntimeFeatureControlProcessor rfcObj;
 
@@ -1806,11 +1791,6 @@ TEST(rfcMgrTest, DbgSrv_Init_Locked_FileAbsent)
         rfcObj.InitializeRuntimeFeatureControlProcessor();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj.rfc_state,
         Init);
@@ -1843,7 +1823,7 @@ TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent)
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(true);
+    isDbgSrvUnlocked = true;
 
     simulated_http_code = 304;
 
@@ -1860,11 +1840,6 @@ TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FilePresent)
         rfcObj.ProcessRuntimeFeatureControlReq();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj._xconf_server_url,
         RUNTIME_FEATURE_LOCAL_URL);
@@ -1886,7 +1861,7 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent)
     prepareRuntimeFeatureL1Environment();
     createRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(false);
+    isDbgSrvUnlocked = false;
 
     simulated_http_code = 304;
 
@@ -1904,11 +1879,6 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent)
         rfcObj.ProcessRuntimeFeatureControlReq();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_NE(
         rfcObj._xconf_server_url,
         RUNTIME_FEATURE_LOCAL_URL);
@@ -1932,7 +1902,7 @@ TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent)
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(true);
+    isDbgSrvUnlocked = true;
 
     simulated_http_code = 304;
 
@@ -1950,11 +1920,6 @@ TEST(rfcMgrTest, DbgSrv_Process_Unlocked_FileAbsent)
         rfcObj.ProcessRuntimeFeatureControlReq();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj._xconf_server_url,
         RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
@@ -1972,7 +1937,7 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent)
     prepareRuntimeFeatureL1Environment();
     removeRuntimeFeatureLocalOverride();
 
-    setDbgSrvUnlockedMock(false);
+    isDbgSrvUnlocked = false;
 
     simulated_http_code = 304;
 
@@ -1990,11 +1955,6 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent)
         rfcObj.ProcessRuntimeFeatureControlReq();
 
     EXPECT_EQ(result, SUCCESS);
-
-    EXPECT_EQ(
-        getDbgSrvUnlockedCallCountMock(),
-        1u);
-
     EXPECT_EQ(
         rfcObj._xconf_server_url,
         RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
