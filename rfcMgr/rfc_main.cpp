@@ -78,7 +78,7 @@ bool createDirectoryIfNotExists(const char* path) {
     return false;
 }
 
-bool isDbgSrvUnlocked = false;
+extern "C++" bool isDbgSrvUnlocked = false;
 
 int main()
 {
