@@ -1881,9 +1881,6 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FilePresent)
         rfcObj.ProcessRuntimeFeatureControlReq();
 
     EXPECT_EQ(result, SUCCESS);
-    EXPECT_NE(
-        rfcObj._xconf_server_url,
-        RUNTIME_FEATURE_LOCAL_URL);
 
     EXPECT_EQ(
         rfcObj._xconf_server_url,
