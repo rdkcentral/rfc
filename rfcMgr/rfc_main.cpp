@@ -23,6 +23,8 @@
 #include "rfc_common.h"
 #include "rfc_manager.h"
 
+bool isDbgSrvUnlocked = false;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -77,8 +79,6 @@ bool createDirectoryIfNotExists(const char* path) {
     RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to create directory: %s (%s)\n", __FUNCTION__, __LINE__, path, strerror(errno));
     return false;
 }
-
-extern "C++" bool isDbgSrvUnlocked = false;
 
 int main()
 {
