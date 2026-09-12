@@ -67,6 +67,7 @@
 #define DEFAULT_DL_ALLOC    1024
 
 extern bool isDbgSrvUnlocked;
+bool GetDbgSrvUnlockedState();
 
 /** System command type selector for executeCommandAndGetOutput(). */
 typedef enum {

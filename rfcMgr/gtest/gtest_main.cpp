@@ -1685,12 +1685,31 @@ static void removeRuntimeFeatureLocalOverride()
  */
 
 
+TEST(rfcMgrTest, DbgSrv_GetState_Unlocked)
+{
+    setDbgSrvUnlockedMock(true);
+    unsigned int before = getDbgSrvUnlockedCallCountMock();
+
+    EXPECT_TRUE(GetDbgSrvUnlockedState());
+    EXPECT_EQ(getDbgSrvUnlockedCallCountMock(), before + 1);
+}
+
+TEST(rfcMgrTest, DbgSrv_GetState_Locked)
+{
+    setDbgSrvUnlockedMock(false);
+    unsigned int before = getDbgSrvUnlockedCallCountMock();
+
+    EXPECT_FALSE(GetDbgSrvUnlockedState());
+    EXPECT_EQ(getDbgSrvUnlockedCallCountMock(), before + 1);
+}
+
 /*
  * Positive case:
  *
  * Local file exists AND debug services are unlocked.
  * RFC must select /opt/rfc.properties.
  */
+
 TEST(rfcMgrTest, DbgSrv_Init_Unlocked_FilePresent)
 {
     prepareRuntimeFeatureL1Environment();

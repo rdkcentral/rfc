@@ -131,7 +131,7 @@ int main()
     }
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Waiting for IP Acquistion\n", __FUNCTION__, __LINE__);
     rfc::DeviceStatus isDeviceOnline = rfcMgr->CheckDeviceIsOnline();
-    isDbgSrvUnlocked = RDK_isDbgSrvUnlocked();
+    isDbgSrvUnlocked = GetDbgSrvUnlockedState();
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Starting execution of RFCManager\n", __FUNCTION__, __LINE__);    
     if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE) 
     {
