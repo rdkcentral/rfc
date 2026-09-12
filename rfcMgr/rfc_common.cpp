@@ -25,7 +25,21 @@
 #include <string>
 #include <algorithm>
 #include "rfc_common.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <common_device_api.h>
+#ifdef __cplusplus
+}
+#endif
 #include <unistd.h>
+
+bool GetDbgSrvUnlockedState()
+{
+    return RDK_isDbgSrvUnlocked();
+}
+
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #endif	
