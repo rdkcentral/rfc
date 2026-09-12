@@ -293,6 +293,8 @@ char xconfRespFeatureInstanceEnableStates[] = R"({
     }
 })";
 
+bool isDbgSrvUnlocked = false;
+
 TEST(rfcMgrTest, getMtlscert) {
     MtlsAuth_t sec;
     memset(&sec, '\0', sizeof(MtlsAuth_t));

@@ -78,6 +78,8 @@ bool createDirectoryIfNotExists(const char* path) {
     return false;
 }
 
+bool isDbgSrvUnlocked = false;
+
 int main()
 {
     pid_t pid;
