@@ -1,16 +1,18 @@
-name: RFC Module-Aware Code Review
+name: Code Review Tool
 
+# On-demand only: Actions > RFC Module-Aware Code Review > Run workflow.
 # Reviews a pull request against a chosen base branch using the RFC module knowledge
 # pack in .github/reviewer/rfc-review-guide.md, then posts a sticky PR comment.
 #
 # Requires repository secret COPILOT_PAT: a token with GitHub Copilot access
 # (the Copilot CLI cannot authenticate with the default GITHUB_TOKEN).
+# Use the "Dry run" option to build the review context bundle without that secret.
 
 on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Pull request number to review (e.g. 123)'
+        description: 'PR number to review (e.g. 123)'
         required: true
         type: string
       base_branch:
@@ -19,25 +21,32 @@ on:
         default: ''
         type: string
       model:
-        description: 'Model passed to Copilot CLI'
-        required: false
+        description: 'Model used for the review'
+        required: true
         default: 'claude-sonnet-4.5'
-        type: string
+        type: choice
+        options:
+          - claude-sonnet-4.5
+          - claude-opus-4.1
+          - gpt-5
+          - gpt-4.1
       post_comment:
         description: 'Post the review as a PR comment'
         required: false
         default: true
         type: boolean
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [feature/crv]
+      dry_run:
+        description: 'Dry run: build the context bundle only, do not call the model'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: rfc-code-review-${{ inputs.pr_number || github.event.pull_request.number }}
+  group: rfc-code-review-${{ inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
@@ -49,6 +58,8 @@ jobs:
       # Hard caps so the prompt stays inside the model context window.
       MAX_DIFF_BYTES: '200000'
       MAX_STANDARDS_BYTES: '40000'
+      MAX_DOCS_BYTES: '30000'
+      MAX_SOURCES_BYTES: '120000'
 
     steps:
       - name: Checkout repository
@@ -57,10 +68,22 @@ jobs:
           fetch-depth: 0
 
       - name: Verify Copilot credentials
+        if: ${{ !inputs.dry_run }}
         run: |
           set -euo pipefail
           if [ -z "${COPILOT_TOKEN}" ]; then
-            echo "::error::Secret COPILOT_PAT is not configured. Add a PAT with GitHub Copilot access under Settings > Secrets and variables > Actions."
+            {
+              echo "## RFC Module-Aware Code Review"
+              echo
+              echo "Secret \`COPILOT_PAT\` is not configured, so the model cannot be called."
+              echo
+              echo "Fix one of two ways:"
+              echo "1. Add a PAT with GitHub Copilot access as \`COPILOT_PAT\` under"
+              echo "   **Settings > Secrets and variables > Actions**, then re-run."
+              echo "2. Re-run with **Dry run** enabled to produce the review context bundle"
+              echo "   (diff, file history, module docs) as a downloadable artifact without the secret."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Secret COPILOT_PAT is not configured. See the job summary for options."
             exit 1
           fi
 
@@ -69,18 +92,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
-          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            pr_number="${INPUT_PR_NUMBER}"
-          else
-            pr_number="${EVENT_PR_NUMBER}"
-          fi
+          pr_number="${INPUT_PR_NUMBER}"
 
           case "${pr_number}" in
             ''|*[!0-9]*)
@@ -95,6 +112,7 @@ jobs:
           head_sha=$(jq -r '.head.sha' pr.json)
           head_repo=$(jq -r '.head.repo.full_name // ""' pr.json)
           title=$(jq -r '.title' pr.json)
+          author=$(jq -r '.user.login // "unknown"' pr.json)
           state=$(jq -r '.state' pr.json)
 
           if [ "${state}" != "open" ]; then
@@ -124,6 +142,7 @@ jobs:
             echo "base_branch=${base_branch}"
             echo "pr_base=${pr_base}"
             echo "head_sha=${head_sha}"
+            echo "author=${author}"
             echo "is_fork=${is_fork}"
           } >> "$GITHUB_OUTPUT"
 
@@ -158,6 +177,7 @@ jobs:
           base_ref="refs/remotes/origin/${BASE_BRANCH}"
           merge_base=$(git merge-base "${base_ref}" "${head_ref}")
           echo "merge_base=${merge_base}" >> "$GITHUB_OUTPUT"
+          echo "head_ref=${head_ref}" >> "$GITHUB_OUTPUT"
 
           # Vendored trees and binaries add noise without review value.
           excludes=(
@@ -192,15 +212,87 @@ jobs:
             echo "truncated=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Collect module context
+        id: context
+        if: steps.diff.outputs.empty == 'false'
+        env:
+          HEAD_REF: ${{ steps.diff.outputs.head_ref }}
+          MERGE_BASE: ${{ steps.diff.outputs.merge_base }}
+        run: |
+          set -euo pipefail
+
+          cut -f2- changed-files.txt | tr '\t' '\n' | sort -u > changed-paths.txt
+
+          # Module design docs give the reviewer the architecture the diff must fit into.
+          : > module-docs.txt
+          for doc in docs/architecture.md docs/data-processing-flow.md docs/rfc-parameter-runtime-priority.md; do
+            if [ -f "${doc}" ]; then
+              printf '\n===== %s =====\n' "${doc}" >> module-docs.txt
+              cat "${doc}" >> module-docs.txt
+            fi
+          done
+          head -c "${MAX_DOCS_BYTES}" module-docs.txt > module-docs-trimmed.txt
+          mv module-docs-trimmed.txt module-docs.txt
+
+          # Churn per touched file flags hotspots and prior regressions in the same area.
+          : > file-history.txt
+          while IFS= read -r path; do
+            [ -n "${path}" ] || continue
+            printf '\n--- %s ---\n' "${path}" >> file-history.txt
+            git log --no-merges -n 5 --format='%h %ad %an: %s' --date=short \
+              "${MERGE_BASE}" -- "${path}" >> file-history.txt 2>/dev/null || true
+          done < changed-paths.txt
+
+          # Post-change content of touched sources, so findings are not limited to hunk context.
+          : > changed-sources.txt
+          while IFS= read -r path; do
+            [ -n "${path}" ] || continue
+            case "${path}" in
+              *.c|*.h|*.cpp|*.hpp|*/Makefile.am|Makefile.am|*.ac|*.mk|*.sh)
+                if git cat-file -e "${HEAD_REF}:${path}" 2>/dev/null; then
+                  printf '\n===== %s (after change) =====\n' "${path}" >> changed-sources.txt
+                  git show "${HEAD_REF}:${path}" >> changed-sources.txt
+                fi
+                ;;
+            esac
+          done < changed-paths.txt
+          head -c "${MAX_SOURCES_BYTES}" changed-sources.txt > changed-sources-trimmed.txt
+          mv changed-sources-trimmed.txt changed-sources.txt
+
+          # Public headers are consumed by other RDK components; ABI breaks are silent.
+          if grep -Eq '^(rfcapi/rfcapi\.h|tr181api/tr181api\.h|utils/.*\.h)$' changed-paths.txt; then
+            echo "public_api_touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "public_api_touched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if grep -Eq '(^test/|^rfcMgr/gtest/|run_ut\.sh|run_l2.*\.sh)' changed-paths.txt; then
+            echo "tests_touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tests_touched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if grep -Eq '(Makefile\.am|configure\.ac|\.mk$)' changed-paths.txt; then
+            echo "build_touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_touched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          ls -1 openspec/changes 2>/dev/null > openspec-changes.txt || : > openspec-changes.txt
+
       - name: Assemble review prompt
         if: steps.diff.outputs.empty == 'false'
         env:
           PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           PR_TITLE: ${{ steps.pr.outputs.title }}
+          PR_AUTHOR: ${{ steps.pr.outputs.author }}
           BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
           MERGE_BASE: ${{ steps.diff.outputs.merge_base }}
           DIFF_TRUNCATED: ${{ steps.diff.outputs.truncated }}
+          PUBLIC_API_TOUCHED: ${{ steps.context.outputs.public_api_touched }}
+          TESTS_TOUCHED: ${{ steps.context.outputs.tests_touched }}
+          BUILD_TOUCHED: ${{ steps.context.outputs.build_touched }}
         run: |
           set -euo pipefail
 
@@ -213,10 +305,20 @@ jobs:
             echo "- Repository: ${GITHUB_REPOSITORY}"
             echo "- PR: #${PR_NUMBER}"
             echo "- Title: ${PR_TITLE}"
+            echo "- Author: ${PR_AUTHOR}"
             echo "- Head commit: ${HEAD_SHA}"
             echo "- Reviewing against base branch: ${BASE_BRANCH}"
             echo "- Merge base: ${MERGE_BASE}"
             echo "- Diff truncated: ${DIFF_TRUNCATED}"
+            echo
+            echo "## Automated triage signals"
+            echo
+            echo "- Public headers touched (rfcapi.h / tr181api.h / utils headers): ${PUBLIC_API_TOUCHED}"
+            echo "- Test files touched (test/, rfcMgr/gtest/, run_ut.sh, run_l2*.sh): ${TESTS_TOUCHED}"
+            echo "- Build files touched (Makefile.am / configure.ac / *.mk): ${BUILD_TOUCHED}"
+            echo
+            echo "If public headers are touched, ABI compatibility is a mandatory blocking check."
+            echo "If behaviour changed but no test files were touched, treat coverage as a finding."
             echo
             echo "## PR description"
             echo
@@ -234,6 +336,22 @@ jobs:
             cat diff-stat.txt
             echo '```'
             echo
+            echo "## Recent history of the touched files (churn / prior fixes in this area)"
+            echo
+            echo '```'
+            cat file-history.txt
+            echo '```'
+            echo
+            echo "## Open OpenSpec changes (design work this PR may relate to)"
+            echo
+            echo '```'
+            cat openspec-changes.txt
+            echo '```'
+            echo
+            echo "## Module design docs (excerpt)"
+            echo
+            cat module-docs.txt
+            echo
             echo "## Repository coding standards (excerpt)"
             echo
             cat standards.txt
@@ -244,39 +362,49 @@ jobs:
             cat diff.txt
             echo '```'
             echo
-            echo "Review this diff now, following the output format and rules in your system prompt."
+            echo "## Full post-change content of the touched source files"
+            echo
+            echo "Use this to judge the change in context: surrounding #ifdef guards, error paths,"
+            echo "and callers that the diff hunks do not show."
+            echo
+            echo '```'
+            cat changed-sources.txt
+            echo '```'
+            echo
+            echo "Review this change now as the RFC module lead, following the lead assessment,"
+            echo "output format and rules in your system prompt."
           } > prompt.txt
 
           echo "Prompt size: $(wc -c < prompt.txt) bytes"
 
       - name: Set up Node.js
-        if: steps.diff.outputs.empty == 'false'
+        if: ${{ steps.diff.outputs.empty == 'false' && !inputs.dry_run }}
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Install Copilot CLI
-        if: steps.diff.outputs.empty == 'false'
+        if: ${{ steps.diff.outputs.empty == 'false' && !inputs.dry_run }}
         run: npm install -g @github/copilot
 
       - name: Run module-aware review
         id: inference
-        if: steps.diff.outputs.empty == 'false'
+        if: ${{ steps.diff.outputs.empty == 'false' && !inputs.dry_run }}
         uses: actions/ai-inference@v1
         with:
           prompt-file: ./prompt.txt
           system-prompt-file: ./.github/reviewer/rfc-review-guide.md
-          model: ${{ inputs.model || 'claude-sonnet-4.5' }}
+          model: ${{ inputs.model }}
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
 
       - name: Build comment body
         id: body
-        if: steps.diff.outputs.empty == 'false'
+        if: ${{ steps.diff.outputs.empty == 'false' && !inputs.dry_run }}
         env:
           PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
           BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
-          MODEL: ${{ inputs.model || 'claude-sonnet-4.5' }}
+          MODEL: ${{ inputs.model }}
           RESPONSE_FILE: ${{ steps.inference.outputs.response-file }}
         run: |
           set -euo pipefail
@@ -296,6 +424,26 @@ jobs:
 
           cat review-body.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Dry run summary
+        if: ${{ steps.diff.outputs.empty == 'false' && inputs.dry_run }}
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Dry run — PR #${PR_NUMBER} vs ${BASE_BRANCH}"
+            echo
+            echo "No model was called. Context bundle is attached as a workflow artifact."
+            echo
+            echo "- Prompt size: $(wc -c < prompt.txt) bytes"
+            echo "- Changed files: $(wc -l < changed-paths.txt)"
+            echo
+            echo '```'
+            cat diff-stat.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload review artifacts
         if: always() && steps.pr.outputs.pr_number != ''
         uses: actions/upload-artifact@v4
@@ -303,8 +451,11 @@ jobs:
           name: rfc-code-review-${{ steps.pr.outputs.pr_number }}
           path: |
             changed-files.txt
+            changed-paths.txt
             diff-stat.txt
             diff.txt
+            file-history.txt
+            module-docs.txt
             prompt.txt
             review-body.md
           if-no-files-found: ignore
@@ -312,9 +463,10 @@ jobs:
 
       - name: Post or update PR comment
         if: >-
-          steps.diff.outputs.empty == 'false' &&
+          ${{ steps.diff.outputs.empty == 'false' &&
           steps.pr.outputs.is_fork == 'false' &&
-          (github.event_name != 'workflow_dispatch' || inputs.post_comment)
+          !inputs.dry_run &&
+          inputs.post_comment }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
