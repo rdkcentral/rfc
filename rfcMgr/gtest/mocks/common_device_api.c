@@ -396,3 +396,35 @@ bool CurrentRunningInst(const char *file)
 
     return false;
 }
+
+
+/*
+ * L1 controllable mock for common_utilities::RDK_isDbgSrvUnlocked().
+ *
+ * RFC must treat this API as a boolean dependency.  BUILD_TYPE,
+ * LABSIGNED_ENABLED and secure-debug state-file logic are tested by
+ * common_utilities and must not be duplicated in RFC L1.
+ */
+#ifdef GTEST_ENABLE
+
+static bool g_dbg_srv_unlocked = false;
+static unsigned int g_dbg_srv_unlock_call_count = 0;
+
+void setDbgSrvUnlockedMock(bool enabled)
+{
+    g_dbg_srv_unlocked = enabled;
+    g_dbg_srv_unlock_call_count = 0;
+}
+
+unsigned int getDbgSrvUnlockedCallCountMock(void)
+{
+    return g_dbg_srv_unlock_call_count;
+}
+
+bool RDK_isDbgSrvUnlocked(void)
+{
+    ++g_dbg_srv_unlock_call_count;
+    return g_dbg_srv_unlocked;
+}
+
+#endif /* GTEST_ENABLE */
