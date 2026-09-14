@@ -22,7 +22,7 @@ else
 if ENABLE_RDKB
 SUBDIRS = rfcMgr
 else	
-SUBDIRS = rfcapi tr181api utils rfcMgr
+SUBDIRS = rfcapi tr181api utils rfcMgr  rfcMgr
 if WITH_GTEST_SUPPORT
 SUBDIRS += test
 endif

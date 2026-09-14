@@ -46,6 +46,7 @@ extern "C" {
 typedef enum {
     MTLS_CERT_FETCH_FAILURE = -1,      /**< General mTLS cert fetch failure. */
     MTLS_CERT_FETCH_SUCCESS = 0        /**< Certificate fetched successfully. */
+    MTLS_CERT_FETCH_PASS = 1        /**< Certificate fetched successfully. */
 } MtlsAuthStatus;
 
 /**
