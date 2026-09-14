@@ -1,0 +1,335 @@
+name: RFC Module-Aware Code Review
+
+# Reviews a pull request against a chosen base branch using the RFC module knowledge
+# pack in .github/reviewer/rfc-review-guide.md, then posts a sticky PR comment.
+#
+# Requires repository secret COPILOT_PAT: a token with GitHub Copilot access
+# (the Copilot CLI cannot authenticate with the default GITHUB_TOKEN).
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to review (e.g. 123)'
+        required: true
+        type: string
+      base_branch:
+        description: 'Branch to review against. Leave empty to use the PR base branch.'
+        required: false
+        default: ''
+        type: string
+      model:
+        description: 'Model passed to Copilot CLI'
+        required: false
+        default: 'claude-sonnet-4.5'
+        type: string
+      post_comment:
+        description: 'Post the review as a PR comment'
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [feature/crv]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: rfc-code-review-${{ inputs.pr_number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Module-aware review
+    runs-on: ubuntu-latest
+    env:
+      COPILOT_TOKEN: ${{ secrets.COPILOT_PAT }}
+      # Hard caps so the prompt stays inside the model context window.
+      MAX_DIFF_BYTES: '200000'
+      MAX_STANDARDS_BYTES: '40000'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Copilot credentials
+        run: |
+          set -euo pipefail
+          if [ -z "${COPILOT_TOKEN}" ]; then
+            echo "::error::Secret COPILOT_PAT is not configured. Add a PAT with GitHub Copilot access under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Resolve PR metadata
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            pr_number="${INPUT_PR_NUMBER}"
+          else
+            pr_number="${EVENT_PR_NUMBER}"
+          fi
+
+          case "${pr_number}" in
+            ''|*[!0-9]*)
+              echo "::error::pr_number must be a positive integer, got '${pr_number}'"
+              exit 1
+              ;;
+          esac
+
+          gh api "repos/${REPO}/pulls/${pr_number}" > pr.json
+
+          pr_base=$(jq -r '.base.ref' pr.json)
+          head_sha=$(jq -r '.head.sha' pr.json)
+          head_repo=$(jq -r '.head.repo.full_name // ""' pr.json)
+          title=$(jq -r '.title' pr.json)
+          state=$(jq -r '.state' pr.json)
+
+          if [ "${state}" != "open" ]; then
+            echo "::warning::PR #${pr_number} is ${state}; reviewing anyway."
+          fi
+
+          base_branch="${INPUT_BASE_BRANCH:-}"
+          if [ -z "${base_branch}" ]; then
+            base_branch="${pr_base}"
+          fi
+
+          # Reject anything that is not a plain ref name before it reaches git.
+          case "${base_branch}" in
+            *[!A-Za-z0-9._/-]*|-*|*..*)
+              echo "::error::base_branch '${base_branch}' is not a valid branch name"
+              exit 1
+              ;;
+          esac
+
+          is_fork=false
+          if [ "${head_repo}" != "${REPO}" ]; then
+            is_fork=true
+          fi
+
+          {
+            echo "pr_number=${pr_number}"
+            echo "base_branch=${base_branch}"
+            echo "pr_base=${pr_base}"
+            echo "head_sha=${head_sha}"
+            echo "is_fork=${is_fork}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "title<<PR_TITLE_EOF"
+            echo "${title}"
+            echo "PR_TITLE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          jq -r '.body // ""' pr.json > pr-body.txt
+
+          echo "Reviewing PR #${pr_number} (head ${head_sha}) against ${base_branch}"
+
+      - name: Compute diff against base branch
+        id: diff
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags --quiet origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/${PR_NUMBER}"
+
+          if ! git fetch --no-tags --quiet origin \
+            "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"; then
+            echo "::error::Branch '${BASE_BRANCH}' not found on origin"
+            exit 1
+          fi
+
+          head_ref="refs/remotes/pr/${PR_NUMBER}"
+          base_ref="refs/remotes/origin/${BASE_BRANCH}"
+          merge_base=$(git merge-base "${base_ref}" "${head_ref}")
+          echo "merge_base=${merge_base}" >> "$GITHUB_OUTPUT"
+
+          # Vendored trees and binaries add noise without review value.
+          excludes=(
+            ':(exclude)meta-rdk/**'
+            ':(exclude)cpg-utils-cpc-develop/**'
+            ':(exclude)**/*.png'
+            ':(exclude)**/*.jpg'
+            ':(exclude)**/*.jpeg'
+            ':(exclude)**/*.gif'
+            ':(exclude)**/*.pdf'
+          )
+
+          git diff --name-status "${merge_base}" "${head_ref}" -- . "${excludes[@]}" > changed-files.txt
+          git diff --stat "${merge_base}" "${head_ref}" -- . "${excludes[@]}" > diff-stat.txt
+          git diff -U10 "${merge_base}" "${head_ref}" -- . "${excludes[@]}" > full-diff.txt
+
+          if [ ! -s changed-files.txt ]; then
+            echo "::warning::No reviewable changes between ${BASE_BRANCH} and PR #${PR_NUMBER}"
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "empty=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          diff_bytes=$(wc -c < full-diff.txt)
+          if [ "${diff_bytes}" -gt "${MAX_DIFF_BYTES}" ]; then
+            head -c "${MAX_DIFF_BYTES}" full-diff.txt > diff.txt
+            printf '\n\n[DIFF TRUNCATED: %s of %s bytes shown]\n' \
+              "${MAX_DIFF_BYTES}" "${diff_bytes}" >> diff.txt
+            echo "truncated=true" >> "$GITHUB_OUTPUT"
+          else
+            cp full-diff.txt diff.txt
+            echo "truncated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble review prompt
+        if: steps.diff.outputs.empty == 'false'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
+          BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          MERGE_BASE: ${{ steps.diff.outputs.merge_base }}
+          DIFF_TRUNCATED: ${{ steps.diff.outputs.truncated }}
+        run: |
+          set -euo pipefail
+
+          cat .github/instructions/*.instructions.md > standards-full.txt 2>/dev/null || : > standards-full.txt
+          head -c "${MAX_STANDARDS_BYTES}" standards-full.txt > standards.txt
+
+          {
+            echo "# Pull request under review"
+            echo
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- PR: #${PR_NUMBER}"
+            echo "- Title: ${PR_TITLE}"
+            echo "- Head commit: ${HEAD_SHA}"
+            echo "- Reviewing against base branch: ${BASE_BRANCH}"
+            echo "- Merge base: ${MERGE_BASE}"
+            echo "- Diff truncated: ${DIFF_TRUNCATED}"
+            echo
+            echo "## PR description"
+            echo
+            cat pr-body.txt
+            echo
+            echo "## Changed files (status + path)"
+            echo
+            echo '```'
+            cat changed-files.txt
+            echo '```'
+            echo
+            echo "## Diffstat"
+            echo
+            echo '```'
+            cat diff-stat.txt
+            echo '```'
+            echo
+            echo "## Repository coding standards (excerpt)"
+            echo
+            cat standards.txt
+            echo
+            echo "## Unified diff (10 lines of context)"
+            echo
+            echo '```diff'
+            cat diff.txt
+            echo '```'
+            echo
+            echo "Review this diff now, following the output format and rules in your system prompt."
+          } > prompt.txt
+
+          echo "Prompt size: $(wc -c < prompt.txt) bytes"
+
+      - name: Set up Node.js
+        if: steps.diff.outputs.empty == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Copilot CLI
+        if: steps.diff.outputs.empty == 'false'
+        run: npm install -g @github/copilot
+
+      - name: Run module-aware review
+        id: inference
+        if: steps.diff.outputs.empty == 'false'
+        uses: actions/ai-inference@v1
+        with:
+          prompt-file: ./prompt.txt
+          system-prompt-file: ./.github/reviewer/rfc-review-guide.md
+          model: ${{ inputs.model || 'claude-sonnet-4.5' }}
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+
+      - name: Build comment body
+        id: body
+        if: steps.diff.outputs.empty == 'false'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          BASE_BRANCH: ${{ steps.pr.outputs.base_branch }}
+          MODEL: ${{ inputs.model || 'claude-sonnet-4.5' }}
+          RESPONSE_FILE: ${{ steps.inference.outputs.response-file }}
+        run: |
+          set -euo pipefail
+
+          {
+            # Marker makes the comment sticky across re-runs.
+            echo '<!-- rfc-module-review -->'
+            # Comment bodies are capped at 65536 characters by the API.
+            head -c 60000 "${RESPONSE_FILE}"
+            echo
+            echo
+            echo "---"
+            echo "<sub>RFC module-aware review · base \`${BASE_BRANCH}\` · model \`${MODEL}\` ·"
+            echo "guide \`.github/reviewer/rfc-review-guide.md\` ·"
+            echo "[run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})</sub>"
+          } > review-body.md
+
+          cat review-body.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload review artifacts
+        if: always() && steps.pr.outputs.pr_number != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfc-code-review-${{ steps.pr.outputs.pr_number }}
+          path: |
+            changed-files.txt
+            diff-stat.txt
+            diff.txt
+            prompt.txt
+            review-body.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Post or update PR comment
+        if: >-
+          steps.diff.outputs.empty == 'false' &&
+          steps.pr.outputs.is_fork == 'false' &&
+          (github.event_name != 'workflow_dispatch' || inputs.post_comment)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          existing=$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("<!-- rfc-module-review -->")) | .id' \
+            | head -n 1)
+
+          if [ -n "${existing}" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${existing}" -F body=@review-body.md
+            echo "Updated comment ${existing} on PR #${PR_NUMBER}"
+          else
+            gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@review-body.md
+            echo "Created comment on PR #${PR_NUMBER}"
+          fi
