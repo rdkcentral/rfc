@@ -27,8 +27,8 @@ bin_PROGRAMS += rfctool
 endif
 
 tr181_SOURCES = tr181utils.cpp trsetutils.cpp
-tr181_LDADD = ../rfcapi/.libs/librfcapi.la ../tr181api/.libs/libtr181api.la
-tr181_CPPFLAGS = -std=c++0x -Wall -I${top_srcdir}/rfcapi/ -I${top_srcdir}/tr181api/ -I=/usr/include/wdmp-c
+tr181_LDADD = ../rfcapi/.libs/librfcapi.la ../tr181api/.libs/libtr181api.la -lrdk_otlp
+tr181_CPPFLAGS = -std=c++0x -Wall -I${top_srcdir}/rfcapi/ -I${top_srcdir}/tr181api/ -I=/usr/include/wdmp-c -I/mnt/L2_CONTAINER_SHARED_VOLUME/dtracing/rdk_otel_instrumentation/include
 
 if IS_IARMBUS_ENABLED
 tr181_LDADD += -lIARMBus
