@@ -114,6 +114,23 @@ const char* getRFCErrorString(WDMP_STATUS code);
  */
 bool isRFCEnabled(const char *);
 
+
+/**
+ * @brief Check whether RFC feature marker file exists (getRFC.sh parity).
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Corresponding .RFC_<Feature>.ini exists.
+ * @retval false  Marker file is missing or input is invalid.
+ */
+bool getRFCFeature(const char *feature);
+
+/**
+ * @brief Check whether RFC feature is enabled (isFeatureEnabled.sh parity).
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Marker file exists and RFC_ENABLE_<Feature>=true.
+ * @retval false  Marker missing, key missing, non-true value, or invalid input.
+ */
+bool isFeatureEnabled(const char *feature);
+
 /**
  * @brief Check whether a file exists in a given directory.
  * @param[in] dir       Directory path to search.

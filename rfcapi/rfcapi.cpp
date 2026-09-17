@@ -720,12 +720,51 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
  * @retval true   Feature ini marker file exists.
  * @retval false  Feature not enabled.
  */
-bool isRFCEnabled(const char *feature)
+bool getRFCFeature(const char *feature)
 {
+   if ((feature == NULL) || (feature[0] == '\0')) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid feature input\n", __FUNCTION__);
+      return false;
+   }
+
    struct stat buffer;
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
 
    return (stat(fileName.c_str(), &buffer) == 0);
+}
+
+/**
+ * @brief Check whether RFC_ENABLE_<Feature> is true in feature marker file.
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Feature marker exists and RFC_ENABLE_<Feature> is true.
+ * @retval false  Feature marker/key missing or value is not true.
+ */
+bool isFeatureEnabled(const char *feature)
+{
+   if (!getRFCFeature(feature))
+      return false;
+
+   string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
+   string key = string("RFC_ENABLE_") + feature;
+   RFC_ParamData_t param;
+   memset(&param, 0, sizeof(param));
+
+   WDMP_STATUS ret = getValue(fileName.c_str(), key.c_str(), &param);
+   if (ret != WDMP_SUCCESS)
+      return false;
+
+   return (strcmp(param.value, "true") == 0);
+}
+
+/**
+ * @brief Check whether RFC feature marker file exists (backward-compatible with original behavior).
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Feature ini marker file exists.
+ * @retval false  Feature not enabled or input is invalid.
+ */
+bool isRFCEnabled(const char *feature)
+{
+   return getRFCFeature(feature);
 }
 
 /** @brief Expose writeCurlResponse for unit testing. */
