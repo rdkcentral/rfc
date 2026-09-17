@@ -38,7 +38,7 @@ bin_PROGRAMS = rfc_feature_test
 rfc_feature_test_SOURCES = rfcapi_test.cpp
 rfc_feature_test_CPPFLAGS = "-std=c++11" -DLINUX -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
 rfc_feature_test_LDFLAGS = -L$(libdir)
-rfc_feature_test_LDADD = -lcurl -lcjson -lrdkloggers -L. -lrfcapi
+rfc_feature_test_LDADD = librfcapi.la -lcurl -lcjson -lrdkloggers
 endif
 endif
 endif
