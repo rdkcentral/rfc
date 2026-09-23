@@ -115,6 +115,47 @@ const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 
 /**
+ * @brief Read RFC feature marker file content (equivalent to shell 'source' operation).
+ * Checks if feature marker file exists (with lock retry), and optionally reads content.
+ * @param[in]  feature     Feature name (without "RFC_" prefix).
+ * @param[out] value_buf   Buffer to store file content (can be NULL for existence check only).
+ * @param[in]  buf_size    Size of value_buf (ignored if value_buf is NULL).
+ * @return WDMP_SUCCESS if file exists and read successfully.
+ *         WDMP_FAILURE if file not found, lock timeout, or cannot be read.
+ *         WDMP_ERR_VALUE_IS_EMPTY if file is empty.
+ */
+WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size);
+
+/**
+ * @brief Check whether RFC feature marker file exists (simple existence check).
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Corresponding .RFC_<Feature>.ini exists.
+ * @retval false  Marker file is missing or input is invalid.
+ */
+bool getRFCFeatureExists(const char *feature);
+
+/**
+ * @brief Extract a specific RFC value from a feature marker file.
+ * Uses getValue() to read specific RFC_* keys from feature files.
+ * @param[in]  feature     Feature name (without "RFC_" prefix).
+ * @param[in]  key         Specific RFC key to extract (e.g., "RFC_ENABLE_HDR").
+ * @param[out] value_buf   Buffer to store extracted value.
+ * @param[in]  buf_size    Size of value_buf.
+ * @return WDMP_SUCCESS if key found and extracted.
+ *         WDMP_FAILURE if key not found or buffer invalid.
+ *         WDMP_ERR_VALUE_IS_EMPTY if value is empty.
+ */
+WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value_buf, size_t buf_size);
+
+/**
+ * @brief Check whether RFC_ENABLE_<Feature> is true in feature marker file.
+ * @param[in] feature  Feature name (without "RFC_" prefix).
+ * @retval true   Marker file exists and RFC_ENABLE_<Feature>=true.
+ * @retval false  Marker missing, key missing, non-true value, or invalid input.
+ */
+bool isFeatureEnabled(const char *feature);
+
+/**
  * @brief Check whether a file exists in a given directory.
  * @param[in] dir       Directory path to search.
  * @param[in] filename  Filename to look for.
