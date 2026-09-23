@@ -41,6 +41,9 @@ using namespace std;
 #define RFCDEFAULTS_FILE "/tmp/rfcdefaults.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
+#define RFC_WRITE_LOCK "/opt/secure/RFC/.RFC_WRITE_LOCK"
+#define RFC_LOCK_RETRY_COUNT 3
+#define RFC_LOCK_RETRY_DELAY 1
 
 #define CONNECTION_TIMEOUT 5
 #define TRANSFER_TIMEOUT 10
@@ -715,12 +718,143 @@ int getRFCParameter(const char* pcParameterName, RFC_ParamData_t *pstParam)
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 /**
- * @brief Check whether a named RFC feature is enabled.
+ * @brief Check and read RFC feature marker file (equivalent to shell 'source' operation).
+ * Implements lock checking with retry logic, then reads feature marker file.
+ * Mirrors getRFC.sh behavior exactly: check lock, retry if held, then source file.
+ * @param[in]  feature     Feature name (without "RFC_" prefix).
+ * @param[out] value_buf   Buffer to store file content (can be NULL).
+ * @param[in]  buf_size    Size of value_buf (ignored if value_buf is NULL).
+ * @return WDMP_SUCCESS if file exists and read successfully.
+ *         WDMP_FAILURE if file not found, lock timeout, or cannot be read.
+ *         WDMP_ERR_VALUE_IS_EMPTY if file is empty.
+ */
+WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
+{
+   if ((feature == NULL) || (feature[0] == '\0')) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid feature input\n", __FUNCTION__);
+      return WDMP_FAILURE;
+   }
+
+   string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
+   struct stat buffer;
+   int retry_count = 0;
+
+   /* Check lock first, retry for up to RFC_LOCK_RETRY_COUNT attempts (mirrors getRFC.sh) */
+   while (retry_count < RFC_LOCK_RETRY_COUNT) {
+      if (stat(RFC_WRITE_LOCK, &buffer) != 0) {
+         /* Lock not held, proceed */
+         break;
+      }
+      
+      retry_count++;
+      if (retry_count >= RFC_LOCK_RETRY_COUNT) {
+         RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] getRFCFeature %s %d tries failed. Lock file %s is locked\n", 
+                 feature, RFC_LOCK_RETRY_COUNT, RFC_WRITE_LOCK);
+         return WDMP_FAILURE;
+      }
+      
+      RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "[RFC] Lock held, retry count = %d. Sleeping %d seconds...\n", 
+              retry_count, RFC_LOCK_RETRY_DELAY);
+      sleep(RFC_LOCK_RETRY_DELAY);
+   }
+
+   /* Request feature marker (log before checking file existence - mirrors script) */
+   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "[RFC] Requesting %s\n", fileName.c_str());
+
+   /* Check if file exists */
+   if (stat(fileName.c_str(), &buffer) != 0) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] File %s does not exist\n", fileName.c_str());
+      return WDMP_FAILURE;
+   }
+
+   /* File found - log success (mirrors script "Sourced" message) */
+   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "[RFC] Sourced %s\n", fileName.c_str());
+
+   /* If caller doesn't need content, just return success */
+   if (value_buf == NULL || buf_size == 0) {
+      return WDMP_SUCCESS;
+   }
+
+   /* Read file content */
+   ifstream file(fileName.c_str());
+   if (!file.is_open()) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Cannot open file %s\n", __FUNCTION__, fileName.c_str());
+      return WDMP_FAILURE;
+   }
+
+   string content;
+   string line;
+   while (getline(file, line)) {
+      content += line + "\n";
+   }
+   file.close();
+
+   if (content.empty()) {
+      RDK_LOG(RDK_LOG_WARN, LOG_RFCAPI, "%s: File %s is empty\n", __FUNCTION__, fileName.c_str());
+      return WDMP_ERR_VALUE_IS_EMPTY;
+   }
+
+   /* Copy to output buffer */
+   strncpy(value_buf, content.c_str(), buf_size - 1);
+   value_buf[buf_size - 1] = '\0';
+
+   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "%s: Successfully sourced file %s, content length: %zu\n", __FUNCTION__, fileName.c_str(), content.length());
+   return WDMP_SUCCESS;
+}
+
+/**
+ * @brief Extract a specific RFC value from a feature marker file.
+ * Helper function that uses getValue() to read specific RFC_* keys from feature files.
+ * @param[in]  feature     Feature name (without "RFC_" prefix).
+ * @param[in]  key         Specific RFC key to extract (e.g., "RFC_ENABLE_HDR").
+ * @param[out] value_buf   Buffer to store extracted value.
+ * @param[in]  buf_size    Size of value_buf.
+ * @return WDMP_SUCCESS if key found and extracted, WDMP_FAILURE otherwise.
+ */
+WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value_buf, size_t buf_size)
+{
+   if ((feature == NULL) || (feature[0] == '\0') || (key == NULL) || (key[0] == '\0')) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid feature or key input\n", __FUNCTION__);
+      return WDMP_FAILURE;
+   }
+
+   if (!value_buf || buf_size == 0) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid output buffer\n", __FUNCTION__);
+      return WDMP_FAILURE;
+   }
+
+   /* Verify feature marker file exists first */
+   if (!getRFCFeatureExists(feature)) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Feature marker for %s does not exist\n", __FUNCTION__, feature);
+      return WDMP_FAILURE;
+   }
+
+   string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
+   RFC_ParamData_t param;
+   memset(&param, 0, sizeof(param));
+
+   /* Use getValue() to extract specific key from feature file */
+   WDMP_STATUS ret = getValue(fileName.c_str(), key, &param);
+   if (ret != WDMP_SUCCESS) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Key %s not found in feature %s\n", __FUNCTION__, key, feature);
+      return ret;
+   }
+
+   /* Copy extracted value to caller's buffer */
+   strncpy(value_buf, param.value, buf_size - 1);
+   value_buf[buf_size - 1] = '\0';
+
+   RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "%s: Extracted %s = %s from feature %s\n", __FUNCTION__, key, value_buf, feature);
+   return WDMP_SUCCESS;
+}
+
+/**
+ * @brief Check whether RFC feature marker file exists (simplified check-only version).
  * @param[in] feature  Feature name (without "RFC_" prefix).
  * @retval true   Feature ini marker file exists.
- * @retval false  Feature not enabled.
+ * @retval false  Feature not enabled or input is invalid.
  */
-bool getRFCFeature(const char *feature)
+bool getRFCFeatureExists(const char *feature)
 {
    if ((feature == NULL) || (feature[0] == '\0')) {
       RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid feature input\n", __FUNCTION__);
@@ -741,7 +875,7 @@ bool getRFCFeature(const char *feature)
  */
 bool isFeatureEnabled(const char *feature)
 {
-   if (!getRFCFeature(feature))
+   if (!getRFCFeatureExists(feature))
       return false;
 
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
@@ -764,7 +898,7 @@ bool isFeatureEnabled(const char *feature)
  */
 bool isRFCEnabled(const char *feature)
 {
-   return getRFCFeature(feature);
+   return getRFCFeatureExists(feature);
 }
 
 /** @brief Expose writeCurlResponse for unit testing. */
