@@ -44,23 +44,23 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
     char *certFile = NULL;
 
     if (!sec || !pthisCertSel) {
-        COMMONUTILITIES_ERROR("[%s:%d] Invalid parameters\n", __FUNCTION__, __LINE__);
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s:%d] Invalid parameters\n", __FUNCTION__, __LINE__);
         return MTLS_CERT_FETCH_FAILURE;
     }
 
     rdkcertselectorStatus_t certStat = rdkcertselector_getCert(*pthisCertSel, &certUri, &certPass);
 
     if (certStat != certselectorOk || certUri == NULL || certPass == NULL) {
-        COMMONUTILITIES_ERROR("[%s:%d] Failed to retrieve certificate for MTLS\n",
+        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s:%d] Failed to retrieve certificate for MTLS\n",
                    __FUNCTION__, __LINE__);
 
         rdkcertselector_free(pthisCertSel);
 
         if (*pthisCertSel == NULL) {
-            COMMONUTILITIES_INFO("[%s:%d] Cert selector memory freed\n",
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s:%d] Cert selector memory freed\n",
                        __FUNCTION__, __LINE__);
         } else {
-            COMMONUTILITIES_ERROR("[%s:%d] Cert selector memory free failed\n",
+            RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR,"[%s:%d] Cert selector memory free failed\n",
                        __FUNCTION__, __LINE__);
         }
 
@@ -94,7 +94,7 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
     strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
     sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
 
-    COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
 #ifndef L2UPLOADENABLED
     rdkcertselector_free(pthisCertSel);
