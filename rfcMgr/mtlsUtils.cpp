@@ -96,9 +96,7 @@ MtlsAuthStatus getMtlscert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel) {
 
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR,"[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
-#ifndef L2UPLOADENABLED
-    rdkcertselector_free(pthisCertSel);
-#endif
+
     return MTLS_CERT_FETCH_SUCCESS;
 }
 #else
