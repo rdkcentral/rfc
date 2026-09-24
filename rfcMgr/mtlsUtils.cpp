@@ -25,6 +25,7 @@
 #ifdef LIBRDKCONFIG_BUILD
 #include "rdkconfig.h"
 #endif
+#define FILESCHEME "file://"
 
 #ifdef __cplusplus
 extern "C" {
