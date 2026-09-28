@@ -3,10 +3,10 @@
  * @brief RFC API CLI test application - allows independent testing of RFC APIs.
  *
  * Usage:
- *   rfc_feature_test get <parameter>
- *   rfc_feature_test set <parameter> <value>
- *   rfc_feature_test getrfc <feature> <key>
- *   rfc_feature_test enabled <feature>
+ *   rfcApiTest get <parameter>
+ *   rfcApiTest set <parameter> <value>
+ *   rfcApiTest getrfc <feature> <key>
+ *   rfcApiTest enabled <feature>
  *
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:

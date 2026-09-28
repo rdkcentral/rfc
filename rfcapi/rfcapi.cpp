@@ -41,7 +41,7 @@ using namespace std;
 #define RFCDEFAULTS_FILE "/tmp/rfcdefaults.ini"
 #define RFCDEFAULTS_ETC_DIR "/etc/rfcdefaults/"
 #define RFC_FEATURE_DIR "/opt/secure/RFC/"
-#define RFC_WRITE_LOCK "/opt/secure/RFC/.RFC_WRITE_LOCK"
+#define RFC_WRITE_LOCK "/tmp/.rfcWriteLock"
 #define RFC_LOCK_RETRY_COUNT 3
 #define RFC_LOCK_RETRY_DELAY 1
 
@@ -106,6 +106,26 @@ bool init_rfcdefaults()
 }
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
+/**
+ * @brief Validate feature name to prevent path traversal attacks.
+ * @param[in] feature  Feature name to validate.
+ * @retval true   Feature name is safe (no path traversal sequences).
+ * @retval false  Feature name contains suspicious patterns (e.g., ../ or /).
+ */
+static bool isValidFeatureName(const char *feature)
+{
+    if (feature == NULL || feature[0] == '\0')
+        return false;
+    
+    /* Check for path traversal sequences */
+    if (strstr(feature, "..") != NULL || strstr(feature, "/") != NULL) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid feature name (path traversal attempt): %s\n", __FUNCTION__, feature);
+        return false;
+    }
+    
+    return true;
+}
+
 /**
  * @brief Look up a parameter by name in an ini-style file (WDMP path).
  * @param[in]  fileName         Path to the ini file.
@@ -735,6 +755,11 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
       return WDMP_FAILURE;
    }
 
+   /* Validate feature name to prevent path traversal attacks */
+   if (!isValidFeatureName(feature)) {
+      return WDMP_FAILURE;
+   }
+
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
    struct stat buffer;
    int retry_count = 0;
@@ -771,8 +796,14 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCAPI, "[RFC] Sourced %s\n", fileName.c_str());
 
    /* If caller doesn't need content, just return success */
-   if (value_buf == NULL || buf_size == 0) {
+   if (value_buf == NULL) {
       return WDMP_SUCCESS;
+   }
+
+   /* Validate output buffer size */
+   if (buf_size == 0) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: invalid output buffer\n", __FUNCTION__);
+      return WDMP_FAILURE;
    }
 
    /* Read file content */
@@ -829,6 +860,11 @@ WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value
       return WDMP_FAILURE;
    }
 
+   /* getRFCFeatureExists already validated feature name, but validate again for defense-in-depth */
+   if (!isValidFeatureName(feature)) {
+      return WDMP_FAILURE;
+   }
+
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
    RFC_ParamData_t param;
    memset(&param, 0, sizeof(param));
@@ -836,7 +872,7 @@ WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value
    /* Use getValue() to extract specific key from feature file */
    WDMP_STATUS ret = getValue(fileName.c_str(), key, &param);
    if (ret != WDMP_SUCCESS) {
-      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Key %s not found in feature %s\n", __FUNCTION__, key, feature);
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Failed to extract key %s from feature %s (status=%d)\n", __FUNCTION__, key, feature, ret);
       return ret;
    }
 
@@ -861,10 +897,15 @@ bool getRFCFeatureExists(const char *feature)
       return false;
    }
 
+   /* Validate feature name to prevent path traversal attacks */
+   if (!isValidFeatureName(feature)) {
+      return false;
+   }
+
    struct stat buffer;
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
 
-   return (stat(fileName.c_str(), &buffer) == 0);
+   return (stat(fileName.c_str(), &buffer) == 0) && S_ISREG(buffer.st_mode);
 }
 
 /**
@@ -877,6 +918,11 @@ bool isFeatureEnabled(const char *feature)
 {
    if (!getRFCFeatureExists(feature))
       return false;
+
+   /* getRFCFeatureExists already validated feature name, but validate again for defense-in-depth */
+   if (!isValidFeatureName(feature)) {
+      return false;
+   }
 
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
    string key = string("RFC_ENABLE_") + feature;
