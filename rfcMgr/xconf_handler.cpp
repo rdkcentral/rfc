@@ -1,6 +1,6 @@
 /**
  * @file xconf_handler.cpp
- * @brief XconfHandler implementation — device identity collection and HTTP downloads.
+ * @brief XconfHandler implementation - device identity collection and HTTP downloads.
  *
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:

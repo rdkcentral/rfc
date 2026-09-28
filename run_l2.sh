@@ -60,6 +60,8 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_fe
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_configsethash_time.json test/functional-tests/tests/test_rfc_xconf_configsethash_time.py
 
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_direct_block.json test/functional-tests/tests/test_rfc_direct_block.py
+
 echo "ENABLE_MAINTENANCE=true" >> /etc/device.properties
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_reboot.json test/functional-tests/tests/test_rfc_xconf_reboot.py

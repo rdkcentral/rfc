@@ -23,6 +23,8 @@
 #include "rfc_common.h"
 #include "rfc_manager.h"
 
+bool isDbgSrvUnlocked = false;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +44,7 @@ void cleanup_lock_file(void)
     unlink(RFC_MGR_SERVICE_LOCK_FILE);
 }
 
-/** @brief Signal handler — clean up and exit gracefully. */
+/** @brief Signal handler - clean up and exit gracefully. */
 void signal_handler(int sig)
 {
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "RFC: Received signal %d, cleaning up lock file\n", sig);	
@@ -129,6 +131,7 @@ int main()
     }
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Waiting for IP Acquistion\n", __FUNCTION__, __LINE__);
     rfc::DeviceStatus isDeviceOnline = rfcMgr->CheckDeviceIsOnline();
+    isDbgSrvUnlocked = GetDbgSrvUnlockedState();
     RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Starting execution of RFCManager\n", __FUNCTION__, __LINE__);    
     if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE) 
     {

@@ -1,6 +1,6 @@
 /**
  * @file rfc_common.cpp
- * @brief Common RFC utility functions — parameter reading, string helpers.
+ * @brief Common RFC utility functions - parameter reading, string helpers.
  *
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
@@ -25,7 +25,21 @@
 #include <string>
 #include <algorithm>
 #include "rfc_common.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <common_device_api.h>
+#ifdef __cplusplus
+}
+#endif
 #include <unistd.h>
+
+bool GetDbgSrvUnlockedState()
+{
+    return RDK_isDbgSrvUnlocked();
+}
+
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #endif	

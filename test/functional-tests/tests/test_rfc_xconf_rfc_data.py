@@ -33,3 +33,15 @@ def test_expected_files_present():
 
     for f in expected_files:
         assert f in actual_files, f"Missing expected file: {f}"
+
+
+def test_rfc_feature_list_contains_feature_instance_enable_states():
+    rfc_run_binary()
+    path = "/opt/secure/RFC/rfcFeature.list"
+
+    assert os.path.exists(path), f"RFC Manager did not create expected file: {path}"
+    with open(path, "r") as feature_file:
+        feature_list = feature_file.read()
+
+    assert "D=true,D_N=false,E=true,E_N=false," in feature_list
+

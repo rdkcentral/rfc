@@ -19,12 +19,14 @@
 
 import os
 import re
+import glob
 from pathlib import Path
 import subprocess
 
 
 RFC_MGR_PATH: str = "/usr/bin/rfcMgr"
 RFC_LOCK_FILE: str = "/tmp/.rfcServiceLock"
+RFC_DIRECT_BLOCK_FILE: str = "/tmp/.lastdirectfail_rfc"
 RFC_LOG_FILE: str = "/opt/logs/rfcscript.txt"
 LOG_FILE: str = "/opt/logs/rfcscript.txt.1"
 SWUPDATE_LOG_FILE: str = "/opt/logs/swupdate.txt"
@@ -50,7 +52,6 @@ DEFAULTS_CONTENT: str = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.ThunderT
 PARODUS_LOG_FILE: str = "/opt/logs/parodus.log"
 RFC_PROPERTIES_PERSISTENCE_FILE: str = "/opt/rfc.properties"
 RFC_XCONF_OVERRIDE_URL: str = "https://mockxconf_opt_rfc_properties/featureControl/getSettings"
-DEVICE_PROPERTIES: str = "/etc/device.properties"
 
 def write_on_file(file: str, content: str) -> None:
     """
@@ -105,6 +106,26 @@ def remove_file(file_name: str) -> None:
     """
     if os.path.exists(file_name):
         os.remove(file_name)
+
+
+def remove_rotated_logs(base_log_file: str) -> None:
+    """
+    Remove a log file and all of its rotated backups (base_log_file*),
+    since rotation depth can exceed a single backup (e.g. .1, .2, ...)
+    and leftover backups would otherwise be picked up by grep_log_file.
+
+    :param base_log_file: The base log file path (without rotation suffix).
+    :return: None
+    """
+    for f in glob.glob(f"{base_log_file}*"):
+        remove_file(f)
+
+
+def write_direct_block_marker(age_seconds: int = 0) -> None:
+    """Create the direct-failure marker and optionally set its age."""
+    write_on_file(RFC_DIRECT_BLOCK_FILE, "direct failure")
+    marker_time = os.path.getmtime(RFC_DIRECT_BLOCK_FILE) - age_seconds
+    os.utime(RFC_DIRECT_BLOCK_FILE, (marker_time, marker_time))
 
 
 def rename_file(old_file_name: str, new_file_name: str) -> None:
@@ -168,23 +189,37 @@ def search_log_file(log_file: str, search_string: str) -> str:
         return result.stderr
 
 
-def rfc_run_binary() -> None:
+def rfc_run_binary() -> str:
     """
-    Executes the RFC Manager binary.
-
-    This function attempts to run the RFC Manager specified by RFC_MGR_PATH.
-    It captures both standard output and standard error. If an exception occurs
-    during the execution, it prints an error message indicating what went wrong.
-
-    Returns:
-        None
+    Executes RFC Manager and prints runtime diagnostics.
     """
     try:
         result = subprocess.run(
-            [RFC_MGR_PATH], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            [RFC_MGR_PATH],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
+
+        print(f"rfcMgr return code: {result.returncode}")
+
+        if result.stdout:
+            print(f"rfcMgr stdout:\n{result.stdout}")
+
+        if result.stderr:
+            print(f"rfcMgr stderr:\n{result.stderr}")
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"rfcMgr failed with return code {result.returncode}"
+            )
+
+        return result.stdout + result.stderr
+
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
+        raise
+
 
 
 def initial_rfc_setup():
