@@ -825,6 +825,13 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
       return WDMP_ERR_VALUE_IS_EMPTY;
    }
 
+   /* Check if content will fit in buffer (including null terminator) */
+   if (content.length() >= buf_size) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Buffer too small (need %zu bytes, got %zu)\n", 
+              __FUNCTION__, content.length() + 1, buf_size);
+      return WDMP_FAILURE;
+   }
+
    /* Copy to output buffer */
    strncpy(value_buf, content.c_str(), buf_size - 1);
    value_buf[buf_size - 1] = '\0';
@@ -854,16 +861,16 @@ WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value
       return WDMP_FAILURE;
    }
 
-   /* Verify feature marker file exists first */
-   if (!getRFCFeatureExists(feature)) {
-      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Feature marker for %s does not exist\n", __FUNCTION__, feature);
+   /*
+    * Use getRFCFeature() as a lock-aware precheck so this read path honors
+    * the same write-lock retry behavior as other feature reads.
+    */
+   if (getRFCFeature(feature, NULL, 0) != WDMP_SUCCESS) {
+      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Feature marker for %s is not available\n", __FUNCTION__, feature);
       return WDMP_FAILURE;
    }
 
-   /* getRFCFeatureExists already validated feature name, but validate again for defense-in-depth */
-   if (!isValidFeatureName(feature)) {
-      return WDMP_FAILURE;
-   }
+   /* getRFCFeatureExists already validated feature name via getRFCFeature() call above */
 
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
    RFC_ParamData_t param;
@@ -916,14 +923,14 @@ bool getRFCFeatureExists(const char *feature)
  */
 bool isFeatureEnabled(const char *feature)
 {
-   if (!getRFCFeatureExists(feature))
+   /*
+    * Use getRFCFeature() as a lock-aware precheck so this read path honors
+    * the same write-lock retry behavior as other feature reads.
+    */
+   if (getRFCFeature(feature, NULL, 0) != WDMP_SUCCESS)
       return false;
 
-   /* getRFCFeatureExists already validated feature name, but validate again for defense-in-depth */
-   if (!isValidFeatureName(feature)) {
-      return false;
-   }
-
+   /* getRFCFeature() already validated feature name and checked lock */
    string fileName = RFC_FEATURE_DIR + string(".RFC_") + feature + ".ini";
    string key = string("RFC_ENABLE_") + feature;
    RFC_ParamData_t param;

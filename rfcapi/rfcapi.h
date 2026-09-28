@@ -113,7 +113,7 @@ const char* getRFCErrorString(WDMP_STATUS code);
  * @retval false  Feature not enabled.
  */
 bool isRFCEnabled(const char *);
-
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
 /**
  * @brief Read RFC feature marker file content (equivalent to shell 'source' operation).
  * Checks if feature marker file exists (with lock retry), and optionally reads content.
@@ -154,7 +154,7 @@ WDMP_STATUS getRFCFeatureValue(const char *feature, const char *key, char *value
  * @retval false  Marker missing, key missing, non-true value, or invalid input.
  */
 bool isFeatureEnabled(const char *feature);
-
+#endif
 /**
  * @brief Check whether a file exists in a given directory.
  * @param[in] dir       Directory path to search.
