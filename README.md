@@ -60,7 +60,7 @@ All platform-specific code is behind `#ifdef` guards, ensuring a single codebase
 ```bash
 # Build (inside the native-platform container)
 autoreconf -i
-./configure --prefix=/usr --enable-rfctool=yes --enable-tr181set=yes
+./configure --prefix=/usr --enable-tr181set=yes
 make && make install
 
 # Run unit tests
