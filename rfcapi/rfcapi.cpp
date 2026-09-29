@@ -22,7 +22,6 @@
 
 #include <fstream>
 #include <sstream>
-#include <cctype>
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 #include <curl/curl.h>
 #include "cJSON.h"
@@ -126,9 +125,11 @@ static bool isValidFeatureName(const char *feature)
     }
     
     for (size_t i = 0; i < len; i++) {
-		const unsigned char c = static_cast<unsigned char>(feature[i]);
-        if (!std::isalnum(c) && c != '_' && c != '-') {
-		    RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid character in feature name: %s\n", __FUNCTION__, feature);
+        const unsigned char c = static_cast<unsigned char>(feature[i]);
+        const bool is_ascii_alpha = ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+        const bool is_ascii_digit = (c >= '0' && c <= '9');
+        if (!is_ascii_alpha && !is_ascii_digit && c != '_' && c != '-') {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid character in feature name: %s\n", __FUNCTION__, feature);
             return false;
         }
     }
