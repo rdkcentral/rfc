@@ -1,4 +1,3 @@
-A
 /**
  * @file rfcapi_test.cpp
  * @brief RFC API CLI test application - allows independent testing of RFC APIs.
@@ -117,7 +116,6 @@ static int test_set_parameter(const char *param_name, const char *param_value)
     printf("SUCCESS: Parameter set successfully\n");
     return EXIT_SUCCESS;
 }
-#endif
 #endif
 
 /**
