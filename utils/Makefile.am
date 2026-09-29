@@ -22,6 +22,10 @@ if ENABLE_TR181SET_APP
 bin_PROGRAMS += tr181
 endif
 
+if ENABLE_RFCTOOL_APP
+bin_PROGRAMS += rfctool
+endif
+
 tr181_SOURCES = tr181utils.cpp trsetutils.cpp
 tr181_LDADD = ../rfcapi/.libs/librfcapi.la ../tr181api/.libs/libtr181api.la
 tr181_CPPFLAGS = -std=c++0x -Wall -I${top_srcdir}/rfcapi/ -I${top_srcdir}/tr181api/ -I=/usr/include/wdmp-c
@@ -30,3 +34,7 @@ if IS_IARMBUS_ENABLED
 tr181_LDADD += -lIARMBus
 tr181_CPPFLAGS += -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus
 endif
+
+rfctool_SOURCES = jsonhandler.cpp
+rfctool_LDADD = ${cjson_LIBS}
+rfctool_CPPFLAGS = -std=c++0x -Wall ${cjson_CFLAGS}

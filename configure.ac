@@ -56,22 +56,22 @@ PKG_CHECK_MODULES([cjson],[libcjson])
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
 
-#check what all tools are enabled. rfctool disabled
-ENABLE_RFCTOOL_APP=" "
+#check what all tools are enabled. rfctool by default
+ENABLE_RFCTOOL_APP=true
 #only for yocto builds.
 ENABLE_TR181SET_APP=" "
 
 AC_ARG_ENABLE([rfctool],
-              AS_HELP_STRING([--enable-rfctool],[enable rfctool app (default is no)]),
+              AS_HELP_STRING([--enable-rfctool],[enable rfctool app (default is yes)]),
               [
                 case "${enableval}" in
                  yes) ENABLE_RFCTOOL_APP=true;;
                   no) ENABLE_RFCTOOL_APP=" ";
-                      AC_MSG_NOTICE([RFC tool app is disabled]) ;;
+                      AC_MSG_ERROR([RFC tool app is disabled]) ;;
                    *) AC_MSG_ERROR([bad value ${enableval} for --enable-rfctool]) ;;
                 esac
               ],
-              [echo "rfctool app is disabled by default"])
+              [echo "rfctool app is disabled"])
 AM_CONDITIONAL([ENABLE_RFCTOOL_APP], [test x$ENABLE_RFCTOOL_APP = xtrue])
 
 AC_ARG_ENABLE([rdkcertselector],
