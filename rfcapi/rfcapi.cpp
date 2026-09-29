@@ -125,8 +125,8 @@ static bool isValidFeatureName(const char *feature)
     }
     
     for (size_t i = 0; i < len; i++) {
-        char c = feature[i];
-        if (!isalnum(c) && c != '_' && c != '-') {
+		char c = feature[i];
+        if (!isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-') {
             RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid character in feature name: %s\n", __FUNCTION__, feature);
             return false;
         }
