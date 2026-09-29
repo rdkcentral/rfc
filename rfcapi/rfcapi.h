@@ -36,6 +36,7 @@ extern "C"
 
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 #include <wdmp-c/wdmp-c.h>
+#include <stddef.h>
 #endif
 
 #define MAX_PARAM_LEN     (2*1024)  /**< Maximum length of a parameter name or value. */
@@ -115,8 +116,11 @@ const char* getRFCErrorString(WDMP_STATUS code);
 bool isRFCEnabled(const char *);
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 /**
- * @brief Read RFC feature marker file content (equivalent to shell 'source' operation).
- * Checks if feature marker file exists (with lock retry), and optionally reads content.
+ * @brief Read RFC feature marker file content.
+ * Performs a lock-aware marker file existence check (with lock retry), and
+ * optionally reads the marker file content into the provided buffer. This
+ * reads content similar to what a script might source, but does not perform
+ * shell 'source' evaluation or export semantics.*
  * @param[in]  feature     Feature name (without "RFC_" prefix).
  * @param[out] value_buf   Buffer to store file content (can be NULL for existence check only).
  * @param[in]  buf_size    Size of value_buf (ignored if value_buf is NULL).

@@ -25,6 +25,7 @@
 #if !defined(RDKB_SUPPORT) && !defined(RDKC)
 #include <curl/curl.h>
 #include "cJSON.h"
+#include <errno.h>
 #endif
 #include <string>
 #include <vector>
@@ -117,10 +118,18 @@ static bool isValidFeatureName(const char *feature)
     if (feature == NULL || feature[0] == '\0')
         return false;
     
-    /* Check for path traversal sequences */
-    if (strstr(feature, "..") != NULL || strstr(feature, "/") != NULL) {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid feature name (path traversal attempt): %s\n", __FUNCTION__, feature);
+    size_t len = strlen(feature);
+    if (len > 128) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Feature name too long: %s\n", __FUNCTION__, feature);
         return false;
+    }
+    
+    for (size_t i = 0; i < len; i++) {
+        char c = feature[i];
+        if (!isalnum(c) && c != '_' && c != '-') {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "%s: Invalid character in feature name: %s\n", __FUNCTION__, feature);
+            return false;
+        }
     }
     
     return true;
@@ -767,8 +776,11 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
    /* Check lock first, retry for up to RFC_LOCK_RETRY_COUNT attempts (mirrors getRFC.sh) */
    while (retry_count < RFC_LOCK_RETRY_COUNT) {
       if (stat(RFC_WRITE_LOCK, &buffer) != 0) {
-         /* Lock not held, proceed */
-         break;
+         if (errno == ENOENT) {
+            break;  /* Lock not held, proceed */
+         }
+         RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] Failed to check lock file %s: %s\n", RFC_WRITE_LOCK, strerror(errno));
+         return WDMP_FAILURE;
       }
       
       retry_count++;
@@ -788,7 +800,11 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
 
    /* Check if file exists */
    if (stat(fileName.c_str(), &buffer) != 0) {
-      RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] File %s does not exist\n", fileName.c_str());
+      if (errno == ENOENT) {
+         RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] File %s does not exist\n", fileName.c_str());
+      } else {
+         RDK_LOG(RDK_LOG_ERROR, LOG_RFCAPI, "[RFC] Failed to stat %s: %s\n", fileName.c_str(), strerror(errno));
+      }
       return WDMP_FAILURE;
    }
 
@@ -813,13 +829,14 @@ WDMP_STATUS getRFCFeature(const char *feature, char *value_buf, size_t buf_size)
       return WDMP_FAILURE;
    }
 
-   string content;
+   ostringstream contentStream;
    string line;
    while (getline(file, line)) {
-      content += line + "\n";
+      contentStream << line << "\n";
    }
    file.close();
 
+   string content = contentStream.str();
    if (content.empty()) {
       RDK_LOG(RDK_LOG_WARN, LOG_RFCAPI, "%s: File %s is empty\n", __FUNCTION__, fileName.c_str());
       return WDMP_ERR_VALUE_IS_EMPTY;

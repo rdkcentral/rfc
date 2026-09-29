@@ -1,3 +1,4 @@
+A
 /**
  * @file rfcapi_test.cpp
  * @brief RFC API CLI test application - allows independent testing of RFC APIs.
@@ -57,6 +58,7 @@ static void print_usage(const char *prog_name)
  * @param[in] param_name  Parameter name to retrieve.
  * @return EXIT_SUCCESS on success, EXIT_FAILURE on failure.
  */
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
 static int test_get_parameter(const char *param_name)
 {
     if (!param_name || strlen(param_name) == 0) {
@@ -83,13 +85,15 @@ static int test_get_parameter(const char *param_name)
     printf("SUCCESS: %s = %s\n", param_name, param.value);
     return EXIT_SUCCESS;
 }
+#endif
 
 /**
- * @brief Test setRFCParameter() API.
+ * @brief Test setRFCParameter() API .
  * @param[in] param_name   Parameter name to set.
  * @param[in] param_value  Value to set.
  * @return EXIT_SUCCESS on success, EXIT_FAILURE on failure.
  */
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
 static int test_set_parameter(const char *param_name, const char *param_value)
 {
     if (!param_name || strlen(param_name) == 0) {
@@ -113,6 +117,8 @@ static int test_set_parameter(const char *param_name, const char *param_value)
     printf("SUCCESS: Parameter set successfully\n");
     return EXIT_SUCCESS;
 }
+#endif
+#endif
 
 /**
  * @brief Test getRFCFeatureValue() API.
@@ -190,7 +196,12 @@ int main(int argc, char *argv[])
             printf("Usage: %s get <parameter>\n", argv[0]);
             return EXIT_FAILURE;
         }
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
         return test_get_parameter(argv[2]);
+#else
+        printf("ERROR: get command not supported on this platform\n");
+        return EXIT_FAILURE;
+#endif
     }
     else if (strcmp(command, "set") == 0) {
         if (argc < 4) {
@@ -198,7 +209,12 @@ int main(int argc, char *argv[])
             printf("Usage: %s set <parameter> <value>\n", argv[0]);
             return EXIT_FAILURE;
         }
+#if !defined(RDKB_SUPPORT) && !defined(RDKC)
         return test_set_parameter(argv[2], argv[3]);
+#else
+        printf("ERROR: set command not supported on this platform\n");
+        return EXIT_FAILURE;
+#endif
     }
     else if (strcmp(command, "getrfc") == 0) {
         if (argc < 4) {
