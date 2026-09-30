@@ -1199,6 +1199,26 @@ int RuntimeFeatureControlProcessor::getRFCEnableParam(JSON *feature, RuntimeFeat
     return result;
 }
 
+/**
+ * @brief Checks that a feature name is non-empty and uses supported characters.
+ * @param name Feature name to validate.
+ * @return true when the name is non-empty and contains only letters, digits or '_'; false otherwise.
+ */
+static bool isValidRFCFeatureName(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    for (char c : name) {
+        const bool isAlpha = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        const bool isDigit = (c >= '0' && c <= '9');
+        if (!isAlpha && !isDigit && c != '_') {
+            return false;
+        }
+    }
+    return true;
+}
+
 int RuntimeFeatureControlProcessor::getFeatureInstance(JSON *feature, RuntimeFeatureControlObject *rfcObj)
 {
     char buffer[RFC_MAX_LEN] = {0};
@@ -1221,6 +1241,10 @@ int RuntimeFeatureControlProcessor::getRFCName(JSON *feature, RuntimeFeatureCont
     int size =  GetJsonVal(feature, rfcFeatureNameStr, buffer , RFC_MAX_LEN);
     if(size)
     {
+        if (size >= RFC_MAX_LEN || !isValidRFCFeatureName(buffer)) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid RFC feature name received from Xconf: %s\n", __FUNCTION__, __LINE__, buffer);
+            return FAILURE;
+        }
         rfcObj->name = buffer;
         result = SUCCESS;
     }
