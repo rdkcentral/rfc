@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cctype>
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
@@ -1199,6 +1200,30 @@ int RuntimeFeatureControlProcessor::getRFCEnableParam(JSON *feature, RuntimeFeat
     return result;
 }
 
+/* Strict allow-list: only [A-Za-z0-9_], since these values are embedded verbatim
+ * into shell-sourced "export NAME=..." lines and filenames from untrusted XConf data.
+ * Rejects '/', '.', '-', whitespace, newlines, and shell metacharacters (; ` $ ( ) etc). */
+static bool isValidChar(char ch)
+{
+    return (ch == '_') ||
+           (ch >= '0' && ch <= '9') ||
+           (ch >= 'A' && ch <= 'Z') ||
+           (ch >= 'a' && ch <= 'z');
+}
+
+static bool isValidRFCFeatureName(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    for (char c : name) {
+        if (!isValidChar(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int RuntimeFeatureControlProcessor::getFeatureInstance(JSON *feature, RuntimeFeatureControlObject *rfcObj)
 {
     char buffer[RFC_MAX_LEN] = {0};
@@ -1221,6 +1246,10 @@ int RuntimeFeatureControlProcessor::getRFCName(JSON *feature, RuntimeFeatureCont
     int size =  GetJsonVal(feature, rfcFeatureNameStr, buffer , RFC_MAX_LEN);
     if(size)
     {
+        if (!isValidRFCFeatureName(buffer)) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid RFC feature name received from Xconf: %s\n", __FUNCTION__, __LINE__, buffer);
+            return FAILURE;
+        }
         rfcObj->name = buffer;
         result = SUCCESS;
     }
