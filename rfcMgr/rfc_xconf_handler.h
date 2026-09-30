@@ -310,6 +310,10 @@ class RuntimeFeatureControlProcessor : public xconf::XconfHandler
     FRIEND_TEST(rfcMgrTest, GetRuntimeFeatureControlJSON);
     FRIEND_TEST(rfcMgrTest, InitDownloadData);
     FRIEND_TEST(rfcMgrTest, getRFCName);
+    FRIEND_TEST(rfcMgrTest, getRFCNameRejectsInvalidCharacters);
+    FRIEND_TEST(rfcMgrTest, getRFCNameRejectsEmptyName);
+    FRIEND_TEST(rfcMgrTest, getRFCNameAccepts63CharacterName);
+    FRIEND_TEST(rfcMgrTest, getRFCNameRejects64CharacterName);
     FRIEND_TEST(rfcMgrTest, getFeatureInstance);
     FRIEND_TEST(rfcMgrTest, getRFCEnableParam);
     FRIEND_TEST(rfcMgrTest, getEffectiveImmediateParam);

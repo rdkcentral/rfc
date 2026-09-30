@@ -1199,6 +1199,34 @@ int RuntimeFeatureControlProcessor::getRFCEnableParam(JSON *feature, RuntimeFeat
     return result;
 }
 
+/**
+ * @brief Checks that a feature name is non-empty and uses supported characters.
+ * @param name Feature name to validate.
+ * @return true when the name is non-empty and contains only letters, digits or '_'; false otherwise.
+ */
+static bool isValidRFCFeatureName(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    for (char c : name) {
+        const bool isAlpha = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        const bool isDigit = (c >= '0' && c <= '9');
+        if (!isAlpha && !isDigit && c != '_') {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isSafeRfcRelativeFilename(const std::string& filename)
+{
+    return !filename.empty() &&
+        filename.find('/') == std::string::npos &&
+        filename.find('\\') == std::string::npos &&
+        filename.find("..") == std::string::npos;
+}
+
 int RuntimeFeatureControlProcessor::getFeatureInstance(JSON *feature, RuntimeFeatureControlObject *rfcObj)
 {
     char buffer[RFC_MAX_LEN] = {0};
@@ -1221,6 +1249,10 @@ int RuntimeFeatureControlProcessor::getRFCName(JSON *feature, RuntimeFeatureCont
     int size =  GetJsonVal(feature, rfcFeatureNameStr, buffer , RFC_MAX_LEN);
     if(size)
     {
+        if (size >= RFC_MAX_LEN || !isValidRFCFeatureName(buffer)) {
+            RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Invalid RFC feature name received from Xconf\n", __FUNCTION__, __LINE__);
+            return FAILURE;
+        }
         rfcObj->name = buffer;
         result = SUCCESS;
     }
@@ -2840,30 +2872,66 @@ void RuntimeFeatureControlProcessor::WriteFile(const std::string& filename, cons
 
 void RuntimeFeatureControlProcessor::writeRemoteFeatureCntrlFile(const std::string& filename, RuntimeFeatureControlObject *feature) 
 {
-    std::string fullPath = std::string(DIRECTORY_PATH) + filename;
-    std::ofstream outFile(fullPath.c_str(), std::ios::app);
-
-    if (outFile.is_open()) 
-    {
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File Open %s\n", __FUNCTION__, __LINE__, fullPath.c_str());
-        std::string enbStr = feature->enable ? "true" : "false";
-        std::string effectStr = feature->effectiveImmediate ? "true" : "false";
-
-        std::string enbData = "export RFC_ENABLE_" + feature->name + "=" + enbStr;
-        std::string effectData = "export RFC_" + feature->name + "_effectiveImmediate=" + effectStr;
-
-        outFile << enbData << "\n";
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, enbData.c_str());
-        outFile << effectData << "\n";
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, effectData.c_str());
-        outFile.close();
-
-        RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s written successfully\n", __FUNCTION__, __LINE__,fullPath.c_str());
-    } 
-    else 
-    {
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Unable to open file:%s\n", __FUNCTION__, __LINE__,fullPath.c_str());
+    if (!isSafeRfcRelativeFilename(filename)) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Rejected unsafe RFC filename\n", __FUNCTION__, __LINE__);
+        return;
     }
+
+    int dirFd = open(DIRECTORY_PATH, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (dirFd == -1) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open RFC directory: %s\n", __FUNCTION__, __LINE__, DIRECTORY_PATH);
+        return;
+    }
+
+    std::string fullPath = std::string(DIRECTORY_PATH) + filename;
+    int fileFd = openat(dirFd, filename.c_str(), O_WRONLY | O_CREAT | O_APPEND | O_NOFOLLOW | O_CLOEXEC, 0644);
+    close(dirFd);
+    if (fileFd == -1) {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed to open RFC file for append: %s\n", __FUNCTION__, __LINE__, filename.c_str());
+        return;
+     }
+
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File Open %s\n", __FUNCTION__, __LINE__, fullPath.c_str());
+    std::string enbStr = feature->enable ? "true" : "false";
+    std::string effectStr = feature->effectiveImmediate ? "true" : "false";
+
+    std::string enbData = "export RFC_ENABLE_" + feature->name + "=" + enbStr + "\n";
+    std::string effectData = "export RFC_" + feature->name + "_effectiveImmediate=" + effectStr + "\n";
+    std::string fileData = enbData + effectData;
+
+    FILE *fileStream = fdopen(fileFd, "a");
+    if (fileStream == nullptr)
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Unable to create RFC file stream: %s (errno=%d)\n",
+                __FUNCTION__, __LINE__, filename.c_str(), errno);
+        close(fileFd);
+        return;
+    }
+
+    int writeError = 0;
+    errno = 0;
+    if (fwrite(fileData.data(), 1, fileData.size(), fileStream) != fileData.size())
+    {
+        writeError = (errno != 0) ? errno : EIO;
+    }
+
+    errno = 0;
+    if (fclose(fileStream) != 0 && writeError == 0)
+    {
+        writeError = (errno != 0) ? errno : EIO;
+    }
+
+    if (writeError != 0)
+    {
+        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] Failed writing RFC file: %s (errno=%d)\n",
+                __FUNCTION__, __LINE__, filename.c_str(), writeError);
+        return;
+    }
+
+
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, enbData.c_str());
+    RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Writing %s in file\n", __FUNCTION__, __LINE__, effectData.c_str());
+    RDK_LOG(RDK_LOG_DEBUG, LOG_RFCMGR, "[%s][%d] File %s written successfully\n", __FUNCTION__, __LINE__,fullPath.c_str());
 }
 
 int RuntimeFeatureControlProcessor::getJsonRpc(char *post_data, DownloadData* pJsonRpc )
