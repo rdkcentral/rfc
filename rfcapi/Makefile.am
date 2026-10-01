@@ -30,4 +30,15 @@ else
 librfcapi_la_CPPFLAGS = "-std=c++11" -DLINUX -fPIC -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
 librfcapi_la_LIBADD = -lcurl -lcjson -lrdkloggers
 endif
+
+# RFC Feature Test Utility (STB platform only - APIs gated by !RDKB_SUPPORT && !RDKC)
+if !ENABLE_RDKB
+if !ENABLE_RDKC
+noinst_PROGRAMS = rfcApiTest
+rfcApiTest_SOURCES = rfcapi_test.cpp
+rfcApiTest_CPPFLAGS = "-std=c++11" -DLINUX -g -O2 -Wall -I=/usr/include/cjson -I=/usr/include/wdmp-c $(IARMBUS_EVENT_FLAG)
+rfcApiTest_LDFLAGS = -L$(libdir)
+rfcApiTest_LDADD = librfcapi.la -lcurl -lcjson -lrdkloggers
+endif
+endif
 endif
