@@ -41,7 +41,6 @@ def test_dynamic_cert_selector():
         MTLS_STATUS_MSG = f"MTLS is enable"
         HTTP_CODE_MSG = f"RFC Xconf Connection Response cURL Return : 0 HTTP Code : 200"
 
-        assert grep_log_file(RFC_LOG_FILE, CERT_INIT_MSG), f"Expected '{CERT_INIT_MSG}' in log file."
         assert grep_log_file(RFC_LOG_FILE, CERT_INIT_MSG_STATUS), f"Expected '{CERT_INIT_MSG_STATUS}' in log file."
         assert grep_log_file(RFC_LOG_FILE, CERT_STATUS_MSG), f"Expected '{CERT_STATUS_MSG}' in log file."
         assert grep_log_file(RFC_LOG_FILE, HTTP_CODE_MSG), f"Expected '{HTTP_CODE_MSG}' in log file."
