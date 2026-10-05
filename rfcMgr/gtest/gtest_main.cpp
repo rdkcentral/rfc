@@ -297,14 +297,103 @@ char xconfRespFeatureInstanceEnableStates[] = R"({
 
 bool isDbgSrvUnlocked = false;
 
-TEST(rfcMgrTest, getMtlscert) {
+#ifdef LIBRDKCERTSELECTOR
+TEST(rfcMgrTest, getMtlscertReturnsFailureForNullArguments) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+
+    EXPECT_EQ(getMtlscert(nullptr, &selector), MTLS_CERT_FETCH_FAILURE);
+    EXPECT_EQ(getMtlscert(&sec, nullptr), MTLS_CERT_FETCH_FAILURE);
+}
+
+TEST(rfcMgrTest, getMtlscertReturnsFailureWhenCertificateFetchFails) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorError, nullptr, nullptr);
+    rdkcertselector_mock_set_free_result(nullptr);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_FAILURE);
+    EXPECT_EQ(selector, nullptr);
+}
+
+TEST(rfcMgrTest, getMtlscertHandlesSelectorFreeFailure) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorError, nullptr, nullptr);
+    rdkcertselector_mock_set_free_result(selector);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_FAILURE);
+    EXPECT_EQ(selector, &sec);
+}
+
+TEST(rfcMgrTest, getMtlscertReturnsFailureWhenCertificateUriIsMissing) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    char password[] = "secret";
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorOk, nullptr, password);
+    rdkcertselector_mock_set_free_result(nullptr);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_FAILURE);
+}
+
+TEST(rfcMgrTest, getMtlscertReturnsFailureWhenCertificatePasswordIsMissing) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    char uri[] = "file:///tmp/client.p12";
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorOk, uri, nullptr);
+    rdkcertselector_mock_set_free_result(nullptr);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_FAILURE);
+}
+
+TEST(rfcMgrTest, getMtlscertPopulatesCertificateAndClearsFileScheme) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    char uri[] = "file:///tmp/client.p12";
+    char password[] = "secret";
+    memset(&sec, '\0', sizeof(MtlsAuth_t));
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorOk, uri, password);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_SUCCESS);
+    EXPECT_STREQ(sec.cert_name, "/tmp/client.p12");
+    EXPECT_STREQ(sec.key_pas, "secret");
+    EXPECT_STREQ(sec.engine, "");
+    EXPECT_STREQ(sec.cert_type, "P12");
+}
+
+TEST(rfcMgrTest, getMtlscertPopulatesEngineAndPreservesNonFileUri) {
+    MtlsAuth_t sec;
+    rdkcertselector_h selector = &sec;
+    char uri[] = "/tmp/client.p12";
+    char password[] = "secret";
+    char engine[] = "pkcs11";
+    memset(&sec, '\0', sizeof(MtlsAuth_t));
+    rdkcertselector_mock_reset();
+    rdkcertselector_mock_set_get_cert(certselectorOk, uri, password);
+    rdkcertselector_mock_set_engine(engine);
+
+    EXPECT_EQ(getMtlscert(&sec, &selector), MTLS_CERT_FETCH_SUCCESS);
+    EXPECT_STREQ(sec.cert_name, "/tmp/client.p12");
+    EXPECT_STREQ(sec.key_pas, "secret");
+    EXPECT_STREQ(sec.engine, "pkcs11");
+    EXPECT_STREQ(sec.cert_type, "P12");
+}
+#else
+TEST(rfcMgrTest, getMtlscertReturnsFailureWhenCertificateIsUnavailable) {
     MtlsAuth_t sec;
     memset(&sec, '\0', sizeof(MtlsAuth_t));
-    int ret = getMtlscert(&sec);
-    if(ret == MTLS_FAILURE)
-        RDK_LOG(RDK_LOG_ERROR, LOG_RFCMGR, "[%s][%d] MTLS  certification Failed\n",__FUNCTION__, __LINE__);
-    EXPECT_EQ(ret, MTLS_FAILURE);
+    EXPECT_EQ(getMtlscert(&sec), MTLS_FAILURE);
 }
+
+TEST(rfcMgrTest, getMtlscertReturnsFailureForNullCertificate) {
+    EXPECT_EQ(getMtlscert(nullptr), MTLS_FAILURE);
+}
+#endif
 
 TEST(rfcMgrTest, readRFCParam) {
     int ret = -1;
