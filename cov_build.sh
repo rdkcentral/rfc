@@ -42,7 +42,7 @@ cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
 cd $RFC_ROOT
 git clone https://github.com/rdkcentral/rdk-cert-config.git
-cp rdk-cert-config/RdkConfigApi/include/ /usr/local/include
+cp rdk-cert-config/RdkConfigApi/include/* /usr/local/include
 
 cd $WORKDIR 
 
