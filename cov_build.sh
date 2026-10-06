@@ -60,7 +60,8 @@ make && make install
 # rfcMgr/
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
-AM_LDFLAGS += -L/usr/local/lib -lrdkconfig
+export LDFLAGS="${LDFLAGS:-} -L/usr/local/lib"
+export LIBS="${LIBS:-} -lrdkconfig"
 make && make install
 
 
