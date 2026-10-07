@@ -66,7 +66,7 @@ AC_ARG_ENABLE([rfctool],
               [
                 case "${enableval}" in
                  yes) ENABLE_RFCTOOL_APP=true;;
-                  no) ENABLE_RFCTOOL_APP="false";;;
+                  no) ENABLE_RFCTOOL_APP="false";;
                    *) AC_MSG_ERROR([bad value ${enableval} for --enable-rfctool]) ;;
                 esac
               ],
