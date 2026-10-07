@@ -44,6 +44,54 @@ countgR=0
 
 bRetgR=0
 
+read_rfc_variables()
+{
+	rfc_file=$1
+	rfc_parsed=0
+
+	while IFS= read -r rfc_line || [ -n "$rfc_line" ]; do
+		case "$rfc_line" in
+			export\ *) rfc_assignment=${rfc_line#export } ;;
+			*) continue ;;
+		esac
+
+		case "$rfc_assignment" in
+			*=*) ;;
+			*) continue ;;
+		esac
+
+		rfc_key=${rfc_assignment%%=*}
+		rfc_value=${rfc_assignment#*=}
+		case "$rfc_value" in
+			true|false) ;;
+			*) continue ;;
+		esac
+
+		case "$rfc_key" in
+			RFC_ENABLE_*)
+				feature_name=${rfc_key#RFC_ENABLE_}
+				;;
+			RFC_*_effectiveImmediate)
+				feature_name=${rfc_key#RFC_}
+				feature_name=${feature_name%_effectiveImmediate}
+				;;
+			*) continue ;;
+		esac
+
+		case "$feature_name" in
+			''|*[!A-Za-z0-9_]*) continue ;;
+		esac
+		if [ "${#feature_name}" -ge 64 ]; then
+			continue
+		fi
+		if export "$rfc_key=$rfc_value"; then
+			rfc_parsed=1
+		fi
+	done < "$rfc_file"
+
+	[ "$rfc_parsed" -eq 1 ]
+}
+
 while [ $loopgR -eq 1 ]
 do
 	if [ -f $RFC_WRITE_LOCK ]; then
@@ -68,21 +116,32 @@ done
 if [ $# -eq 0 ]; then
 
 	if [ -f "$RFC_PATH/rfcVariable.ini" ]; then
-		echo "`/bin/timestamp` [RFC] Sourced $RFC_PATH/rfcVariable.ini" >> $LOG_PATH/rfcscript.log
+		echo "`/bin/timestamp` [RFC] Parsing $RFC_PATH/rfcVariable.ini" >> $LOG_PATH/rfcscript.log
 
-		source "$RFC_PATH/rfcVariable.ini"
-		bRetgR=1
+		if read_rfc_variables "$RFC_PATH/rfcVariable.ini"; then
+			bRetgR=1
+		fi
 	else
 		echo "`/bin/timestamp` [RFC] File $RFC_PATH/rfcVariable.ini does not exist" >> $LOG_PATH/rfcscript.log
 	fi
 else
+	case "$1" in
+		''|*[!A-Za-z0-9_]*)
+			echo "`/bin/timestamp` [RFC] Invalid feature name" >> $LOG_PATH/rfcscript.log
+			return 0
+		;;
+	esac
+	if [ "${#1}" -ge 64 ]; then
+		echo "`/bin/timestamp` [RFC] Invalid feature name" >> $LOG_PATH/rfcscript.log
+		return 0
+	fi
 	RFC_FEATURE="$RFC_PATH/.RFC_$1.ini"
 	echo "`/bin/timestamp` [RFC] Requesting $RFC_FEATURE" >> $LOG_PATH/rfcscript.log
-	if [ -f $RFC_FEATURE ]; then
-		# Only source file if it exists
-		source $RFC_FEATURE
-		echo "`/bin/timestamp` [RFC] Sourced $RFC_FEATURE" >> $LOG_PATH/rfcscript.log
-		bRetgR=1
+	if [ -f "$RFC_FEATURE" ]; then
+		if read_rfc_variables "$RFC_FEATURE"; then
+			echo "`/bin/timestamp` [RFC] Read $RFC_FEATURE" >> $LOG_PATH/rfcscript.log
+			bRetgR=1
+		fi
 	fi
 fi
 

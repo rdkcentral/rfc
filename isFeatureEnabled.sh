@@ -54,6 +54,17 @@ isFeatureEnabled()
 {
     retF=0
     result_getRFC=77
+    case "$1" in
+        ''|*[!A-Za-z0-9_]*)
+            ifeLogging "Invalid RFC feature name"
+            return "$retF"
+            ;;
+    esac
+    if [ "${#1}" -ge 64 ]; then
+        ifeLogging "Invalid RFC feature name length"
+        return "$retF"
+    fi
+
     if [ -f /lib/rdk/getRFC.sh ]; then
         . $RDK_PATH/getRFC.sh  $1
 
