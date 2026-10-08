@@ -44,8 +44,6 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr
 # The cert selector test cases  are commented for now. Once the code changes are moved to open source, it will be enabled.
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
-
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_rfc_data.json test/functional-tests/tests/test_rfc_xconf_rfc_data.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_request_params.json test/functional-tests/tests/test_rfc_xconf_request_params.py
@@ -68,3 +66,4 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
