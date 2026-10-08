@@ -35,6 +35,7 @@ def test_dynamic_cert_selector():
 
     try:
         rfc_run_binary()
+        CERT_INIT_MSG = f"Initializing cert selector"
         CERT_INIT_MSG_STATUS = f"Cert selector initialization successful"
         CERT_STATUS_MSG = f"MTLS dynamic/static cert success. cert=/opt/certs/client.p12, type=P12"
         MTLS_STATUS_MSG = f"MTLS is enable"
