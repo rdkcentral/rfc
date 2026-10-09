@@ -329,7 +329,7 @@ tr181ErrorCode_t getLocalParam(char *pcCallerID, const char* pcParameterName, TR
     }
 
     status = getValue(TR181_LOCAL_STORE_FILE, pcParameterName, pstParamData);
-    if (status != tr181Success)
+    if (status != tr181Success && pcCallerID != nullptr )
         status = getDefaultValue(pcCallerID, pcParameterName, pstParamData);
 
     if (sem_post(sem_id) < 0)
