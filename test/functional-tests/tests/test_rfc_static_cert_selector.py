@@ -35,8 +35,6 @@ def test_static_cert_selector():
 
     if os.path.exists("/opt/certs/client.p12"):
         os.remove("/opt/certs/client.p12")
-    if os.path.exists("/opt/certs/client.p12"):
-        os.remove("/opt/certs/reference.p12")
 
     try:
         rfc_run_binary()
