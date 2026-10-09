@@ -195,7 +195,7 @@ tr181ErrorCode_t getValue(const char* fileName, const char* pcParameterName, TR1
                 {
                    ifs_rfcVar.close();
                    string value = line.substr(splitterPos+1, line.length());
-                   RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                   RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Found Key = %s : Value = %s\n", key.c_str(), value.c_str());
                    if(value.length() > 0)
                    {
                       pstParam->type = TR181_NONE; //The caller must know what type they are expecting
@@ -243,7 +243,7 @@ tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue)
 
     ifstream ifs_tr181(TR181_LOCAL_STORE_FILE);
     if (!ifs_tr181.is_open()) {
-        RDK_LOG (RDK_LOG_INFO, LOG_TR181API, "%s: Trying to open a non-existent file [%s] \n", __FUNCTION__, TR181_LOCAL_STORE_FILE);
+        RDK_LOG (RDK_LOG_ERROR, LOG_TR181API, "%s: Trying to open a non-existent file [%s] \n", __FUNCTION__, TR181_LOCAL_STORE_FILE);
     }
     else
     {
@@ -254,7 +254,7 @@ tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue)
                 string key = line.substr(0, splitterPos);
                 string value = line.substr(splitterPos+1, line.length());
                 m_dict[key] = value;
-                RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Key = %s : Value = %s\n", key.c_str(), value.c_str());
+                RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Key = %s : Value = %s\n", key.c_str(), value.c_str());
             }
         }
         ifs_tr181.close();
@@ -271,14 +271,14 @@ tr181ErrorCode_t setValue(const char* pcParameterName, const char* pcParamValue)
             //(Or) if the param to be cleared is a wild card, clear all the params from local store that match with the wild card.
             if(!it->first.compare(value) ||  (value.back() == '.' && it->first.find(value) != string::npos) )
             {
-                RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Clearing param: %s\n", it->first.c_str());
+                RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Clearing param: %s\n", it->first.c_str());
                 m_dict.erase(it->first);
                 foundInLocalStore = true;
             }
         }
         if (!foundInLocalStore)
         {
-            RDK_LOG(RDK_LOG_INFO, LOG_TR181API, "Key %s not present. Nothing to clear.\n", value.c_str());
+            RDK_LOG(RDK_LOG_DEBUG, LOG_TR181API, "Key %s not present. Nothing to clear.\n", value.c_str());
             return tr181Success;
         }
     }
