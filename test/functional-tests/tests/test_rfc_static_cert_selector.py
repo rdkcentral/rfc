@@ -40,7 +40,7 @@ def test_static_cert_selector():
         rfc_run_binary()
         CERT_INIT_MSG = f"Initializing cert selector"
         CERT_INIT_MSG_STATUS = f"Cert selector initialization successful"
-        CERT_STATUS_MSG = f"MTLS dynamic/static cert success. cert=/etc/ssl/certs/client.p12, type=p12"
+        CERT_STATUS_MSG = f"MTLS cert success. cert=/etc/ssl/certs/client.p12, type=P12"
         MTLS_STATUS_MSG = f"MTLS is enable"
         HTTP_CODE_MSG = f"RFC Xconf Connection Response cURL Return : 0 HTTP Code : 200"
         CURL_ERR_MSG = f"curl_easy_strerror =No error"
