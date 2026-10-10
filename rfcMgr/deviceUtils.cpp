@@ -27,7 +27,7 @@ extern "C" {
 
 
 #if defined(RDKB_SUPPORT)
-std::string getWanInterfaceName();
+std::string getWanInterfaceName()
 {
    
 }
