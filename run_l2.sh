@@ -23,7 +23,9 @@ mkdir -p "$RESULT_DIR"
 
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
+cp /opt/certs/client.p12 /etc/ssl/certs/client.p12
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
+sed -i '1a MTLS,OPERFB_P12,P12,file:///etc/ssl/certs/client.p12,cfgOpsCert' /etc/ssl/certsel/certsel.cfg
 
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
@@ -42,9 +44,7 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_se
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr181_setget_local_param.json test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
 
 # The cert selector test cases  are commented for now. Once the code changes are moved to open source, it will be enabled.
-#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
-
-#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_rfc_data.json test/functional-tests/tests/test_rfc_xconf_rfc_data.py
 
@@ -68,3 +68,4 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
