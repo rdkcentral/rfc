@@ -23,7 +23,9 @@ mkdir -p "$RESULT_DIR"
 
 cp ./rfc.properties /opt/rfc.properties
 cp /opt/certs/client.pem /etc/ssl/certs/client.pem
+cp /opt/certs/client.p12 /etc/ssl/certs/client.p12
 cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
+sed -i '1a MTLS,OPERFB_P12,P12,file:///etc/ssl/certs/client.p12,cfgOpsCert' /etc/ssl/certsel/certsel.cfg
 
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
