@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <fstream>
 #include "mtlsUtils.h"
-#include "deviceUtils.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -37,6 +36,7 @@
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
+#include "deviceUtils.h"
 #endif
 #include <ctime>
 
