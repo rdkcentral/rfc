@@ -24,19 +24,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <set>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 #include <system_utils.h>
 #include <urlHelper.h>
+#ifdef __cplusplus
+}
+#endif
+
 #if defined(RDKB_SUPPORT)
 std::string getErouterMac();
 std::string geteCMMac();
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 
