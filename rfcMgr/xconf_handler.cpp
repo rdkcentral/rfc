@@ -21,6 +21,7 @@
  */
 
 #include "xconf_handler.h"
+#include "deviceUtils.h"
 
 #if defined(RDKC)
 #include "rdk_debug.h"
@@ -34,7 +35,6 @@ extern "C" {
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
 #include <common_device_api.h>
-#include "deviceUtils.h"
 #include "mtlsUtils.h"
 
 namespace xconf {	
