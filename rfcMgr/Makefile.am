@@ -19,13 +19,17 @@
 
 bin_PROGRAMS = rfcMgr
 
-rfcMgr_SOURCES = rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp deviceUtils.cpp rfc_xconf_handler.cpp xconf_handler.cpp
+rfcMgr_SOURCES = rfc_main.cpp rfc_manager.cpp rfc_common.cpp mtlsUtils.cpp  rfc_xconf_handler.cpp xconf_handler.cpp
 rfcMgr_CPPFLAGS = -std=c++17 -Wall -Werror -DRDK_LOGGER -I${top_srcdir}/rfcMgr -I${top_srcdir}/rfcapi/ $(cjson_CFLAGS) $(curl_CFLAGS) $(CFLAGS)
 AM_LDFLAGS = -L$(PKG_CONFIG_SYSROOT_DIR)/$(libdir)
 AM_LDFLAGS += $(cjson_LIBS) $(curl_LIBS)
 AM_LDFLAGS += -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lcurl
 
 if ENABLE_RDKC
+if USE_CPC
+rfcMgr_SOURCES +=${S}/cpc/rfcMgr/deviceUtils.cpp
+rfcMgr_CPPFLAGS+=-I$${S}/cpc/rfcMgr
+endif
 rfcMgr_CPPFLAGS += -DRDKC $(rbus_CFLAGS)
 AM_LDFLAGS += $(rbus_LIBS)
 rfcMgr_LDADD = $(top_builddir)/rfcapi/librfcapi.la
@@ -37,6 +41,10 @@ AM_LDFLAGS += -lIARMBus
 endif
 
 if ENABLE_RDKB
+if USE_CPC
+rfcMgr_SOURCES +=${S}/cpc/rfcMgr/deviceUtils.cpp
+rfcMgr_CPPFLAGS+=-I$${S}/cpc/rfcMgr
+endif
 rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS) $(RDKBEXTENDER_FLAG)
 AM_LDFLAGS += -lrbus
 else
