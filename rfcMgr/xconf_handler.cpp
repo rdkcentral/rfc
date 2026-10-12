@@ -21,8 +21,9 @@
  */
 
 #include "xconf_handler.h"
+#if defined(RDKB_SUPPORT) || defined(RDKC)
 #include "deviceUtils.h"
-
+#endif
 #if defined(RDKC)
 #include "rdk_debug.h"
 #define LOG_RFCMGR "LOG.RDK.RFCMGR"
