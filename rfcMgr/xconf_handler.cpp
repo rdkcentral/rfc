@@ -34,6 +34,7 @@ extern "C" {
 #include <rdk_fwdl_utils.h>
 #include <downloadUtil.h>
 #include <common_device_api.h>
+#include "deviceUtils.h"
 #include "mtlsUtils.h"
 
 namespace xconf {	
