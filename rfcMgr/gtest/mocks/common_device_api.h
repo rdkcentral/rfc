@@ -98,6 +98,9 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
 */
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
 
+/* Secure debug status API mocked for RFC L1 tests. */
+bool RDK_isDbgSrvUnlocked(void);
+
 /* function GetFirmwareVersion - gets the firmware version of the device.
 
         Usage: size_t GetFirmwareVersion <char *pFWVersion> <size_t szBufSize>
