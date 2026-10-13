@@ -27,8 +27,7 @@ AM_LDFLAGS += -lrdkloggers -ldwnlutil -lfwutils -lparsejson -lsecure_wrapper -lc
 
 if ENABLE_RDKC
 if USE_CPC
-rfcMgr_SOURCES +=${S}/cpc/rfcMgr/deviceUtils.cpp
-rfcMgr_CPPFLAGS+=-I$${S}/cpc/rfcMgr
+rfcMgr_SOURCES += $(top_srcdir)/cpc/rfcMgr/deviceUtils.cpp
 endif
 rfcMgr_CPPFLAGS += -DRDKC $(rbus_CFLAGS)
 AM_LDFLAGS += $(rbus_LIBS)
@@ -42,8 +41,7 @@ endif
 
 if ENABLE_RDKB
 if USE_CPC
-rfcMgr_SOURCES +=${S}/cpc/rfcMgr/deviceUtils.cpp
-rfcMgr_CPPFLAGS+=-I$${S}/cpc/rfcMgr
+rfcMgr_SOURCES += $(top_srcdir)/cpc/rfcMgr/deviceUtils.cpp
 endif
 rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS) $(RDKBEXTENDER_FLAG)
 AM_LDFLAGS += -lrbus
