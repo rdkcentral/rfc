@@ -36,7 +36,6 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_in
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_communication_success.json test/functional-tests/tests/test_rfc_xconf_communication.py
 
-
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr181_setget_local_param.json test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
@@ -47,7 +46,10 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr
 #pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_rfc_data.json test/functional-tests/tests/test_rfc_xconf_rfc_data.py
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_name_validation.json test/functional-tests/tests/test_rfc_feature_name_validation.py
 
+cat /opt/logs/rfcscript.txt.1
+cat /opt/logs/rfcscript.txt.0
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_request_params.json test/functional-tests/tests/test_rfc_xconf_request_params.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_valid_accountid.json test/functional-tests/tests/test_rfc_valid_accountid.py

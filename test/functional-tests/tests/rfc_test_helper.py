@@ -20,6 +20,7 @@
 import os
 import re
 import glob
+import time
 from pathlib import Path
 import subprocess
 
@@ -219,6 +220,30 @@ def rfc_run_binary() -> str:
     except Exception as e:
         print(f"An error occurred while running {RFC_MGR_PATH}: {e}")
         raise
+
+def wait_for_rfcmgr_exit(timeout: float = 120.0, interval: float = 0.5) -> None:
+    """
+    Wait until no live rfcMgr process remains. rfcMgr forks and the parent
+    exits immediately, so rfc_run_binary() returns before the work is done.
+    """
+    def rfcmgr_running() -> bool:
+        for stat_path in glob.glob("/proc/[0-9]*/stat"):
+            try:
+                with open(stat_path) as f:
+                    stat = f.read()
+            except OSError:
+                continue
+            comm = stat[stat.find("(") + 1:stat.rfind(")")]
+            state = stat[stat.rfind(")") + 2:].split(" ", 1)[0]
+            if comm == "rfcMgr" and state != "Z":
+                return True
+        return False
+
+    deadline = time.monotonic() + timeout
+    while rfcmgr_running():
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"rfcMgr still running after {timeout}s")
+        time.sleep(interval)
 
 
 

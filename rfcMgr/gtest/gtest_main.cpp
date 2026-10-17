@@ -140,7 +140,7 @@ char xconfResp[] = R"({
                 ]
             },
             {
-                "name": "Telemetry_2.0-31099",
+                "name": "Telemetry_2_0_31099",
                 "enable": true,
                 "effectiveImmediate": true,
                 "configData": {
@@ -149,7 +149,7 @@ char xconfResp[] = R"({
                     "tr181.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.ConfigURL": "https://mockxconf/loguploader/getT2Settings",
                     "tr181.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.Version": "2.0.1"
                 },
-                "featureInstance": "Telemetry_2.0-31099"
+                "featureInstance": "Telemetry_2_0_31099"
             },
             {
 		"name": "PartnerId",
@@ -187,7 +187,7 @@ char emptyXconfResp[] = R"({
             "enable": true
         },
         {
-            "name": "Telemetry_2.0-31099",
+            "name": "Telemetry_2_0_31099",
             "enable": true,
             "effectiveImmediate": true 
         } 
@@ -259,6 +259,39 @@ char xconfRespValidAccountId[] = R"({
         ]
     }
 })";
+
+char xconfRespInvalidFeatureName[] = R"({
+    "featureControl": {
+        "configset-id": "090909",
+        "configset-label": "default",
+        "features": [
+            {
+                "name": "AccountId@12#34",
+                "enable": true,
+                "effectiveImmediate": true,
+                "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AccountInfo.AccountID": "1234567890000000001"
+                },
+                "featureInstance": "AccountId"
+            }
+        ]
+    }
+})";
+
+char xconfRespEmptyFeatureName[] = R"({
+    "featureControl": {
+        "features": [
+            {
+                "name": ""
+            }
+        ]
+    }
+})";
+
+std::string xconfResp64CharFeatureName =
+    R"({"featureControl":{"features":[{"name":")" +
+    std::string(RFC_MAX_LEN, 'A') +
+    R"("}]}})";
 
 char xconfRespFeatureInstanceEnableStates[] = R"({
     "featureControl": {
@@ -539,7 +572,7 @@ TEST(rfcMgrTest, processJsonResponse) {
     // Read content from the file
     std::string actualContent = readFileContent("/opt/secure/RFC/rfcFeature.list");
 
-    EXPECT_EQ(actualContent, "11=false,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2.0-31099=true,PartnerId=true,XconfURL=true,");
+    EXPECT_EQ(actualContent, "11=false,ARU:E_29=true,AccountId=true,LSA_End2End=true,SSHWhiteList:E_N=true,Telemetry_2_0_31099=true,PartnerId=true,XconfURL=true,");
     
 }
 
@@ -759,6 +792,78 @@ TEST(rfcMgrTest, getRFCName) {
 
         delete rfcObj;
     }
+}
+
+TEST(rfcMgrTest, getRFCNameRejectsInvalidCharacters) {
+    JSON *pJson = ParseJsonStr(xconfRespInvalidFeatureName);
+    ASSERT_NE(nullptr, pJson);
+
+    RuntimeFeatureControlProcessor processor;
+    JSON *features = processor.GetRuntimeFeatureControlJSON(pJson);
+    ASSERT_NE(nullptr, features);
+    ASSERT_EQ(1, GetJsonArraySize(features));
+
+    JSON *feature = GetJsonArrayItem(features, 0);
+    ASSERT_NE(nullptr, feature);
+
+    RuntimeFeatureControlProcessor::RuntimeFeatureControlObject rfcObj;
+    EXPECT_EQ(FAILURE, processor.getRFCName(feature, &rfcObj));
+    EXPECT_TRUE(rfcObj.name.empty());
+
+    FreeJson(pJson);
+}
+
+TEST(rfcMgrTest, getRFCNameRejectsEmptyName) {
+    JSON *pJson = ParseJsonStr(xconfRespEmptyFeatureName);
+    ASSERT_NE(nullptr, pJson);
+
+    RuntimeFeatureControlProcessor processor;
+    JSON *features = processor.GetRuntimeFeatureControlJSON(pJson);
+    ASSERT_NE(nullptr, features);
+    ASSERT_EQ(1, GetJsonArraySize(features));
+
+    JSON *feature = GetJsonArrayItem(features, 0);
+    ASSERT_NE(nullptr, feature);
+
+    RuntimeFeatureControlProcessor::RuntimeFeatureControlObject rfcObj;
+    EXPECT_EQ(FAILURE, processor.getRFCName(feature, &rfcObj));
+    EXPECT_TRUE(rfcObj.name.empty());
+
+    FreeJson(pJson);
+}
+
+TEST(rfcMgrTest, getRFCNameAccepts63CharacterName) {
+    std::string name(RFC_MAX_LEN - 1, 'A');
+    std::string featureJson = "{\"name\":\"" + name + "\"}";
+    JSON *feature = ParseJsonStr(&featureJson[0]);
+    ASSERT_NE(nullptr, feature);
+
+    RuntimeFeatureControlProcessor processor;
+    RuntimeFeatureControlProcessor::RuntimeFeatureControlObject rfcObj;
+    EXPECT_EQ(SUCCESS, processor.getRFCName(feature, &rfcObj));
+    EXPECT_EQ(name, rfcObj.name);
+
+    FreeJson(feature);
+}
+
+TEST(rfcMgrTest, getRFCNameRejects64CharacterName) {
+    RuntimeFeatureControlProcessor processor;
+    std::string response = xconfResp64CharFeatureName;
+    JSON *pJson = ParseJsonStr(&response[0]);
+    ASSERT_NE(nullptr, pJson);
+
+    JSON *features = processor.GetRuntimeFeatureControlJSON(pJson);
+    ASSERT_NE(nullptr, features);
+    ASSERT_EQ(1, GetJsonArraySize(features));
+
+    JSON *feature = GetJsonArrayItem(features, 0);
+    ASSERT_NE(nullptr, feature);
+
+    RuntimeFeatureControlProcessor::RuntimeFeatureControlObject rfcObj;
+    EXPECT_EQ(FAILURE, processor.getRFCName(feature, &rfcObj));
+    EXPECT_TRUE(rfcObj.name.empty());
+
+    FreeJson(pJson);
 }
 
 TEST(rfcMgrTest, getFeatureInstance) {
