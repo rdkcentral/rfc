@@ -28,7 +28,7 @@ mkdir -p $RFC_INSTALL_DIR
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
 export CXXFLAGS="-Wno-format -Wno-unused-variable"
-./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes
+./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes --enable-rdkcertselector=yes --enable-mountutils=yes
 
 cd $RFC_ROOT
 rm -rf common_utilities
@@ -40,6 +40,10 @@ autoreconf -i
 make && make install
 cp /usr/common_utilities/lib/* /usr/lib/
 cp /usr/common_utilities/utils/common_device_api.h $WORKDIR/rfcMgr
+cd $RFC_ROOT
+git clone https://github.com/rdkcentral/rdk-cert-config.git
+cp rdk-cert-config/RdkConfigApi/include/* /usr/local/include
+
 cd $WORKDIR 
 
 # rfcapi/
@@ -60,5 +64,8 @@ make && make install
 # rfcMgr/
 cd ../rfcMgr
 export curl_LIBS=" -lcurl"
+export LDFLAGS="${LDFLAGS:-} -L/usr/local/lib"
+export LIBS="${LIBS:-} -lrdkconfig"
 make && make install
+
 
