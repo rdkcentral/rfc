@@ -42,9 +42,9 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_se
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr181_setget_local_param.json test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
 
 # The cert selector test cases  are commented for now. Once the code changes are moved to open source, it will be enabled.
-#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
 
-#pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_rfc_data.json test/functional-tests/tests/test_rfc_xconf_rfc_data.py
 
