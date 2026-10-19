@@ -27,6 +27,9 @@ cp ./rfcMgr/gtest/mocks/tr181store.ini /opt/secure/RFC/tr181store.ini
 
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
+ps -ef 
+
+
 # Run L2 Test cases
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
 
