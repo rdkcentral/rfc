@@ -21,6 +21,7 @@
  */
 
 #include "xconf_handler.h"
+#include "deviceUtils.h"
 
 #if defined(RDKC)
 #include "rdk_debug.h"
