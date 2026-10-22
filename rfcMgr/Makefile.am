@@ -37,6 +37,7 @@ AM_LDFLAGS += -lIARMBus
 endif
 
 if ENABLE_RDKB
+rfcMgr_SOURCES += deviceUtils.cpp
 rfcMgr_CPPFLAGS += $(RDKB_FLAG) $(rbus_CFLAGS) $(RDKBEXTENDER_FLAG)
 AM_LDFLAGS += -lrbus
 else
