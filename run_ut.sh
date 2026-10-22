@@ -18,7 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ####################################################################################
-
+set -e
 ENABLE_COV=false
 
 if [ "x$1" = "x--enable-cov" ]; then
