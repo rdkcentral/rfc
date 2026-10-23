@@ -60,42 +60,6 @@ def get_tr181_file_key_value() -> tuple[str | None, str | None]:
     return None, None
 
 
-def modify_rfc_url(new_url: str) -> None:
-    """
-    Modifies the RFC properties file to set the RFC_CONFIG_SERVER_URL.
-
-    If the properties file does not exist, it creates one with the given URL.
-    If the file exists but is empty, it adds the URL. If the file contains
-    an existing RFC_CONFIG_SERVER_URL, it updates that line with the new URL.
-
-    Args:
-        new_url (str): The new URL to set for RFC_CONFIG_SERVER_URL.
-
-    Returns:
-        None
-    """
-    if not os.path.exists(RFC_PROPS_FILE):
-        with open(RFC_PROPS_FILE, "w") as rfc_props:
-            rfc_props.write(f'RFC_CONFIG_SERVER_URL={new_url}\n')
-        return None
-    with open(RFC_PROPS_FILE, "r+") as rfc_props:
-        content = rfc_props.read()
-        if not content.strip():
-            rfc_props.write(f'RFC_CONFIG_SERVER_URL={new_url}\n')
-        else:
-            lines = content.splitlines()
-            for i in range(len(lines)):
-                if lines[i].startswith('RFC_CONFIG_SERVER_URL='):
-                    lines[i] = f'RFC_CONFIG_SERVER_URL={new_url}'
-                    break
-            
-            # Write back the modified content
-            rfc_props.seek(0)
-            rfc_props.truncate()  # Clear the current contents of the file
-            rfc_props.write('\n'.join(lines) + '\n')
-            print(f"Modified existing content to: RFC_CONFIG_SERVER_URL={new_url}")
-
-
 def test_rfcMgr_unresolved_xconf_url() -> None:
     """
     Tests the behavior of the RFC manager when an unresolved XCONF URL is set.

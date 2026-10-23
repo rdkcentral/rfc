@@ -46,6 +46,7 @@ cat  /opt/secure/RFC/rfcFeature.list
 cat /opt/logs/rfcscript.txt.1
 cat /opt/logs/rfcscript.txt.0
 
+
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr181_setget_local_param.json test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
