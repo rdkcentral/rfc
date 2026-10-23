@@ -34,9 +34,18 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_de
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_init_failure.json test/functional-tests/tests/test_rfc_initialization_failure.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_name_validation.json test/functional-tests/tests/test_rfc_feature_name_validation.py
-
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_communication_success.json test/functional-tests/tests/test_rfc_xconf_communication.py
+
+pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_name.json test/functional-tests/tests/test_rfc_feature_name_validation.py
+
+
+ls -la /opt/secure/RFC/
+
+cat  /opt/secure/RFC/rfcVariable.ini
+cat  /opt/secure/RFC/rfcFeature.list
+cat /opt/logs/rfcscript.txt.1
+cat /opt/logs/rfcscript.txt.0
+
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
 
