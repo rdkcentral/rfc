@@ -279,6 +279,22 @@ char xconfRespInvalidFeatureName[] = R"({
     }
 })";
 
+char xconfRespInvalidFeatureConfigData[] = R"({
+    "featureControl": {
+        "features": [
+            {
+                "name": "RIX_RFC_#####BADINVALID#%$#@!",
+                "configData": {
+                    "tr181.Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable": "false"
+                },
+                "effectiveImmediate": true,
+                "enable": true,
+                "featureInstance": "RIX_RFC_#####BADINVALID#%$#@!:E"
+            }
+        ]
+    }
+})";
+
 char xconfRespEmptyFeatureName[] = R"({
     "featureControl": {
         "features": [
@@ -781,6 +797,22 @@ TEST(rfcMgrTest, CreateConfigDataValueMap) {
         EXPECT_EQ(rfcObj->_RFCKeyAndValueMap.size(), 16);
         delete rfcObj;
     }	
+}
+
+TEST(rfcMgrTest, CreateConfigDataValueMapRejectsInvalidFeatureNames) {
+    JSON *pJson = ParseJsonStr(xconfRespInvalidFeatureConfigData);
+    ASSERT_NE(nullptr, pJson);
+
+    RuntimeFeatureControlProcessor processor;
+    JSON *features = processor.GetRuntimeFeatureControlJSON(pJson);
+    ASSERT_NE(nullptr, features);
+    processor.CreateConfigDataValueMap(features);
+
+    EXPECT_TRUE(processor._RFCKeyAndValueMap.empty());
+    EXPECT_EQ(0u, processor._RFCKeyAndValueMap.count(
+        "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable"));
+
+    FreeJson(pJson);
 }
 
 TEST(rfcMgrTest, IsDirectBlocked) {

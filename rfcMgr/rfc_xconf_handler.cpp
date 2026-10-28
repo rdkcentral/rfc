@@ -2577,6 +2577,11 @@ void RuntimeFeatureControlProcessor::CreateConfigDataValueMap(JSON *features)
         JSON* feature = GetJsonArrayItem(features, index);
         if(feature)
         {
+            RuntimeFeatureControlObject rfcObj;
+            if (SUCCESS != getRFCName(feature, &rfcObj))
+            {
+                continue;
+            }
 #ifdef RDKC
             bool featureEffImm = isFeatureEffectiveImmediate(feature);
 #endif
