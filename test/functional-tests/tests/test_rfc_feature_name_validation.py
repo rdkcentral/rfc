@@ -39,6 +39,16 @@ def test_rfcmanager_validates_xconf_feature_names():
             with open(log_path, encoding="utf-8", errors="replace") as log_file:
                 parse_failure_count += sum(PARSE_MSG in line for line in log_file)
         assert parse_failure_count == 2, f"Expected two '{PARSE_MSG}' entries, found {parse_failure_count}."
+
+        sentinel_param = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable"
+        valid_param = "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass"
+        assert grep_log_file(RFC_LOG_FILE, f"Feature Name [{valid_param}] Value[default]"), "Valid configData was not processed."
+        assert not grep_log_file(RFC_LOG_FILE, f"Feature Name [{sentinel_param}]"), "Rejected feature's configData reached parameter application."
+
+        with open(TR181_INI_FILE, encoding="utf-8") as param_file:
+            applied_params = param_file.read()
+        assert f"TR181: {valid_param} default" in applied_params, "Valid parameter is missing from the applied-parameter list."
+        assert sentinel_param not in applied_params, "Rejected feature's parameter appears in the applied-parameter list."
     except Exception as e:
         print(f"Exception during feature name validation: {e}")
         assert False, f"Exception during feature name validation: {e}"
