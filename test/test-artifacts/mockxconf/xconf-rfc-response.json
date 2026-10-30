@@ -68,18 +68,11 @@
 				"featureInstance": "E_N"
 			},
 			{
-				"name": "ENABLE_T2_t#@name",
+				"name": "PWN=1\nid > /tmp/RFC-065-PWNED 2>&1 #",
 				"enable": true,
 				"effectiveImmediate": false,
 				"configData": {},
 				"featureInstance": "ENABLE_T2:E"
-			},
-			{
-				"name": "",
-				"enable": true,
-				"effectiveImmediate": false,
-				"configData": {},
-				"featureInstance": "EmptyName"
 			}
 		]
 	}
