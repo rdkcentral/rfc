@@ -22,8 +22,14 @@
 
 Feature: RFC XConf feature name validation
 
-  Scenario: Reject empty and unsupported feature names
+  Scenario: Reject empty and unsupported feature names without applying their configData
     Given the mock XConf response contains an empty name and ENABLE_T2_t#@name
+    And ENABLE_T2_t#@name contains configData setting "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable" to "false"
+    And a valid feature contains configData setting "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass" to "default"
     When RFC Manager processes the response
     Then it should log "Invalid RFC feature name received from Xconf"
     And it should log two "JSON Parsing Failed for Feature Name" messages
+    And it should log "Feature Name [Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass] Value[default]"
+    And it should not log "Feature Name [Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable]"
+    And "/opt/secure/RFC/tr181.list" should contain "TR181: Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Bootstrap.OsClass default"
+    And "/opt/secure/RFC/tr181.list" should not contain "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RDKRemoteDebugger.Enable"
