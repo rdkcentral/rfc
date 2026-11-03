@@ -36,6 +36,7 @@
 #if defined(RDKB_SUPPORT) || defined(RDKC)
 #include <rbus/rbus.h>
 #include <rbus/rbus_value.h>
+#include "deviceUtils.h"
 #endif
 #include <ctime>
 
