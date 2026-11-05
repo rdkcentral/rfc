@@ -36,6 +36,18 @@ GTEST_ENABLE_FLAG = ""
 IS_LIBRDKCERTSEL_ENABLED=""
 IS_LIBRDKCONFIG_ENABLED=""
 
+AC_ARG_ENABLE([cpc],
+    [AS_HELP_STRING([--enable-cpc], [Enable CPC support])],
+    [USE_CPC="$enableval"],
+    [USE_CPC=no])
+
+AM_CONDITIONAL([USE_CPC], [test "$USE_CPC" = "yes"])
+AC_SUBST(USE_CPC)
+
+if test "$USE_CPC" = "yes"; then
+    AC_DEFINE([USE_CPC], [1], [Define to enable CPC support])
+fi
+
 AC_ARG_ENABLE([gtestapp],
              AS_HELP_STRING([--enable-gtestapp],[enable Gtest support (default is no)]),
              [
