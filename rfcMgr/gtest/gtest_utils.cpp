@@ -33,6 +33,8 @@
 #include "rfcapi.h"
 #include "jsonhandler.h"
 #include "tr181_store_writer.h"
+#include <curl/curl.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -44,7 +46,27 @@ extern int (*getSetAttributeFunc())(char * const, char, char *);
 extern int (*getGetAttributeFunc())(char * const);
 extern size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream);
 extern int (*getparseargsFunc())(int argc, char * argv[]);
+extern void (*getMuteStderrFunc())(void);
+extern void (*getWriteValueLineFunc())(const char *);
 #endif
+
+extern CURLcode simulated_curl_result;
+int isNodeArrayType(cJSON * const item);
+
+/* Forces the mocked HTTP transport to fail for the lifetime of the object. */
+class UtilsCurlFailureGuard {
+    CURLcode saved_ = simulated_curl_result;
+public:
+    UtilsCurlFailureGuard() { simulated_curl_result = CURLE_COULDNT_CONNECT; }
+    ~UtilsCurlFailureGuard() { simulated_curl_result = saved_; }
+};
+
+/* parseargs() keeps the caller id in a static; use it to select local or HTTP mode. */
+static void setCallerId(const char *callerId)
+{
+    char *argv[] = { (char*)"tr181", (char*)"-n", (char*)callerId };
+    getparseargsFunc()(3, argv);
+}
 
 TEST(utilsTest, getParamType) {
     writeToTr181storeFile("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MOCASSH.Enable", "true", "/opt/secure/RFC/tr181store.ini", Quoted);
@@ -185,6 +207,84 @@ TEST(utilsTest, getFilePath) {
     EXPECT_STREQ(path, expected.c_str());
     
     delete[] path;
+}
+
+TEST(utilsTest, ParseargsHandlesAllOptions) {
+    char* argv[] = { (char*)"tr181", (char*)"-s", (char*)"-c", (char*)"-t", (char*)"s",
+                     (char*)"-v", (char*)"val", (char*)"-d", (char*)"-z",
+                     (char*)"-n", (char*)"rfcdefaults", (char*)"Device.Test.Param" };
+    EXPECT_EQ(getparseargsFunc()(12, argv), 0);
+    setCallerId("rfcdefaults");
+}
+
+TEST(utilsTest, getParamTypeFailure) {
+    UtilsCurlFailureGuard guard;
+    char * const name = const_cast<char*>("Device.Unknown.Param.NoSuch");
+    DATA_TYPE paramType;
+    EXPECT_FALSE(getGetParamTypeFunc()(name, &paramType));
+}
+
+TEST(utilsTest, setAttributeFailureFallsBackToProvidedType) {
+    setCallerId("rfcdefaults");
+    UtilsCurlFailureGuard guard;
+    char * const name = const_cast<char*>("Device.Unknown.Param.NoSuch");
+    char value[] = "1";
+    EXPECT_NE(getSetAttributeFunc()(name, 'i', value), 0);
+}
+
+TEST(utilsTest, clearAttributeFailure) {
+    setCallerId("rfcdefaults");
+    UtilsCurlFailureGuard guard;
+    char * const name = const_cast<char*>("Device.Unknown.Param.NoSuch");
+    EXPECT_NE(getClearAttributeFunc()(name), 0);
+}
+
+TEST(utilsTest, getAttributeFailure) {
+    setCallerId("rfcdefaults");
+    UtilsCurlFailureGuard guard;
+    char * const name = const_cast<char*>("Device.Unknown.Param.NoSuch");
+    EXPECT_NE(getGetAttributeFunc()(name), 0);
+}
+
+TEST(utilsTest, getAttributeLocalOnlyFailure) {
+    setCallerId("localOnly");
+    char * const name = const_cast<char*>("Device.Unknown.Param.NoSuch");
+    EXPECT_NE(getGetAttributeFunc()(name), 0);
+    setCallerId("rfcdefaults");
+}
+
+TEST(utilsTest, isNodeArrayType) {
+    EXPECT_EQ(isNodeArrayType(nullptr), 0);
+    cJSON *array = cJSON_CreateArray();
+    cJSON *object = cJSON_CreateObject();
+    EXPECT_NE(isNodeArrayType(array), 0);
+    EXPECT_EQ(isNodeArrayType(object), 0);
+    cJSON_Delete(array);
+    cJSON_Delete(object);
+}
+
+TEST(utilsTest, saveToFileEmptyFormatFails) {
+    cJSON *array = cJSON_CreateArray();
+    EXPECT_EQ(saveToFile(array, "", "name"), 0);
+    cJSON_Delete(array);
+}
+
+TEST(utilsTest, saveToFileUnopenablePathFails) {
+    cJSON *array = cJSON_CreateArray();
+    EXPECT_EQ(saveToFile(array, "/nonexistent_dir_rfc_ut/%s", "name"), 0);
+    cJSON_Delete(array);
+}
+
+TEST(utilsTest, MuteStderrAndWriteValueLine) {
+    int savedStderr = dup(STDERR_FILENO);
+    ASSERT_GE(savedStderr, 0);
+    getMuteStderrFunc()();
+    getWriteValueLineFunc()("value");
+    getWriteValueLineFunc()(nullptr);
+    std::string longValue(5000, 'v');
+    getWriteValueLineFunc()(longValue.c_str());
+    dup2(savedStderr, STDERR_FILENO);
+    close(savedStderr);
 }
 
 TEST(utilsTest, cleanAllFiles) {

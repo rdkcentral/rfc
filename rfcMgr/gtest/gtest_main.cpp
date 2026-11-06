@@ -2754,6 +2754,386 @@ TEST_F(RfcCommonTest, GetCronFromDcmSettingsNoFilesReturnsEmpty)
 }
 
 
+/* ---- RFCManager (rfc_manager.cpp): IARM, IP/route checks, post-process, cron ---- */
+
+extern int iarm_stub_registered;
+extern IARM_Result_t iarm_stub_init_ret;
+extern IARM_Result_t iarm_stub_connect_ret;
+extern int iarm_stub_connect_registers;
+
+namespace rfc {
+int term_event_handler(void);
+void rfcMgrEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
+}
+
+/* Fixture: fake commands on PATH, steerable IARM stubs and sleep, route-flag backup. */
+class RfcManagerCovTest : public ::testing::Test {
+protected:
+    std::string dir_;
+    std::string origPath_;
+    bool hadPath_ = false;
+    std::vector<std::string> shims_;
+    std::string routeBackup_;
+
+    static void createRouteFlag(int)
+    {
+        writeFile(IP_ROUTE_FLAG, "");
+    }
+
+    void SetUp() override
+    {
+        std::string tmpl = "/tmp/rfcmgr_ut_XXXXXX";
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back('\0');
+        ASSERT_NE(mkdtemp(buf.data()), nullptr);
+        dir_ = buf.data();
+
+        const char *p = getenv("PATH");
+        hadPath_ = (p != nullptr);
+        origPath_ = p ? p : "";
+        setenv("PATH", (dir_ + ":" + origPath_).c_str(), 1);
+        setenv("RFC_TEST_DIR", dir_.c_str(), 1);
+
+        struct stat st;
+        if (lstat(IP_ROUTE_FLAG, &st) == 0) {
+            routeBackup_ = std::string(IP_ROUTE_FLAG) + ".rfc_test_bak." + std::to_string(getpid());
+            ASSERT_EQ(rename(IP_ROUTE_FLAG, routeBackup_.c_str()), 0);
+        }
+        g_sleepIntercept = false;
+        g_sleepCalls = 0;
+        g_sleepHook = nullptr;
+    }
+
+    void TearDown() override
+    {
+        g_sleepIntercept = false;
+        g_sleepHook = nullptr;
+        iarm_stub_registered = 1;
+        iarm_stub_init_ret = IARM_RESULT_SUCCESS;
+        iarm_stub_connect_ret = IARM_RESULT_SUCCESS;
+        iarm_stub_connect_registers = 0;
+
+        unlink(IP_ROUTE_FLAG);
+        if (!routeBackup_.empty()) {
+            rename(routeBackup_.c_str(), IP_ROUTE_FLAG);
+            routeBackup_.clear();
+        }
+        for (const auto &s : shims_) {
+            unlink((dir_ + "/" + s).c_str());
+        }
+        unlink((dir_ + "/applied").c_str());
+        rmdir(dir_.c_str());
+        if (hadPath_) {
+            setenv("PATH", origPath_.c_str(), 1);
+        } else {
+            unsetenv("PATH");
+        }
+        unsetenv("RFC_TEST_DIR");
+        unsetenv("RFC_TEST_V6");
+        unsetenv("RFC_TEST_V4");
+        unsetenv("RFC_TEST_FMT");
+        unsetenv("RFC_TEST_CRON_LIST");
+        unsetenv("RFC_TEST_CRONTAB_RC");
+        unsetenv("RFC_TEST_SED_RC");
+    }
+
+    void installShim(const std::string &name, const std::string &body)
+    {
+        writeFile(dir_ + "/" + name, "#!/bin/sh\n" + body);
+        ASSERT_EQ(chmod((dir_ + "/" + name).c_str(), 0755), 0);
+        shims_.push_back(name);
+    }
+
+    void installDmcli()
+    {
+        installShim("dmcli",
+                    "fmt=\"${RFC_TEST_FMT:-%s\\n}\"\n"
+                    "case \"$3\" in\n"
+                    "*IPv6) val=\"$RFC_TEST_V6\";;\n"
+                    "*) val=\"$RFC_TEST_V4\";;\n"
+                    "esac\n"
+                    "[ -n \"$val\" ] && printf \"$fmt\" \"$val\"\n"
+                    "exit 0\n");
+    }
+
+    /* crontab shim: "-l" lists RFC_TEST_CRON_LIST; otherwise copies the applied file. */
+    void installCrontab()
+    {
+        installShim("crontab",
+                    "if [ \"$1\" = \"-l\" ]; then\n"
+                    "  [ -n \"$RFC_TEST_CRON_LIST\" ] && printf '%s\\n' \"$RFC_TEST_CRON_LIST\"\n"
+                    "  exit 0\n"
+                    "fi\n"
+                    "cp \"$1\" \"$RFC_TEST_DIR/applied\"\n"
+                    "exit ${RFC_TEST_CRONTAB_RC:-0}\n");
+    }
+
+    std::string applied() { return slurpFile(dir_ + "/applied"); }
+};
+
+/* -- IARM -- */
+
+TEST_F(RfcManagerCovTest, ConstructorInitialisesIarmWhenNotConnected)
+{
+    iarm_stub_registered = 0;
+    iarm_stub_connect_registers = 1;
+    rfc::RFCManager mgr;
+    EXPECT_TRUE(mgr.IsIarmBusConnected());
+}
+
+TEST_F(RfcManagerCovTest, InitializeIarmAcceptsInvalidStateFromConnect)
+{
+    iarm_stub_registered = 0;
+    iarm_stub_connect_ret = IARM_RESULT_INVALID_STATE;
+    rfc::RFCManager mgr;
+    EXPECT_FALSE(mgr.IsIarmBusConnected());
+}
+
+TEST_F(RfcManagerCovTest, InitializeIarmHandlesConnectFailure)
+{
+    iarm_stub_registered = 0;
+    iarm_stub_connect_ret = IARM_RESULT_INVALID_PARAM;
+    rfc::RFCManager mgr;
+    EXPECT_FALSE(mgr.IsIarmBusConnected());
+}
+
+TEST_F(RfcManagerCovTest, InitializeIarmHandlesInitFailure)
+{
+    iarm_stub_registered = 0;
+    iarm_stub_init_ret = IARM_RESULT_INVALID_PARAM;
+    rfc::RFCManager mgr;
+    EXPECT_FALSE(mgr.IsIarmBusConnected());
+}
+
+TEST_F(RfcManagerCovTest, TermEventHandlerReturnsZero)
+{
+    EXPECT_EQ(rfc::term_event_handler(), 0);
+}
+
+TEST_F(RfcManagerCovTest, EventHandlerPlaceholderIsCallable)
+{
+    rfc::rfcMgrEventHandler("owner", 0, nullptr, 0);
+    SUCCEED();
+}
+
+/* -- eRouter IP -- */
+
+TEST_F(RfcManagerCovTest, ErouterAddressPrefersIpv6AndTrimsNewline)
+{
+    installDmcli();
+    setenv("RFC_TEST_V6", "2001:db8::1", 1);
+    setenv("RFC_TEST_V4", "10.0.0.2", 1);
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.getErouterIPAddress(), "2001:db8::1");
+    EXPECT_TRUE(mgr.CheckIPConnectivity());
+}
+
+TEST_F(RfcManagerCovTest, ErouterAddressFallsBackToIpv4)
+{
+    installDmcli();
+    setenv("RFC_TEST_V4", "10.0.0.2", 1);
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.getErouterIPAddress(), "10.0.0.2");
+}
+
+TEST_F(RfcManagerCovTest, ErouterAddressWithoutTrailingNewline)
+{
+    installDmcli();
+    setenv("RFC_TEST_FMT", "%s", 1);
+    setenv("RFC_TEST_V6", "2001:db8::2", 1);
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.getErouterIPAddress(), "2001:db8::2");
+}
+
+TEST_F(RfcManagerCovTest, ErouterAddressIpv4WithoutTrailingNewline)
+{
+    installDmcli();
+    setenv("RFC_TEST_FMT", "%s", 1);
+    setenv("RFC_TEST_V4", "10.0.0.3", 1);
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.getErouterIPAddress(), "10.0.0.3");
+}
+
+TEST_F(RfcManagerCovTest, ErouterAddressEmptyWhenNoneAvailable)
+{
+    installDmcli();
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.getErouterIPAddress(), "");
+    EXPECT_FALSE(mgr.CheckIPConnectivity());
+}
+
+/* -- route / online checks -- */
+
+TEST_F(RfcManagerCovTest, RouteFlagPresentAndIpv4Entry)
+{
+    writeFile(IP_ROUTE_FLAG, "");
+    writeFile(dir_ + "/gw", "IPV4 8.8.4.4\n");
+    rfc::RFCManager mgr;
+    EXPECT_TRUE(mgr.CheckIProuteConnectivity((dir_ + "/gw").c_str()));
+    unlink((dir_ + "/gw").c_str());
+}
+
+TEST_F(RfcManagerCovTest, RouteFlagPresentAndUnknownIpType)
+{
+    writeFile(IP_ROUTE_FLAG, "");
+    writeFile(dir_ + "/gw", "IPVX 8.8.4.4\n");
+    rfc::RFCManager mgr;
+    EXPECT_TRUE(mgr.CheckIProuteConnectivity((dir_ + "/gw").c_str()));
+    unlink((dir_ + "/gw").c_str());
+}
+
+TEST_F(RfcManagerCovTest, RouteFlagAppearingOnLastPollIsRejected)
+{
+    g_sleepIntercept = true;
+    g_sleepHook = [](int n) { if (n == 4) createRouteFlag(n); };
+    rfc::RFCManager mgr;
+    EXPECT_FALSE(mgr.CheckIProuteConnectivity(GATEWAYIP_FILE));
+    EXPECT_EQ(g_sleepCalls, 4);
+}
+
+TEST_F(RfcManagerCovTest, DeviceOfflineWhenRouteFlagAppearsOnLastPoll)
+{
+    g_sleepIntercept = true;
+    g_sleepHook = [](int n) { if (n == 4) createRouteFlag(n); };
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.CheckDeviceIsOnline(), RFCMGR_DEVICE_OFFLINE);
+}
+
+/* -- post-process script -- */
+
+TEST_F(RfcManagerCovTest, PostProcessRunsExistingScript)
+{
+    struct stat st;
+    if (lstat(RFC_MGR_IPTBLE_INIT_SCRIPT, &st) == 0) {
+        GTEST_SKIP() << RFC_MGR_IPTBLE_INIT_SCRIPT << " already exists on this host";
+    }
+    bool createdDir = (mkdir("/lib/rdk", 0755) == 0);
+    if (!createdDir && errno != EEXIST) {
+        GTEST_SKIP() << "cannot create /lib/rdk (needs root)";
+    }
+    writeFile(RFC_MGR_IPTBLE_INIT_SCRIPT, "exit 0\n");
+
+    rfc::RFCManager mgr;
+    EXPECT_EQ(mgr.RFCManagerPostProcess(), SUCCESS);
+
+    unlink(RFC_MGR_IPTBLE_INIT_SCRIPT);
+    if (createdDir) {
+        rmdir("/lib/rdk");
+    }
+}
+
+/* -- cron -- */
+
+TEST_F(RfcManagerCovTest, ManageCronJobSubtractsThreeMinutes)
+{
+    installCrontab();
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("30 5 * * *");
+    EXPECT_NE(applied().find("27 5 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+TEST_F(RfcManagerCovTest, ManageCronJobWrapsMinuteAndHour)
+{
+    installCrontab();
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("1 0 * * *");
+    EXPECT_NE(applied().find("58 23 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+TEST_F(RfcManagerCovTest, ManageCronJobInvalidComponentUsesDefaults)
+{
+    installCrontab();
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("x 5 * * *");
+    EXPECT_NE(applied().find("57 23 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+TEST_F(RfcManagerCovTest, ManageCronJobReplacesExistingRfcEntry)
+{
+    installCrontab();
+    setenv("RFC_TEST_CRON_LIST", "0 1 * * * /usr/bin/rfcMgr old\n5 5 * * * keepme", 1);
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("30 5 * * *");
+    std::string out = applied();
+    EXPECT_NE(out.find("keepme"), std::string::npos);
+    EXPECT_EQ(out.find("rfcMgr old"), std::string::npos);
+    EXPECT_NE(out.find("27 5 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+TEST_F(RfcManagerCovTest, ManageCronJobToleratesSedFailure)
+{
+    installCrontab();
+    installShim("sed", "exit ${RFC_TEST_SED_RC:-0}\n");
+    setenv("RFC_TEST_SED_RC", "1", 1);
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("30 5 * * *");
+    EXPECT_NE(applied().find("27 5 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+TEST_F(RfcManagerCovTest, ManageCronJobReportsApplyFailure)
+{
+    installCrontab();
+    setenv("RFC_TEST_CRONTAB_RC", "1", 1);
+    rfc::RFCManager mgr;
+    mgr.manageCronJob("30 5 * * *");
+    EXPECT_NE(applied().find("27 5 * * * /usr/bin/rfcMgr"), std::string::npos);
+}
+
+/* -- RuntimeFeatureControlProcessor: device-info helpers and partner fallback -- */
+
+class RfcXconfCovTest : public ::testing::Test {
+protected:
+    void TearDown() override
+    {
+        v_secure_popen_test_format = nullptr;
+    }
+};
+
+TEST_F(RfcXconfCovTest, GetSerialNumberReadsCommandOutput)
+{
+    v_secure_popen_test_format = "/bin/echo SN12345";
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetSerialNumber();
+    EXPECT_EQ(rfcObj._serialNumber, "SN12345");
+}
+
+TEST_F(RfcXconfCovTest, GetSerialNumberKeepsValueWhenNoOutput)
+{
+    v_secure_popen_test_format = "/bin/true";
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetSerialNumber();
+    EXPECT_EQ(rfcObj._serialNumber, "");
+}
+
+TEST_F(RfcXconfCovTest, GetExtenderMacAddressReadsCommandOutput)
+{
+    v_secure_popen_test_format = "/bin/echo AA:BB:CC:DD:EE:FF";
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetExtenderMacAddress();
+    EXPECT_EQ(rfcObj._extendermacAddress, "AA:BB:CC:DD:EE:FF");
+}
+
+TEST_F(RfcXconfCovTest, GetExtenderMacAddressKeepsValueWhenNoOutput)
+{
+    v_secure_popen_test_format = "/bin/true";
+    RuntimeFeatureControlProcessor rfcObj;
+    rfcObj.GetExtenderMacAddress();
+    EXPECT_EQ(rfcObj._extendermacAddress, "");
+}
+
+TEST_F(RfcXconfCovTest, InitializeXconfHandlerFallsBackToUnknownPartner)
+{
+    write_on_file("/tmp/partnerId3.dat", "");
+    write_on_file("/tmp/estbmacfile", "01:23:45:67:89:ab");
+    write_on_file("/tmp/version.txt", "imagename:TestImage");
+    write_on_file("/tmp/device.properties", "MODEL_NUM=SKXI11ADS");
+    write_on_file("/tmp/.manufacturer", "TestMFRname");
+    xconf::XconfHandler xconfObj;
+    EXPECT_EQ(xconfObj.initializeXconfHandler(), 0);
+    EXPECT_EQ(xconfObj._partner_id, "Unknown");
+    write_on_file("/tmp/partnerId3.dat", "default-parter");
+}
+
 GTEST_API_ int main(int argc, char *argv[]){
     ::testing::InitGoogleTest(&argc, argv);
 
