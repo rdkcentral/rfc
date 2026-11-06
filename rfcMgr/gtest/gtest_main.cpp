@@ -30,6 +30,11 @@
 #include <utime.h>
 #include <sstream>
 #include <unistd.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
+#include <limits.h>
+#include <curl/curl.h>
 
 #include "mtlsUtils.h"
 #include "rfc_common.h"
@@ -59,6 +64,8 @@ extern "C" {
 
 /* Defined by gtest/mocks/mock_curl.cpp */
 extern long simulated_http_code;
+extern std::string simulated_response_body;
+extern CURLcode simulated_curl_result;
 
 
 
@@ -2274,6 +2281,455 @@ TEST(rfcMgrTest, DbgSrv_Process_Locked_FileAbsent)
         RUNTIME_FEATURE_BOOTSTRAP_FEATURE_URL);
 
     simulated_http_code = 200;
+}
+
+/* ---------------------------------------------------------------------------
+ * rfc_common.cpp coverage tests
+ * ------------------------------------------------------------------------- */
+
+extern "C" const char *v_secure_popen_test_format;
+
+#ifndef __THROW
+#define __THROW
+#endif
+
+/*
+ * Test-controlled sleep(): when a hook is installed the call returns at once
+ * (so waitForRfcCompletion() does not block for 100 s per retry), otherwise
+ * the real delay is preserved for every other test.
+ */
+static bool g_sleepIntercept = false;
+static int g_sleepCalls = 0;
+static void (*g_sleepHook)(int) = nullptr;
+
+extern "C" unsigned int sleep(unsigned int seconds) __THROW
+{
+    if (g_sleepIntercept) {
+        g_sleepCalls++;
+        if (g_sleepHook) {
+            g_sleepHook(g_sleepCalls);
+        }
+        return 0;
+    }
+    struct timespec ts = { (time_t)seconds, 0 };
+    nanosleep(&ts, nullptr);
+    return 0;
+}
+
+static std::string slurpFile(const std::string &path)
+{
+    std::ifstream in(path);
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    return ss.str();
+}
+
+static void writeFile(const std::string &path, const std::string &content)
+{
+    std::ofstream out(path, std::ios::trunc);
+    out << content;
+}
+
+static bool pathExists(const std::string &path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0;
+}
+
+/* Fixture: backs up and restores every file/dir rfc_common.cpp touches. */
+class RfcCommonTest : public ::testing::Test {
+protected:
+    static constexpr const char *kDcmFile = "/tmp/DCMSettings.conf";
+    static constexpr const char *kNvramDir = "/nvram";
+    static constexpr const char *kTmpDcmFile = "/nvram/tmpDCMSettings.conf";
+    static constexpr const char *kAgentFile = "/tmp/rfc_agent_initialized";
+
+    struct Saved { bool existed = false; std::string content; };
+    Saved dcm_, tmpDcm_, agent_;
+    bool createdNvram_ = false;
+    std::string workDir_;
+    std::string origPath_;
+    bool hadPath_ = false;
+
+    static Saved save(const char *path)
+    {
+        Saved s;
+        s.existed = pathExists(path);
+        if (s.existed) {
+            s.content = slurpFile(path);
+        }
+        return s;
+    }
+
+    static void restore(const char *path, const Saved &s)
+    {
+        if (s.existed) {
+            writeFile(path, s.content);
+        } else {
+            unlink(path);
+        }
+    }
+
+    void SetUp() override
+    {
+        dcm_ = save(kDcmFile);
+        tmpDcm_ = save(kTmpDcmFile);
+        agent_ = save(kAgentFile);
+        unlink(kDcmFile);
+        unlink(kTmpDcmFile);
+        unlink(kAgentFile);
+        g_sleepIntercept = false;
+        g_sleepCalls = 0;
+        g_sleepHook = nullptr;
+        v_secure_popen_test_format = nullptr;
+    }
+
+    void TearDown() override
+    {
+        g_sleepIntercept = false;
+        g_sleepHook = nullptr;
+        v_secure_popen_test_format = nullptr;
+        restore(kDcmFile, dcm_);
+        restore(kTmpDcmFile, tmpDcm_);
+        restore(kAgentFile, agent_);
+        if (createdNvram_) {
+            unlink(kTmpDcmFile);
+            rmdir(kNvramDir);
+            createdNvram_ = false;
+        }
+        if (!workDir_.empty()) {
+            unlink((workDir_ + "/sysevent").c_str());
+            unlink((workDir_ + "/queue").c_str());
+            unlink((workDir_ + "/queue.tmp").c_str());
+            rmdir(workDir_.c_str());
+            workDir_.clear();
+            unsetenv("RFC_TEST_SYSEVENT_QUEUE");
+            if (hadPath_) {
+                setenv("PATH", origPath_.c_str(), 1);
+            } else {
+                unsetenv("PATH");
+            }
+        }
+    }
+
+    /* Ensure /nvram exists; returns false when it cannot be created. */
+    bool prepareNvram()
+    {
+        if (pathExists(kNvramDir)) {
+            return true;
+        }
+        if (mkdir(kNvramDir, 0777) == 0) {
+            createdNvram_ = true;
+            return true;
+        }
+        return false;
+    }
+
+    /*
+     * Install a fake "sysevent" executable on PATH. Every call prints and
+     * consumes the first line of the queue file (nothing once it is empty).
+     */
+    void installFakeSysevent(const std::string &queueContent)
+    {
+        char cwd[PATH_MAX];
+        ASSERT_NE(getcwd(cwd, sizeof(cwd)), nullptr);
+        std::string tmpl = std::string(cwd) + "/rfc_common_ut_XXXXXX";
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back('\0');
+        ASSERT_NE(mkdtemp(buf.data()), nullptr);
+        workDir_ = buf.data();
+
+        writeFile(workDir_ + "/queue", queueContent);
+        writeFile(workDir_ + "/sysevent",
+                  "#!/bin/sh\n"
+                  "q=\"$RFC_TEST_SYSEVENT_QUEUE\"\n"
+                  "[ -s \"$q\" ] || exit 0\n"
+                  "head -n 1 \"$q\"\n"
+                  "tail -n +2 \"$q\" > \"$q.tmp\"\n"
+                  "mv \"$q.tmp\" \"$q\"\n");
+        ASSERT_EQ(chmod((workDir_ + "/sysevent").c_str(), 0755), 0);
+
+        const char *p = getenv("PATH");
+        hadPath_ = (p != nullptr);
+        origPath_ = p ? p : "";
+        setenv("PATH", (workDir_ + ":" + origPath_).c_str(), 1);
+        setenv("RFC_TEST_SYSEVENT_QUEUE", (workDir_ + "/queue").c_str(), 1);
+    }
+};
+
+/* ---- getSyseventValue ---- */
+
+TEST_F(RfcCommonTest, GetSyseventValueStripsTrailingNewline)
+{
+    installFakeSysevent("Completed\n");
+    ASSERT_FALSE(workDir_.empty());
+    EXPECT_EQ(getSyseventValue("rfc_blob_processing"), "Completed");
+}
+
+TEST_F(RfcCommonTest, GetSyseventValueEmptyOutputReturnsEmpty)
+{
+    installFakeSysevent("");
+    ASSERT_FALSE(workDir_.empty());
+    EXPECT_EQ(getSyseventValue("rfc_blob_processing"), "");
+}
+
+TEST_F(RfcCommonTest, GetSyseventValueReturnsEmptyWhenPopenFails)
+{
+    struct rlimit orig;
+    ASSERT_EQ(getrlimit(RLIMIT_NOFILE, &orig), 0);
+
+    /* Only stdio descriptors remain, so pipe() inside popen() must fail. */
+    struct rlimit tight = orig;
+    tight.rlim_cur = 3;
+    ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &tight), 0);
+
+    std::string value = getSyseventValue("rfc_blob_processing");
+
+    ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &orig), 0);
+    EXPECT_EQ(value, "");
+}
+
+/* ---- waitForRfcCompletion ---- */
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionSkipsWhenSyseventEmpty)
+{
+    installFakeSysevent("");
+    writeFile(kAgentFile, "1");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 0);
+}
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionSkipsWhenAgentFileMissing)
+{
+    installFakeSysevent("InProgress\n");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 0);
+}
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionSkipsWhenAlreadyCompleted)
+{
+    installFakeSysevent("Completed\n");
+    writeFile(kAgentFile, "1");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 0);
+}
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionBreaksWhenStatusCompleted)
+{
+    installFakeSysevent("InProgress\nCompleted\n");
+    writeFile(kAgentFile, "1");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 0);
+}
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionRetriesThenCompletes)
+{
+    installFakeSysevent("InProgress\nInProgress\nInProgress\nCompleted\n");
+    writeFile(kAgentFile, "1");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 2);
+}
+
+TEST_F(RfcCommonTest, WaitForRfcCompletionGivesUpAfterMaxRetries)
+{
+    std::string queue;
+    for (int i = 0; i < 10; i++) {
+        queue += "InProgress\n";
+    }
+    installFakeSysevent(queue);
+    writeFile(kAgentFile, "1");
+    g_sleepIntercept = true;
+
+    waitForRfcCompletion();
+
+    EXPECT_EQ(g_sleepCalls, 6);
+}
+
+/* ---- read_RFCProperty (hostif HTTP path, driven by the curl mock) ---- */
+
+/* Restores the curl mock state; also provides the hostif-ready marker file. */
+class RfcCommonCurlGuard {
+    std::string body_ = simulated_response_body;
+    CURLcode result_ = simulated_curl_result;
+    long code_ = simulated_http_code;
+    bool markerExisted_ = pathExists("/tmp/.tr69hostif_http_server_ready");
+public:
+    RfcCommonCurlGuard()
+    {
+        if (!markerExisted_) {
+            writeFile("/tmp/.tr69hostif_http_server_ready", "");
+        }
+    }
+    ~RfcCommonCurlGuard()
+    {
+        simulated_response_body = body_;
+        simulated_curl_result = result_;
+        simulated_http_code = code_;
+        if (!markerExisted_) {
+            unlink("/tmp/.tr69hostif_http_server_ready");
+        }
+    }
+};
+
+TEST_F(RfcCommonTest, ReadRfcPropertyStripsSurroundingQuotes)
+{
+    RfcCommonCurlGuard guard;
+    simulated_curl_result = CURLE_OK;
+    simulated_response_body = R"({"parameters":[{"name":"Device.Test.Quoted","value":"\"abc\"","dataType":0}],"statusCode":0})";
+
+    char out[RFC_VALUE_BUF_SIZE];
+    memset(out, 'x', sizeof(out));
+    EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Quoted", out, sizeof(out)), READ_RFC_SUCCESS);
+    EXPECT_STREQ(out, "abc");
+}
+
+TEST_F(RfcCommonTest, ReadRfcPropertyKeepsUnquotedValue)
+{
+    RfcCommonCurlGuard guard;
+    simulated_curl_result = CURLE_OK;
+    simulated_response_body = R"({"parameters":[{"name":"Device.Test.Plain","value":"abc","dataType":0}],"statusCode":0})";
+
+    char out[RFC_VALUE_BUF_SIZE];
+    EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Plain", out, sizeof(out)), READ_RFC_SUCCESS);
+    EXPECT_STREQ(out, "abc");
+}
+
+TEST_F(RfcCommonTest, ReadRfcPropertyFailureClearsOutput)
+{
+    RfcCommonCurlGuard guard;
+    simulated_curl_result = CURLE_COULDNT_CONNECT;
+
+    char out[RFC_VALUE_BUF_SIZE];
+    memset(out, 'x', sizeof(out));
+    EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Missing", out, sizeof(out)), READ_RFC_FAILURE);
+    EXPECT_STREQ(out, "");
+}
+
+TEST_F(RfcCommonTest, ReadRfcPropertyRejectsNullArguments)
+{
+    char out[8];
+    EXPECT_EQ(read_RFCProperty("Test", nullptr, out, sizeof(out)), READ_RFC_FAILURE);
+    EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Key", nullptr, sizeof(out)), READ_RFC_FAILURE);
+}
+
+/* ---- executeCommandAndGetOutput ---- */
+
+TEST_F(RfcCommonTest, ExecuteCommandRdkSsaCliWithArgsRuns)
+{
+    std::string result;
+    const char *args = "-h";
+    /* rdkssacli is absent on the test host: the command runs and yields no output */
+    EXPECT_EQ(executeCommandAndGetOutput(eRdkSsaCli, args, result), SUCCESS);
+}
+
+TEST_F(RfcCommonTest, ExecuteCommandCapturesOutput)
+{
+    v_secure_popen_test_format = "/bin/echo %s";
+    std::string result;
+    EXPECT_EQ(executeCommandAndGetOutput(eRdkSsaCli, "hello", result), SUCCESS);
+    EXPECT_EQ(result, "hello\n");
+}
+
+TEST_F(RfcCommonTest, ExecuteCommandGrowsBufferForLongOutput)
+{
+    v_secure_popen_test_format = "/bin/echo %s";
+    std::string longArg(1000, 'a');
+    std::string result;
+    EXPECT_EQ(executeCommandAndGetOutput(eRdkSsaCli, longArg.c_str(), result), SUCCESS);
+    EXPECT_EQ(result, longArg + "\n");
+}
+
+/* ---- getCronFromDCMSettings ---- */
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsReadsCronAndSavesLine)
+{
+    writeFile(kDcmFile,
+              "urn:settings:TimeZone=UTC\n"
+              "urn:settings:CheckSchedule:cron=0 3 * * *\n"
+              "urn:settings:other=1\n");
+    bool nvram = prepareNvram();
+
+    EXPECT_EQ(getCronFromDCMSettings(), "0 3 * * *");
+    if (nvram) {
+        EXPECT_EQ(slurpFile(kTmpDcmFile), "urn:settings:CheckSchedule:cron=0 3 * * *\n");
+    }
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsWorksWithoutNvramDir)
+{
+    if (pathExists(kNvramDir)) {
+        GTEST_SKIP() << "/nvram exists on this host";
+    }
+    writeFile(kDcmFile, "urn:settings:CheckSchedule:cron=5 4 * * *\n");
+    EXPECT_EQ(getCronFromDCMSettings(), "5 4 * * *");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsKeyWithoutEqualsReturnsEmpty)
+{
+    writeFile(kDcmFile, "urn:settings:CheckSchedule:cron\n");
+    prepareNvram();
+    EXPECT_EQ(getCronFromDCMSettings(), "");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsEmptyValueReturnsEmpty)
+{
+    writeFile(kDcmFile, "urn:settings:CheckSchedule:cron=\n");
+    prepareNvram();
+    EXPECT_EQ(getCronFromDCMSettings(), "");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsNoCronLineReturnsEmpty)
+{
+    writeFile(kDcmFile, "urn:settings:TimeZone=UTC\nurn:settings:other=1\n");
+    EXPECT_EQ(getCronFromDCMSettings(), "");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsFallsBackToTmpFile)
+{
+    if (!prepareNvram()) {
+        GTEST_SKIP() << "cannot create /nvram (needs root)";
+    }
+    writeFile(kTmpDcmFile, "urn:settings:CheckSchedule:cron=30 2 * * 1\n");
+    EXPECT_EQ(getCronFromDCMSettings(), "30 2 * * 1");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsTmpFileKeyWithoutEqualsReturnsEmpty)
+{
+    if (!prepareNvram()) {
+        GTEST_SKIP() << "cannot create /nvram (needs root)";
+    }
+    writeFile(kTmpDcmFile, "urn:settings:CheckSchedule:cron\n");
+    EXPECT_EQ(getCronFromDCMSettings(), "");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsTmpFileWithoutCronLineReturnsEmpty)
+{
+    if (!prepareNvram()) {
+        GTEST_SKIP() << "cannot create /nvram (needs root)";
+    }
+    writeFile(kTmpDcmFile, "urn:settings:TimeZone=UTC\n");
+    EXPECT_EQ(getCronFromDCMSettings(), "");
+}
+
+TEST_F(RfcCommonTest, GetCronFromDcmSettingsNoFilesReturnsEmpty)
+{
+    prepareNvram();
+    EXPECT_EQ(getCronFromDCMSettings(), "");
 }
 
 
