@@ -2344,40 +2344,51 @@ protected:
     static constexpr const char *kTmpDcmFile = "/nvram/tmpDCMSettings.conf";
     static constexpr const char *kAgentFile = "/tmp/rfc_agent_initialized";
 
-    struct Saved { bool existed = false; std::string content; };
+    /* Pre-existing objects are renamed aside (keeping mode, owner, symlink identity). */
+    struct Saved { std::string backup; };
     Saved dcm_, tmpDcm_, agent_;
     bool createdNvram_ = false;
     std::string workDir_;
     std::string origPath_;
     bool hadPath_ = false;
 
-    static Saved save(const char *path)
+    static bool lexists(const char *path)
     {
-        Saved s;
-        s.existed = pathExists(path);
-        if (s.existed) {
-            s.content = slurpFile(path);
-        }
-        return s;
+        struct stat st;
+        return lstat(path, &st) == 0;
     }
 
-    static void restore(const char *path, const Saved &s)
+    /* Returns false when an existing object could not be moved aside. */
+    static bool save(const char *path, Saved &s)
     {
-        if (s.existed) {
-            writeFile(path, s.content);
-        } else {
-            unlink(path);
+        s.backup.clear();
+        if (!lexists(path)) {
+            return true;
+        }
+        std::string backup = std::string(path) + ".rfc_test_bak." + std::to_string(getpid());
+        if (rename(path, backup.c_str()) != 0) {
+            return false;
+        }
+        s.backup = backup;
+        return true;
+    }
+
+    static void restore(const char *path, Saved &s)
+    {
+        unlink(path);
+        if (!s.backup.empty()) {
+            if (rename(s.backup.c_str(), path) != 0) {
+                ADD_FAILURE() << "Failed to restore " << path << " from " << s.backup;
+            }
+            s.backup.clear();
         }
     }
 
     void SetUp() override
     {
-        dcm_ = save(kDcmFile);
-        tmpDcm_ = save(kTmpDcmFile);
-        agent_ = save(kAgentFile);
-        unlink(kDcmFile);
-        unlink(kTmpDcmFile);
-        unlink(kAgentFile);
+        ASSERT_TRUE(save(kDcmFile, dcm_)) << "cannot back up " << kDcmFile;
+        ASSERT_TRUE(save(kTmpDcmFile, tmpDcm_)) << "cannot back up " << kTmpDcmFile;
+        ASSERT_TRUE(save(kAgentFile, agent_)) << "cannot back up " << kAgentFile;
         g_sleepIntercept = false;
         g_sleepCalls = 0;
         g_sleepHook = nullptr;
@@ -2568,6 +2579,7 @@ class RfcCommonCurlGuard {
     CURLcode result_ = simulated_curl_result;
     long code_ = simulated_http_code;
     bool markerExisted_ = pathExists("/tmp/.tr69hostif_http_server_ready");
+    bool readyFlag_ = rfcapi_test_set_http_ready(false);
 public:
     RfcCommonCurlGuard()
     {
@@ -2580,6 +2592,7 @@ public:
         simulated_response_body = body_;
         simulated_curl_result = result_;
         simulated_http_code = code_;
+        rfcapi_test_set_http_ready(readyFlag_);
         if (!markerExisted_) {
             unlink("/tmp/.tr69hostif_http_server_ready");
         }
@@ -2596,6 +2609,14 @@ TEST_F(RfcCommonTest, ReadRfcPropertyStripsSurroundingQuotes)
     memset(out, 'x', sizeof(out));
     EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Quoted", out, sizeof(out)), READ_RFC_SUCCESS);
     EXPECT_STREQ(out, "abc");
+
+    /* Two-byte capacity: trailing canaries detect writes past the advertised size. */
+    char bounded[4] = {'x', 'x', 'x', 'x'};
+    EXPECT_EQ(read_RFCProperty("Test", "Device.Test.Quoted", bounded, 2), READ_RFC_SUCCESS);
+    EXPECT_EQ(bounded[0], 'a');
+    EXPECT_EQ(bounded[1], '\0');
+    EXPECT_EQ(bounded[2], 'x');
+    EXPECT_EQ(bounded[3], 'x');
 }
 
 TEST_F(RfcCommonTest, ReadRfcPropertyKeepsUnquotedValue)

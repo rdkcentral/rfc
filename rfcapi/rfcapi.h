@@ -175,6 +175,13 @@ bool isFileInDirectory(const char *, const char *);
  * @retval false  /etc/rfcdefaults/ could not be opened.
  */
 bool init_rfcdefaults();
+
+/**
+ * @brief Test hook: set the cached "hostif HTTP server ready" flag.
+ * @param[in] ready  New value of the flag.
+ * @return Previous value of the flag.
+ */
+bool rfcapi_test_set_http_ready(bool ready);
 #endif
 #endif
 #ifdef __cplusplus
