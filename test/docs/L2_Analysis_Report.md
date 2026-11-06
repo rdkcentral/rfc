@@ -11,25 +11,24 @@ This document analyzes the L2 (integration/functional) test coverage for the RFC
 ---
 
 **Test Coverage Summary**
+
+<!-- CI-GENERATED-START -->
+*Not yet generated — run the CI workflow to populate this section with live per-component results.*
+<!-- CI-GENERATED-END -->
+
+**Static Source Analysis** *(manually maintained)*
 ```
 Total source functions (approx):          ~120
-Functions with direct L2 coverage:          ~30
-Functions with indirect L2 coverage:        ~15
-Functions with no L2 coverage:              ~75
+Functions with direct L2 coverage:         ~30
+Functions with indirect L2 coverage:       ~15
+Functions with no L2 coverage:             ~75
 
-Active L2 test functions:                    33
-Disabled L2 test functions:                   2
-Active feature scenarios:                    35
-Proposed new test scenarios:                 48
-  - High priority:                           22
-  - Medium priority:                         16
-  - Low priority:                            10
+Proposed new test scenarios:                48
+  - High priority:                          22
+  - Medium priority:                        16
+  - Low priority:                           10
 
-Test files active:                           17
-Test files disabled (commented out):          2
-
-Estimated current L2 functional coverage:  ~35%
-Target L2 functional coverage:             ~80%
+Target L2 functional coverage:            ~80%
 ```
 
 ## 1.Current L2 Test Coverage
