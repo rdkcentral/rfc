@@ -209,8 +209,7 @@ int read_RFCProperty(const char* type, const char* key, char *out_value, int dat
         data_len = strlen(param.value);
         if(data_len >= 2 && (param.value[0] == '"') && (param.value[data_len - 1] == '"'))
         {
-            snprintf(out_value, datasize, "%s", &param.value[1]);
-            *(out_value + data_len - 2) = 0;
+            snprintf(out_value, datasize, "%.*s", data_len - 2, &param.value[1]);
         }
         else
         {

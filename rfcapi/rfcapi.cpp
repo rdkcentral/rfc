@@ -1003,5 +1003,12 @@ bool isRFCEnabled(const char *feature)
 size_t (*getWriteCurlResponse(void))(void *ptr, size_t size, size_t nmemb, std::string stream) {
     return &writeCurlResponse;
 }
+
+/** @brief Set the cached HTTP-server-ready flag for unit testing; returns the previous value. */
+bool rfcapi_test_set_http_ready(bool ready) {
+    bool prev = tr69hostif_http_server_ready;
+    tr69hostif_http_server_ready = ready;
+    return prev;
+}
 #endif
 #endif
