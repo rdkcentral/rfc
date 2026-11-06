@@ -25,7 +25,6 @@ from rfc_test_helper import *
 
 def test_rfcmanager_validates_xconf_feature_names():
 
-    modify_rfc_url(RFC_XCONF_URL)
 
     try:
         rfc_run_binary()
