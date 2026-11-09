@@ -1,6 +1,6 @@
 ---
 name: l2-coverage-onboarding
-description: Generate and validate a module-specific changeset that measures runtime code coverage from L2 integration tests on every pull request. Use to onboard any component to PR coverage automation, adapt coverage instrumentation and daemon teardown, integrate shared LCOV reporting, and publish trustworthy CI evidence.
+description: Generate and validate a module-specific changeset that measures runtime code coverage from L2 integration tests on every pull request using the shared generate_l2_coverage_report.py report generator. Use to onboard any component to PR coverage automation, adapt coverage instrumentation and daemon teardown, and publish trustworthy CI evidence.
 ---
 
 # L2 Coverage Onboarding
@@ -11,6 +11,10 @@ Implement PR-triggered L2 coverage in the repository the user identifies. Produc
 actual edits, not just a design or a report. Adapt to the module's language,
 build system, test harness, processes, and CI provider; do not copy another
 component's dependency setup or runtime assumptions.
+
+Use the shared `generate_l2_coverage_report.py` from
+`rdkcentral/docker-device-mgt-service-test` to generate the Markdown L2 coverage
+report, as Remote Debugger does. Do not create a module-local replacement.
 
 This skill generates automation once. CI, not an AI agent, measures coverage on
 subsequent PRs. Coverage means code exercised by L2 tests, not the number of
@@ -76,10 +80,10 @@ unrelated language or compiler.
 | JS/TS service | Existing V8/Istanbul coverage with source maps and process collection |
 | JVM/.NET/Go/other | Native project coverage tooling and supported report export |
 
-For non-LCOV backends, use their verified exporter or native report adapter.
-Do not pass incompatible output to an LCOV parser. If a desired report format
-is unsupported, state the limitation and implement supported runtime reporting
-instead of claiming equivalent feature/function analysis.
+For non-LCOV backends, use a verified LCOV exporter compatible with the shared
+`generate_l2_coverage_report.py`. Do not pass incompatible output to its parser.
+If compatibility cannot be established, report the blocker and obtain approval
+before changing the reporting approach; do not silently substitute a generator.
 
 Keep production build defaults unchanged. Add or reuse a coverage-only build
 mode and isolated output directory. Instrument every in-scope binary and
@@ -110,8 +114,9 @@ Generate the smallest module-owned script/build/harness changes that implement:
    positive execution evidence from the smoke test. Reject missing, stale,
    malformed, or foreign-only traces. A valid zero-hit full-suite trace must
    be reported as zero, never replaced with an invented percentage.
-8. Produce native HTML, machine-readable coverage, and a concise Markdown
-   report. Keep test outcomes and measurement status separate.
+8. Produce native HTML and machine-readable coverage, and generate the Markdown
+  report with the shared `generate_l2_coverage_report.py` as specified below.
+  Keep test outcomes and measurement status separate.
 9. Return failure if tests failed, collection/reporting failed, or an explicitly
    configured gate failed. Preserve both test and collection diagnostics.
 
@@ -128,12 +133,27 @@ project's existing test/coverage build controls. Do not refactor business logic.
 
 ## 4. Reuse Reporting Without Inventing Evidence
 
-For compatible RDK modules, prefer the existing shared tool:
+Use the existing shared tool for every onboarded module's Markdown report:
 
 - Repository: `rdkcentral/docker-device-mgt-service-test`.
-- Entry point observed in the reference: `generate_l2_coverage_report.py`.
+- Required entry point: `generate_l2_coverage_report.py`.
 - Observed arguments: `--component`, `--report-details`, `--tracefile`,
   `--src-dir`, `--features-dir`, `--tests-dir`, `--output`.
+
+Check out the shared repository alongside the target component in CI, as in
+Remote Debugger. Generate a reporting step using this invocation pattern;
+define each variable from the verified target-module paths and metadata:
+
+```bash
+python3 docker-device-mgt-service-test/generate_l2_coverage_report.py \
+  --component "$COMPONENT_NAME" \
+  --report-details "$REPORT_DETAILS" \
+  --tracefile "$LCOV_TRACEFILE" \
+  --src-dir "$SOURCE_DIR" \
+  --features-dir "$FEATURES_DIR" \
+  --tests-dir "$L2_TESTS_DIR" \
+  --output "$MARKDOWN_REPORT"
+```
 
 Before generating an invocation, inspect the selected shared revision's source,
 README, and `--help`. Verify required arguments, metadata schema, LCOV dialect,
@@ -145,8 +165,10 @@ or fetch and execute an unpinned script during CI.
 Generate module metadata only from target-repository evidence. Descriptive
 labels and reviewed recommendations are metadata, not measured coverage.
 Never copy the reference's source list, behavior claims, or `~100%` target.
-If the shared tool is inaccessible or incompatible, use native coverage reports
-and a clearly identified minimal summary, and disclose unavailable mapping.
+If the shared tool is inaccessible or incompatible, report onboarding as
+blocked or partially validated. Native coverage artifacts may aid diagnosis,
+but do not satisfy the required Markdown reporting integration. Obtain explicit
+approval before replacing or extending the shared generator.
 
 Distinguish these report signals:
 
@@ -183,6 +205,9 @@ equivalent behavior for the target CI provider. For GitHub Actions:
   approved trusted rerun path. Never mark missing evidence as measured success.
 - Use timeouts, unique per-run output/container names, and isolated counters.
   Pin actions, tooling, and container images according to repository policy.
+- Check out the shared reporting repository at the verified revision and invoke
+  `generate_l2_coverage_report.py` after collecting the module's LCOV trace.
+  Treat a generator failure or missing Markdown report as a reporting failure.
 - After a successful build, run collection even when L2 fails, provided partial
   data can be collected safely. Use explicit outcome checks or equivalent
   control flow; `continue-on-error` must never turn missing coverage green.
@@ -204,6 +229,7 @@ check. Then run the focused integration checks available in the target setup:
 | Check | Acceptance evidence |
 |---|---|
 | Syntax and configuration | Repository workflow linter, script syntax check, metadata parser, verified reporter CLI |
+| Shared reporting | Workflow invokes the checked-out `generate_l2_coverage_report.py` with module-specific inputs and produces a nonempty Markdown report |
 | Coverage build | Compile/link instrumentation present; production build remains unchanged |
 | Smoke measurement | Existing L2 test passes against the new binary; trace includes an expected executed function/line and an unexecuted in-scope source |
 | Full L2 run | Actual test counts/status and nonempty trace, HTML, Markdown artifacts |
