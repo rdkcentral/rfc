@@ -30,43 +30,54 @@ sed -i '1a MTLS,OPERFB_P12,P12,file:///etc/ssl/certs/client.p12,cfgOpsCert' /etc
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
 # Run L2 Test cases
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
+L2_TEST_STATUS=0
+run_test() {
+	pytest "$@" || L2_TEST_STATUS=1
+}
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_device_offline.json test/functional-tests/tests/test_rfc_device_offline_status.py
+if [ "${RFC_L2_SKIP_SMOKE:-0}" = "1" ]; then
+	echo "Smoke test was run separately"
+else
+	run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_single_instance_run.json" test/functional-tests/tests/test_rfc_single_instance_run.py
+fi
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_init_failure.json test/functional-tests/tests/test_rfc_initialization_failure.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_device_offline.json" test/functional-tests/tests/test_rfc_device_offline_status.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_name_validation.json test/functional-tests/tests/test_rfc_feature_name_validation.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_init_failure.json" test/functional-tests/tests/test_rfc_initialization_failure.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_communication_success.json test/functional-tests/tests/test_rfc_xconf_communication.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_feature_name_validation.json" test/functional-tests/tests/test_rfc_feature_name_validation.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_setget_param.json test/functional-tests/tests/test_rfc_setget_param.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_xconf_communication_success.json" test/functional-tests/tests/test_rfc_xconf_communication.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_tr181_setget_local_param.json test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_setget_param.json" test/functional-tests/tests/test_rfc_setget_param.py
+
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_tr181_setget_local_param.json" test/functional-tests/tests/test_rfc_tr181_setget_local_param.py
 
 # The cert selector test cases  are commented for now. Once the code changes are moved to open source, it will be enabled.
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_dynamic_static_cert_selector.json test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_dynamic_static_cert_selector.json" test/functional-tests/tests/test_rfc_dynamic_static_cert_selector.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_rfc_data.json test/functional-tests/tests/test_rfc_xconf_rfc_data.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_xconf_rfc_data.json" test/functional-tests/tests/test_rfc_xconf_rfc_data.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_request_params.json test/functional-tests/tests/test_rfc_xconf_request_params.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_xconf_request_params.json" test/functional-tests/tests/test_rfc_xconf_request_params.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_valid_accountid.json test/functional-tests/tests/test_rfc_valid_accountid.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_valid_accountid.json" test/functional-tests/tests/test_rfc_valid_accountid.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_factory_reset.json test/functional-tests/tests/test_rfc_factory_reset.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_factory_reset.json" test/functional-tests/tests/test_rfc_factory_reset.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_trigger_reboot_unknown_accountid.json test/functional-tests/tests/test_rfc_trigger_reboot.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_trigger_reboot_unknown_accountid.json" test/functional-tests/tests/test_rfc_trigger_reboot.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_feature_enable.json test/functional-tests/tests/test_rfc_feature_enable.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_feature_enable.json" test/functional-tests/tests/test_rfc_feature_enable.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_configsethash_time.json test/functional-tests/tests/test_rfc_xconf_configsethash_time.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_configsethash_time.json" test/functional-tests/tests/test_rfc_xconf_configsethash_time.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_direct_block.json test/functional-tests/tests/test_rfc_direct_block.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_direct_block.json" test/functional-tests/tests/test_rfc_direct_block.py
 
 echo "ENABLE_MAINTENANCE=true" >> /etc/device.properties
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xconf_reboot.json test/functional-tests/tests/test_rfc_xconf_reboot.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_xconf_reboot.json" test/functional-tests/tests/test_rfc_xconf_reboot.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_override_rfc_prop.json" test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_static_cert_selector.json" test/functional-tests/tests/test_rfc_static_cert_selector.py
+
+exit "$L2_TEST_STATUS"

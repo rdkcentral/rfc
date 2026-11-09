@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 ####################################################################################
 # If not stated otherwise in this file or this component's LICENSE file the
 # following copyright and licenses apply:
@@ -25,10 +26,26 @@ export RFC_ROOT=/usr
 export RFC_INSTALL_DIR=${RFC_ROOT}
 mkdir -p $RFC_INSTALL_DIR
 
+if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
+	CXXFLAGS="${CXXFLAGS:-} -O0 -g --coverage"
+	CFLAGS="${CFLAGS:-} -O0 -g --coverage"
+	LDFLAGS="${LDFLAGS:-} --coverage"
+	export CXXFLAGS CFLAGS LDFLAGS
+fi
+
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
-export CXXFLAGS="-Wno-format -Wno-unused-variable"
+CXXFLAGS="${CXXFLAGS:-} -Wno-format -Wno-unused-variable"
+export CXXFLAGS
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes --enable-rdkcertselector=yes --enable-mountutils=yes
+
+if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
+	gcc --version | sed -n '1p' > /tmp/rfc_l2_compiler_version
+	make clean
+	for source_root in rfcMgr rfcapi tr181api utils; do
+		find "$WORKDIR/$source_root" -type f -name '*.gcda' -exec rm -f {} \;
+	done
+fi
 
 cd $RFC_ROOT
 rm -rf common_utilities

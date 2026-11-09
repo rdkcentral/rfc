@@ -25,6 +25,13 @@ echo "ENABLE_MAINTENANCE=false" >> /etc/device.properties
 
 rm -rf /opt/rfc.properties
 # Run L2 Test cases
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_unknown_accountid.json test/functional-tests/tests/test_rfc_unknown_accountid.py
+L2_TEST_STATUS=0
+run_test() {
+	pytest "$@" || L2_TEST_STATUS=1
+}
 
-pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_rfc_webpa.json test/functional-tests/tests/test_rfc_webpa.py
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_unknown_accountid.json" test/functional-tests/tests/test_rfc_unknown_accountid.py
+
+run_test --json-report --json-report-summary --json-report-file "$RESULT_DIR/rfc_rfc_webpa.json" test/functional-tests/tests/test_rfc_webpa.py
+
+exit "$L2_TEST_STATUS"
