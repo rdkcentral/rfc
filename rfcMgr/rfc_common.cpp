@@ -315,7 +315,11 @@ std::string getCronFromDCMSettings()
 {
     std::string cron = "";
     std::string dcmSettingsPath = "/tmp/DCMSettings.conf";
+#ifdef RDKC
+    std::string tmpDCMSettingsPath = "/opt/tmpDCMSettings.conf";
+#else
     std::string tmpDCMSettingsPath = "/nvram/tmpDCMSettings.conf";
+#endif
     std::string searchString = "urn:settings:CheckSchedule:cron";
 
     std::ifstream dcmFile(dcmSettingsPath);
