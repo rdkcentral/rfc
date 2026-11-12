@@ -142,7 +142,17 @@ int main()
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
         }
+    }
+    else
+    {
+        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
+    }
+
 #if defined(RDKB_SUPPORT) || defined(RDKC)
+#ifndef RDKC
+    if (isDeviceOnline == rfc::RFCMGR_DEVICE_ONLINE)
+#endif
+    {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);
 
         std::string cronConfig = getCronFromDCMSettings();
@@ -154,12 +164,8 @@ int main()
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Using cron from DCM settings: %s\n",  __FUNCTION__, __LINE__, cronConfig.c_str());
         }
         rfcMgr->manageCronJob(cronConfig);
-#endif	
     }
-    else
-    {
-        RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Device is Offline\n", __FUNCTION__, __LINE__);
-    }
+#endif
 
 #ifdef INCLUDE_BREAKPAD
      breakpad_ExceptionHandler();
