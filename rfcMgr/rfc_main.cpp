@@ -139,7 +139,7 @@ int main()
         {
             RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] RFC:Xconf Request Processed successfully\n", __FUNCTION__, __LINE__);  
         }
-#if defined(RDKB_SUPPORT)
+#if defined(RDKB_SUPPORT) || defined(RDKC)
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d]START CONFIGURING RFC CRON \n", __FUNCTION__, __LINE__);
 
         std::string cronConfig = getCronFromDCMSettings();

@@ -603,7 +603,11 @@ namespace rfc {
     void rfc::RFCManager::manageCronJob(const std::string& cron)
     {
         std::string tempFile = "/tmp/cron_tab_tmp_file";
+    #ifdef RDKC
+        std::string crontabPath = "/var/spool/cron/";
+    #else
         std::string crontabPath = "/var/spool/cron/crontabs/";
+    #endif
         bool tempFileCreated = false;
 
         std::istringstream iss(cron);
@@ -655,8 +659,7 @@ namespace rfc {
         RDK_LOG(RDK_LOG_INFO, LOG_RFCMGR, "[%s][%d] Configuring cron job: %s\n", __FUNCTION__, __LINE__, adjustedCron.c_str());
 
 #ifdef RDKC
-        /* Camera cron entry omits log redirect (matches XHC1 shell behaviour) */
-        std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr";
+    std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /opt/logs/rfcscript.log 2>&1";
 #else
         std::string cronEntry = adjustedCron + " /usr/bin/rfcMgr >> /rdklogs/logs/dcmrfc.log.0 2>&1";
 #endif
