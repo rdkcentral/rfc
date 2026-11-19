@@ -40,7 +40,7 @@
 #include "trsetutils.h"
 #include <fcntl.h>
 #include <unistd.h>
-
+#include "rdk_otlp_instrumentation.h"
 using namespace std;
 
 static char value_type = 'u';
@@ -138,6 +138,9 @@ static DATA_TYPE convertType(char type)
 */
 static int getAttribute(char * const paramName)
 {
+   // Start distributed trace (creates parent span and stores context)
+   rdk_otlp_start_distributed_trace(paramName, "get");
+
    if (id && !strncmp(id, "localOnly", 9)) {
        TR181_ParamData_t param;
        tr181ErrorCode_t status = getLocalParam(id, paramName, &param);
@@ -150,6 +153,7 @@ static int getAttribute(char * const paramName)
        {
           cout << __FUNCTION__ << " >> Failed to retrieve : Reason " << getTR181ErrorString(status) << endl;
        }
+       rdk_otlp_finish_distributed_trace();
        return status;
     }
 
@@ -165,7 +169,8 @@ static int getAttribute(char * const paramName)
    {
       cout << __FUNCTION__ << " >> Failed to retrieve : Reason " << getRFCErrorString(status) << endl;
    }
-
+   // Finish distributed trace (ends parent span)
+   rdk_otlp_finish_distributed_trace();
    return status;
 }
 /**
@@ -177,6 +182,8 @@ static int getAttribute(char * const paramName)
 */
 static int setAttribute(char * const paramName  ,char type, char * value)
 {
+   //Start distributed trace (creates parent span and stores context)
+   rdk_otlp_start_distributed_trace(paramName, "set");
    if (id && !strncmp(id, "localOnly", 9)) {
       int status = setLocalParam(id, paramName, value);
       if(status == 0)
@@ -187,6 +194,7 @@ static int setAttribute(char * const paramName  ,char type, char * value)
       {
          cout << __FUNCTION__ << " >> Failed to Set Local Param." << endl;
       }
+      rdk_otlp_finish_distributed_trace();
       return status;
    }
 
@@ -203,6 +211,7 @@ static int setAttribute(char * const paramName  ,char type, char * value)
    else
       cout << __FUNCTION__ << " >> Set operation success " << endl;
 
+   rdk_otlp_finish_distributed_trace();
    return status;
 }
 
@@ -297,6 +306,10 @@ static int parseargs(int argc, char * argv[])
 #ifndef GTEST_ENABLE
 int main(int argc, char *argv [])
 {
+   // Initialize OpenTelemetry instrumentation
+   rdk_otlp_init("tr181", "1.0.0");
+   rdk_otlp_metrics_init();
+
    if(legacyRfcEnabled() == true)
    {
       return trsetutil(argc,argv);
