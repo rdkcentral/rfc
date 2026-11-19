@@ -27,6 +27,8 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <iostream>
 #include "rfcapi.h"
 #include "tr181_store_writer.h"
@@ -159,6 +161,168 @@ TEST(rfcapiTest, getRFCErrorString) {
 TEST(rfcapiTest, isRFCEnabled) {
     bool result = isRFCEnabled("Instance");
     EXPECT_EQ(result, false);
+}
+
+/* ---- feature marker API (/opt/secure/RFC/.RFC_<feature>.ini) ---- */
+
+class RfcFeatureTest : public ::testing::Test {
+protected:
+    static constexpr const char *kFeature = "UtFeat";
+    static constexpr const char *kLock = "/tmp/.rfcWriteLock";
+    std::string file_ = std::string("/opt/secure/RFC/.RFC_") + kFeature + ".ini";
+
+    void SetUp() override
+    {
+        mkdir("/opt/secure", 0755);
+        mkdir("/opt/secure/RFC", 0755);
+        unlink(file_.c_str());
+        unlink(kLock);
+    }
+
+    void TearDown() override
+    {
+        unlink(file_.c_str());
+        unlink(kLock);
+    }
+
+    void writeMarker(const std::string &content)
+    {
+        std::ofstream out(file_, std::ios::trunc);
+        out << content;
+    }
+};
+
+TEST_F(RfcFeatureTest, GetFeatureRejectsInvalidInput)
+{
+    char buf[32];
+    EXPECT_EQ(getRFCFeature(nullptr, buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeature("", buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeature("../etc/passwd", buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeature("bad name", buf, sizeof(buf)), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureMissingFileFails)
+{
+    EXPECT_EQ(getRFCFeature(kFeature, nullptr, 0), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureWithoutBufferSucceedsWhenFilePresent)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    EXPECT_EQ(getRFCFeature(kFeature, nullptr, 0), WDMP_SUCCESS);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureZeroSizedBufferFails)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    char buf[8];
+    EXPECT_EQ(getRFCFeature(kFeature, buf, 0), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureReadsContent)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    char buf[64] = {0};
+    EXPECT_EQ(getRFCFeature(kFeature, buf, sizeof(buf)), WDMP_SUCCESS);
+    EXPECT_STREQ(buf, "RFC_ENABLE_UtFeat=true\n");
+}
+
+TEST_F(RfcFeatureTest, GetFeatureEmptyFileReportsEmpty)
+{
+    writeMarker("");
+    char buf[16];
+    EXPECT_EQ(getRFCFeature(kFeature, buf, sizeof(buf)), WDMP_ERR_VALUE_IS_EMPTY);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureSmallBufferFails)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    char buf[4];
+    EXPECT_EQ(getRFCFeature(kFeature, buf, sizeof(buf)), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureFailsWhileWriteLockIsHeld)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    std::ofstream(kLock) << "";
+    EXPECT_EQ(getRFCFeature(kFeature, nullptr, 0), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueRejectsInvalidInput)
+{
+    char buf[16];
+    EXPECT_EQ(getRFCFeatureValue(nullptr, "K", buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeatureValue("", "K", buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeatureValue(kFeature, nullptr, buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "", buf, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "K", nullptr, sizeof(buf)), WDMP_FAILURE);
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "K", buf, 0), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueMissingFeatureFails)
+{
+    char buf[16];
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "RFC_ENABLE_UtFeat", buf, sizeof(buf)), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueReturnsValue)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\nRFC_DATA_UtFeat=abc\n");
+    char buf[16] = {0};
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "RFC_DATA_UtFeat", buf, sizeof(buf)), WDMP_SUCCESS);
+    EXPECT_STREQ(buf, "abc");
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueTruncatesToBuffer)
+{
+    writeMarker("RFC_DATA_UtFeat=abcdef\n");
+    char buf[4] = {0};
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "RFC_DATA_UtFeat", buf, sizeof(buf)), WDMP_SUCCESS);
+    EXPECT_STREQ(buf, "abc");
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueMissingKeyFails)
+{
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    char buf[16];
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "RFC_NOPE", buf, sizeof(buf)), WDMP_FAILURE);
+}
+
+TEST_F(RfcFeatureTest, GetFeatureValueEmptyValueReported)
+{
+    writeMarker("RFC_DATA_UtFeat=\n");
+    char buf[16];
+    EXPECT_EQ(getRFCFeatureValue(kFeature, "RFC_DATA_UtFeat", buf, sizeof(buf)), WDMP_ERR_VALUE_IS_EMPTY);
+}
+
+TEST_F(RfcFeatureTest, FeatureExistsChecks)
+{
+    EXPECT_FALSE(getRFCFeatureExists(nullptr));
+    EXPECT_FALSE(getRFCFeatureExists(""));
+    EXPECT_FALSE(getRFCFeatureExists("../x"));
+    EXPECT_FALSE(getRFCFeatureExists(std::string(129, 'a').c_str()));
+    EXPECT_FALSE(getRFCFeatureExists(kFeature));
+    writeMarker("x\n");
+    EXPECT_TRUE(getRFCFeatureExists(kFeature));
+    EXPECT_TRUE(isRFCEnabled(kFeature));
+}
+
+TEST_F(RfcFeatureTest, FeatureExistsRejectsDirectory)
+{
+    ASSERT_EQ(mkdir(file_.c_str(), 0755), 0);
+    EXPECT_FALSE(getRFCFeatureExists(kFeature));
+    rmdir(file_.c_str());
+}
+
+TEST_F(RfcFeatureTest, IsFeatureEnabledReflectsValue)
+{
+    EXPECT_FALSE(isFeatureEnabled(kFeature));
+    writeMarker("RFC_ENABLE_UtFeat=true\n");
+    EXPECT_TRUE(isFeatureEnabled(kFeature));
+    writeMarker("RFC_ENABLE_UtFeat=false\n");
+    EXPECT_FALSE(isFeatureEnabled(kFeature));
+    writeMarker("RFC_OTHER=true\n");
+    EXPECT_FALSE(isFeatureEnabled(kFeature));
 }
 
 GTEST_API_ int main(int argc, char *argv[]){

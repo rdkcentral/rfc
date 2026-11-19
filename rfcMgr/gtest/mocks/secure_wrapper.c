@@ -974,12 +974,15 @@ fail:
 	return NULL;
 }
 
+/* Test hook: when set, replaces the command format passed to v_secure_popen() */
+const char *v_secure_popen_test_format = NULL;
+
 FILE *v_secure_popen(const char *direction, const char *format, ...) {
 	FILE *ret;
 	va_list ap;
 
 	va_start(ap, format);
-	ret = v_secure_popen_internal(direction, format, &ap);
+	ret = v_secure_popen_internal(direction, v_secure_popen_test_format ? v_secure_popen_test_format : format, &ap);
 	va_end(ap);
 
 	return ret;
