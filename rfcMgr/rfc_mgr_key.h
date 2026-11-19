@@ -39,6 +39,7 @@
 #define RFC_MTLS_KEY_STR       "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MTLS.mTlsXConfDownload.Enable"
 
 #define TELEMETRY_CONFIG_URL     "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.ConfigURL"
+#define RFC_DEVICE_TYPE_KEY      "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
 #define XCONF_SELECTOR_NAME      "XconfSelector"
 #define XCONF_URL_TR181_NAME     "XconfUrl"
 
