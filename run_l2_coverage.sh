@@ -39,7 +39,7 @@ case "${1:-prepare}" in
     prepare)
         if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
             find "$WORKDIR" -name '*.gcda' -delete
-            lcov --capture --directory "$WORKDIR" --base-directory "$WORKDIR" --output-file "$BASELINE"
+            lcov --capture --initial --directory "$WORKDIR" --base-directory "$WORKDIR" --output-file "$BASELINE"
         fi
         ;;
     collect)
