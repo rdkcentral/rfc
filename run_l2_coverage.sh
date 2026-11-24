@@ -21,7 +21,7 @@ lcov_capture() {
             return 1
         fi
         lcov --add-tracefile "$BASELINE" --add-tracefile "$RUNTIME" --output-file "$COVERAGE_DIR/merged.info"
-        lcov --remove "$COVERAGE_DIR/merged.info" '/usr/*' '*/gtest/*' '*/mocks/*' --output-file "$COVERAGE_DIR/scoped.info"
+        lcov --remove "$COVERAGE_DIR/merged.info" '/usr/*' '*/gtest/*' '*/mocks/*' '*/rfcapi/rfcapi_test.cpp' --output-file "$COVERAGE_DIR/scoped.info"
         lcov --extract "$COVERAGE_DIR/scoped.info" '*/rfcMgr/*' '*/rfcapi/*' '*/tr181api/*' '*/utils/*' --output-file "$TRACEFILE"
         if [ ! -s "$TRACEFILE" ]; then
             cleanup_message "no component source records in LCOV trace"
