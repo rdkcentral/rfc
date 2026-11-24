@@ -112,7 +112,7 @@ jobs:
           if [ -s /tmp/l2_coverage/coverage.info ]; then
             python3 docker-device-mgt-service-test/generate_l2_coverage_report.py \
               --component "RFC" \
-              --report-details test/functional-tests/l2_coverage_details.json \
+              --report-details l2_coverage_details.json \
               --tracefile /tmp/l2_coverage/coverage.info \
               --src-dir "${{ github.workspace }}" \
               --features-dir test/functional-tests/features \
