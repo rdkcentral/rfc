@@ -9,10 +9,6 @@ BASELINE="$COVERAGE_DIR/baseline.info"
 RUNTIME="$COVERAGE_DIR/runtime.info"
 
 mkdir -p "$COVERAGE_DIR"
-if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
-    find "$WORKDIR" -name '*.gcda' -delete
-    lcov --capture --directory "$WORKDIR" --base-directory "$WORKDIR" --output-file "$BASELINE"
-fi
 
 cleanup_failed=0
 cleanup_message() { echo "Coverage collection incomplete: $1" >&2; cleanup_failed=1; }
