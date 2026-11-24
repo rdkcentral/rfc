@@ -30,6 +30,14 @@ sed -i '1a MTLS,OPERFB_P12,P12,file:///etc/ssl/certs/client.p12,cfgOpsCert' /etc
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
 # Run L2 Test cases
+TEST_STATUS=0
+pytest() {
+    command pytest "$@"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then TEST_STATUS=1; fi
+    return "$rc"
+}
+
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_device_offline.json test/functional-tests/tests/test_rfc_device_offline_status.py
@@ -70,3 +78,6 @@ pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_xc
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_override_rfc_prop.json test/functional-tests/tests/test_rfc_override_rfc_prop.py
 
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_static_cert_selector.json test/functional-tests/tests/test_rfc_static_cert_selector.py
+
+exit "$TEST_STATUS"
+

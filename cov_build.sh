@@ -18,6 +18,12 @@
 # limitations under the License.
 ####################################################################################
 
+if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
+    export CFLAGS="-g -O0 --coverage ${CFLAGS:-}"
+    export CXXFLAGS="-g -O0 --coverage -Wno-format -Wno-unused-variable ${CXXFLAGS:-}"
+    export LDFLAGS="-lgcov --coverage ${LDFLAGS:-}"
+fi
+
 WORKDIR=`pwd`
 
 ## Build and install critical dependency
@@ -27,7 +33,9 @@ mkdir -p $RFC_INSTALL_DIR
 
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
-export CXXFLAGS="-Wno-format -Wno-unused-variable"
+if [ "${RFC_L2_COVERAGE:-0}" != "1" ]; then
+    export CXXFLAGS="-Wno-format -Wno-unused-variable"
+fi
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes --enable-rdkcertselector=yes --enable-mountutils=yes
 
 cd $RFC_ROOT

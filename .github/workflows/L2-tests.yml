@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [ develop, main ]
 
+permissions:
+  contents: read
+
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
   AUTOMATICS_PASSCODE: ${{ secrets.AUTOMATICS_PASSCODE }}
@@ -12,10 +15,21 @@ jobs:
   execute-l2-tests-on-pr:
     name: Execute L2 Test in L2 Container Environment
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout RFC Code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned shared L2 report generator
+        uses: actions/checkout@v4
+        with:
+          repository: rdkcentral/docker-device-mgt-service-test
+          ref: ace244d4090c403e272c9c1e32fcc42ac9c5342a
+          path: docker-device-mgt-service-test
+          persist-credentials: false
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
@@ -38,51 +52,96 @@ jobs:
           docker run -d --name mockxconf -p 50050:50050 -p 50051:50051 -p 50052:50052 -p 50053:50053 -e ENABLE_MTLS=true -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/mockxconf:latest
 
       - name: Copy xconf-rfc-response json to mockxconf service
-        run: |
-          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response.json mockxconf:/etc/xconf/xconf-rfc-response.json
+        run: docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response.json mockxconf:/etc/xconf/xconf-rfc-response.json
 
       - name: List all processes inside mockxconf
         run: docker exec mockxconf ps -ef
 
       - name: Kill rfcData.js process
-        run: |
-          echo "Killing rfcData.js in mockxconf container..."
-          docker exec mockxconf pkill -f "/usr/local/bin/rfcData.js" || echo "No rfcData.js process found"
+        run: docker exec mockxconf pkill -f "/usr/local/bin/rfcData.js" || true
 
-      - name: Verify rfcData.js is not running
-        run: |
-          docker exec mockxconf pgrep -fl "/usr/local/bin/rfcData.js" || echo "rfcData.js successfully killed"
-          
       - name: Copy updated rfcData.js
-        run: |
-          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/rfcData.js mockxconf:/usr/local/bin/rfcData.js
-          echo "Updated rfcData.js copied successfully"
-      
+        run: docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/rfcData.js mockxconf:/usr/local/bin/rfcData.js
+
       - name: Restart rfcData.js
-        run: |
-          docker exec -d mockxconf node /usr/local/bin/rfcData.js &
+        run: docker exec -d mockxconf node /usr/local/bin/rfcData.js
 
       - name: Start l2-container service
-        run: |
-          docker run -d --name native-platform --link mockxconf -e ENABLE_MTLS=true -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
+        run: docker run -d --name native-platform --link mockxconf -e ENABLE_MTLS=true -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME ghcr.io/rdkcentral/docker-device-mgt-service-test/native-platform:latest
 
-      - name: Build RFC and Run L2 inside Native Platform Container
+      - name: Build RFC with gcov instrumentation and prepare coverage baseline
         run: |
-          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && sh ./cov_build.sh && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2.sh"
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export RFC_L2_COVERAGE=1 && sh ./cov_build.sh && sh ./run_l2_coverage.sh prepare"
+
+      - name: Run RFC L2 suite
+        run: |
+          set +e
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && export RFC_L2_COVERAGE=1 && sh run_l2.sh"
+          echo $? > /tmp/rfc_l2_status
+          exit 0
 
       - name: Copy unknown-accountid-xconf-rfc-response json to mockxconf service
-        run: |
-          docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response-unknown-accountid.json mockxconf:/etc/xconf/xconf-rfc-response.json
+        run: docker cp ${{ github.workspace }}/test/test-artifacts/mockxconf/xconf-rfc-response-unknown-accountid.json mockxconf:/etc/xconf/xconf-rfc-response.json
 
-      - name: Run Unknown Account id L2 inside Native Platform Container
+      - name: Run unknown-account L2 suite
         run: |
-          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && sh run_l2_reboot_trigger.sh"
+          set +e
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu:/usr/local/lib && export RFC_L2_COVERAGE=1 && sh run_l2_reboot_trigger.sh"
+          echo $? > /tmp/rfc_reboot_l2_status
+          exit 0
 
-
-      - name: Copy L2 Test report to Host Runner
+      - name: Collect LCOV and HTML coverage
+        if: always()
         run: |
-          docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS
-          ls -lh /tmp/L2_TEST_RESULTS
+          set +e
+          docker exec -i native-platform /bin/bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME/ && export RFC_L2_COVERAGE=1 && sh ./run_l2_coverage.sh collect"
+          echo $? > /tmp/rfc_collection_status
+          exit 0
+
+      - name: Copy L2 results and coverage artifacts to Host Runner
+        if: always()
+        run: |
+          rm -rf /tmp/L2_TEST_RESULTS /tmp/l2_coverage
+          docker cp native-platform:/tmp/rfc_test_report /tmp/L2_TEST_RESULTS || true
+          docker cp native-platform:/tmp/l2_coverage /tmp/l2_coverage || true
+          mkdir -p /tmp/l2_coverage
+
+      - name: Generate shared Markdown L2 report
+        if: always()
+        run: |
+          if [ -s /tmp/l2_coverage/coverage.info ]; then
+            python3 docker-device-mgt-service-test/generate_l2_coverage_report.py \
+              --component "RFC" \
+              --report-details test/functional-tests/l2_coverage_details.json \
+              --tracefile /tmp/l2_coverage/coverage.info \
+              --src-dir "${{ github.workspace }}" \
+              --features-dir test/functional-tests/features \
+              --tests-dir test/functional-tests/tests \
+              --output /tmp/l2_coverage/L2_Coverage.md
+          else
+            echo "RFC LCOV coverage.info is missing or empty" >&2
+            exit 1
+          fi
+
+      - name: Upload LCOV, HTML, Markdown, and L2 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfc-l2-coverage-${{ github.event.pull_request.head.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            /tmp/l2_coverage/coverage.info
+            /tmp/l2_coverage/html/
+            /tmp/l2_coverage/L2_Coverage.md
+            /tmp/L2_TEST_RESULTS/
+
+      - name: Enforce L2 and coverage status
+        if: always()
+        run: |
+          test "$(cat /tmp/rfc_l2_status 2>/dev/null || echo 1)" = 0
+          test "$(cat /tmp/rfc_reboot_l2_status 2>/dev/null || echo 1)" = 0
+          test "$(cat /tmp/rfc_collection_status 2>/dev/null || echo 1)" = 0
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -93,7 +152,8 @@ jobs:
         run: docker run -e AUTOMATICS_UNAME=${{ secrets.AUTOMATICS_UNAME }} -e AUTOMATICS_PASSCODE=${{ secrets.AUTOMATICS_PASSCODE }} -v ${{ github.workspace }}:/mnt/L2_CONTAINER_SHARED_VOLUME --name ci-container -d ghcr.io/rdkcentral/docker-rdk-ci:latest tail -f /dev/null
 
       - name: Upload Results to Automatics
-        if: github.repository_owner == 'rdkcentral'
+        if: github.repository_owner == 'rdkcentral' && success()
         run: |
           docker cp /tmp/L2_TEST_RESULTS ci-container:/tmp/L2_TEST_RESULTS
-          docker exec -i ci-container bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME && echo 'Contents in workspace directory' && ls -l . && echo '===============================' && echo 'Contents in /tmp/L2_TEST_RESULTS' && ls -l /tmp/L2_TEST_RESULTS && echo '===============================' && git config --global --add safe.directory /mnt/L2_CONTAINER_SHARED_VOLUME && gtest-json-result-push.py /tmp/L2_TEST_RESULTS https://rdkeorchestrationservice.apps.cloud.comcast.net/rdke_orchestration_api/push_unit_test_results /mnt/L2_CONTAINER_SHARED_VOLUME"
+          docker exec -i ci-container bash -c "cd /mnt/L2_CONTAINER_SHARED_VOLUME && git config --global --add safe.directory /mnt/L2_CONTAINER_SHARED_VOLUME && gtest-json-result-push.py /tmp/L2_TEST_RESULTS https://rdkeorchestrationservice.apps.cloud.comcast.net/rdke_orchestration_api/push_unit_test_results /mnt/L2_CONTAINER_SHARED_VOLUME"
+
