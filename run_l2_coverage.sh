@@ -61,7 +61,7 @@ lcov_capture() {
         return 1
     fi
 
-    if ! genhtml "$TRACEFILE" --ignore-errors source --output-directory "$COVERAGE_DIR/html" --title 'RFC L2 Runtime Coverage'; then
+    if ! genhtml "$TRACEFILE" --output-directory "$COVERAGE_DIR/html" --title 'RFC L2 Runtime Coverage'; then
         cleanup_message "genhtml failed"
         return 1
     fi
@@ -72,20 +72,17 @@ case "${1:-prepare}" in
         if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
             find "$WORKDIR" -name '*.gcda' -delete
             rm -f "$BASELINE" "$RUNTIME" "$TRACEFILE"
-            if ! lcov --zerocounters --directory "$WORKDIR" --ignore-errors unused,gcov,mismatch,source,negative; then
-                :
+            gcno_count=$(find "$WORKDIR" -name '*.gcno' -type f | wc -l)
+            if [ "$gcno_count" -eq 0 ]; then
+                cleanup_message "coverage build produced no gcno build notes"
+                exit 1
             fi
-            if ! lcov --capture --initial --ignore-errors gcov,mismatch,source,negative,unused --directory "$WORKDIR" --base-directory "$WORKDIR" --output-file "$BASELINE"; then
+            if ! lcov --capture --initial --directory "$WORKDIR" --base-directory "$WORKDIR" --output-file "$BASELINE"; then
                 cleanup_message "failed to create initial LCOV baseline"
                 exit 1
             fi
             if [ ! -s "$BASELINE" ]; then
                 cleanup_message "initial LCOV baseline is empty"
-                exit 1
-            fi
-            gcno_count=$(find "$WORKDIR" -name '*.gcno' -type f | wc -l)
-            if [ "$gcno_count" -eq 0 ]; then
-                cleanup_message "coverage build produced no gcno build notes"
                 exit 1
             fi
         fi

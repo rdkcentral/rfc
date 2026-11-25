@@ -44,6 +44,15 @@ void cleanup_lock_file(void)
     unlink(RFC_MGR_SERVICE_LOCK_FILE);
 }
 
+#ifdef USECOV
+/** @brief Coverage-only SIGTERM handler; exit() performs the gcov runtime flush. */
+static void rfcCovSigtermHandler(int sig)
+{
+    cleanup_lock_file();
+    exit(128 + sig);
+}
+#endif
+
 /** @brief Signal handler - clean up and exit gracefully. */
 void signal_handler(int sig)
 {
@@ -97,7 +106,11 @@ int main()
     atexit(cleanup_lock_file);
 
     signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);	
+#ifdef USECOV
+    signal(SIGTERM, rfcCovSigtermHandler);
+#else
+    signal(SIGTERM, signal_handler);
+#endif
 	
     rfc::RFCManager* rfcMgr = new rfc::RFCManager();
 
