@@ -58,22 +58,23 @@ cd $WORKDIR
 cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
 cp /usr/local/include/wdmp-c/wdmp-c.h ./
-
+make clean >/dev/null 2>&1 || true
 make CXXFLAGS="$CXXFLAGS" && make install
 
 # tr181api/
 cd ../tr181api
-make && make install
+make clean >/dev/null 2>&1 || true
+make CXXFLAGS="$CXXFLAGS" && make install
 
 # utils/
 cd ../utils
-make && make install
+make clean >/dev/null 2>&1 || true
+make CXXFLAGS="$CXXFLAGS" && make install
 
 # rfcMgr/
 cd ../rfcMgr
+make clean >/dev/null 2>&1 || true
 export curl_LIBS=" -lcurl"
 export LDFLAGS="${LDFLAGS:-} -L/usr/local/lib"
 export LIBS="${LIBS:-} -lrdkconfig"
-make && make install
-
-
+make CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" && make install
