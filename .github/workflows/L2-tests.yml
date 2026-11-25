@@ -139,9 +139,25 @@ jobs:
       - name: Enforce L2 and coverage status
         if: always()
         run: |
-          test "$(cat /tmp/rfc_l2_status 2>/dev/null || echo 1)" = 0
-          test "$(cat /tmp/rfc_reboot_l2_status 2>/dev/null || echo 1)" = 0
-          test "$(cat /tmp/rfc_collection_status 2>/dev/null || echo 1)" = 0
+          l2_status=$(cat /tmp/rfc_l2_status 2>/dev/null || echo 1)
+          reboot_status=$(cat /tmp/rfc_reboot_l2_status 2>/dev/null || echo 1)
+          collection_status=$(cat /tmp/rfc_collection_status 2>/dev/null || echo 1)
+
+          echo "Main L2 status: ${l2_status}"
+          echo "Reboot L2 status: ${reboot_status}"
+          echo "Coverage collection status: ${collection_status}"
+
+          if [ "$l2_status" != "0" ]; then
+            echo "RFC main L2 suite failed." >&2
+          fi
+          if [ "$reboot_status" != "0" ]; then
+            echo "RFC reboot/unknown-account L2 suite failed." >&2
+          fi
+          if [ "$collection_status" != "0" ]; then
+            echo "LCOV/HTML collection failed or produced incomplete evidence." >&2
+          fi
+
+          [ "$l2_status" = "0" ] && [ "$reboot_status" = "0" ] && [ "$collection_status" = "0" ]
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
