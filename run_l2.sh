@@ -29,6 +29,9 @@ sed -i '1a MTLS,OPERFB_P12,P12,file:///etc/ssl/certs/client.p12,cfgOpsCert' /etc
 
 rbuscli set Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Control.ConfigSetTime uint32 1763118860
 
+ps -ef 
+
+
 # Run L2 Test cases
 pytest --json-report --json-report-summary --json-report-file $RESULT_DIR/rfc_single_instance_run.json test/functional-tests/tests/test_rfc_single_instance_run.py
 
