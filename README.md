@@ -358,6 +358,13 @@ if (isRFCEnabled("AccountInfo")) {
 Test coverage is tracked via GitHub Actions workflows:
 - `L1-Test.yaml` — Unit test execution
 - `L2-tests.yml` — Integration test execution
+
+The L2 PR workflow also publishes an aggregate GCC/LCOV runtime report for
+`rfcMgr`, `rfcapi`, `tr181api`, and `utils`. Download the `rfc-l2-coverage`
+workflow artifact for the LCOV trace, HTML report, Markdown summary, and pytest
+JSON results. This is measured runtime coverage, not feature-to-test attribution
+or a coverage gate. The coverage flags are limited to the L2 build; normal build
+defaults are unchanged.
 - `code-coverage.yml` — Coverage reporting
 
 # Individual binaries
