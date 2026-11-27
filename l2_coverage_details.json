@@ -1,0 +1,30 @@
+{
+  "component_id": "RFC",
+  "source_label": "rfcMgr, rfcapi, tr181api, utils",
+  "test_suite": "test/functional-tests/tests",
+  "target_coverage": "No policy gate configured",
+  "source_order": [
+    "rfcMgr/rfc_main.cpp",
+    "rfcMgr/rfc_manager.cpp",
+    "rfcMgr/rfc_common.cpp",
+    "rfcMgr/mtlsUtils.cpp",
+    "rfcMgr/rfc_xconf_handler.cpp",
+    "rfcMgr/xconf_handler.cpp"
+  ],
+  "behavior_detail": [
+    "Runtime function and line coverage is produced by the aggregate RFC L2 suite.",
+    "Feature and test counts are static traceability signals, not proof of scenario pass or source execution."
+  ],
+  "recommendations": [
+    "Review aggregate runtime coverage after each PR and add targeted L2 cases for uncovered RFC execution paths.",
+    "Keep unit-test counters excluded from L2 artifacts."
+  ],
+  "infrastructure_notes": [
+    "L2 runs in the native-platform container against the mock-xconf service.",
+    "LCOV is filtered to RFC production roots and excludes /usr, gtest, and mocks.",
+    "Coverage collection requires normal rfcMgr process exits so the gcov runtime writes .gcda counters.",
+    "The shared Markdown generator heuristically inventories C functions; RFC native LCOV/HTML remain the authoritative runtime line evidence for C++ sources.",
+    "The report is aggregate and does not attribute coverage to individual features or tests."
+  ]
+}
+

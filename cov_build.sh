@@ -18,6 +18,12 @@
 # limitations under the License.
 ####################################################################################
 
+if [ "${RFC_L2_COVERAGE:-0}" = "1" ]; then
+    export CFLAGS="-g -O0 --coverage ${CFLAGS:-}"
+    export CXXFLAGS="-g -O0 --coverage -Wno-format -Wno-unused-variable ${CXXFLAGS:-}"
+    export LDFLAGS="-lgcov --coverage ${LDFLAGS:-}"
+fi
+
 WORKDIR=`pwd`
 
 ## Build and install critical dependency
@@ -27,7 +33,9 @@ mkdir -p $RFC_INSTALL_DIR
 
 autoreconf -i
 export cjson_CFLAGS="-I/usr/include/cjson"
-export CXXFLAGS="-Wno-format -Wno-unused-variable"
+if [ "${RFC_L2_COVERAGE:-0}" != "1" ]; then
+    export CXXFLAGS="-Wno-format -Wno-unused-variable"
+fi
 ./configure --prefix=${RFC_INSTALL_DIR} --enable-rfctool=yes --enable-tr181set=yes --enable-rdkcertselector=yes --enable-mountutils=yes
 
 cd $RFC_ROOT
@@ -50,22 +58,23 @@ cd $WORKDIR
 cd rfcapi
 cp /usr/include/cjson/cJSON.h  ./
 cp /usr/local/include/wdmp-c/wdmp-c.h ./
-
-make CXXFLAGS="$CXXFLAGS" && make install
+make clean >/dev/null 2>&1 || true
+make CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" && make install
 
 # tr181api/
 cd ../tr181api
-make && make install
+make clean >/dev/null 2>&1 || true
+make CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" && make install
 
 # utils/
 cd ../utils
-make && make install
+make clean >/dev/null 2>&1 || true
+make CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" && make install
 
 # rfcMgr/
 cd ../rfcMgr
+make clean >/dev/null 2>&1 || true
 export curl_LIBS=" -lcurl"
 export LDFLAGS="${LDFLAGS:-} -L/usr/local/lib"
 export LIBS="${LIBS:-} -lrdkconfig"
-make && make install
-
-
+make CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CFLAGS="$CFLAGS" && make install
