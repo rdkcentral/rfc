@@ -384,5 +384,15 @@ int (*getparseargsFunc())(int argc, char * argv[])
     return &parseargs;
 }
 
+void (*getMuteStderrFunc())(void)
+{
+    return &mute_stderr_except_us;
+}
+
+void (*getWriteValueLineFunc())(const char *)
+{
+    return &write_value_line;
+}
+
 #endif
 

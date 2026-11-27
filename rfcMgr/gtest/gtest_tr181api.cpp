@@ -29,7 +29,9 @@
 #include <string>
 #include "tr181api.h"
 #include "tr181_store_writer.h"
+#include <curl/curl.h>
 
+extern CURLcode simulated_curl_result;
 using namespace std;
 
 #define TR181_LOCAL_STORE_FILE "/opt/secure/RFC/tr181localstore.ini"
@@ -194,6 +196,37 @@ TEST(tr181apiTest, CallsetParam) {
    const char* pcParameterValue = "1280000";
    tr181ErrorCode_t status = setParam(pcCallerID, pcParameterName, pcParameterValue);
    EXPECT_EQ(status, tr181Success);
+}
+
+/* Forces the mocked HTTP transport to fail for the lifetime of the object. */
+class CurlFailureGuard {
+    CURLcode saved_ = simulated_curl_result;
+public:
+    CurlFailureGuard() { simulated_curl_result = CURLE_COULDNT_CONNECT; }
+    ~CurlFailureGuard() { simulated_curl_result = saved_; }
+};
+
+TEST(tr181apiTest, getParamFailureMapsErrorCode) {
+    CurlFailureGuard guard;
+    TR181_ParamData_t pstParamData;
+    tr181ErrorCode_t status = getParam("rfcdefaults", "Device.Unknown.Param.DoesNotExist", &pstParamData);
+    EXPECT_NE(status, tr181Success);
+}
+
+TEST(tr181apiTest, setParamFailureMapsErrorCode) {
+    CurlFailureGuard guard;
+    tr181ErrorCode_t status = setParam("rfcdefaults", "Device.Unknown.Param.DoesNotExist", "1");
+    EXPECT_NE(status, tr181Success);
+}
+
+TEST(tr181apiTest, clearParamFailureMapsErrorCode) {
+    CurlFailureGuard guard;
+    tr181ErrorCode_t status = clearParam("rfcdefaults", "Device.Unknown.Param.DoesNotExist");
+    EXPECT_NE(status, tr181Success);
+}
+
+TEST(tr181apiTest, getTR181ErrorStringUnknownCode) {
+    EXPECT_STREQ(getTR181ErrorString(tr181Timeout), " Unknown error code");
 }
 
 GTEST_API_ int main(int argc, char *argv[]){

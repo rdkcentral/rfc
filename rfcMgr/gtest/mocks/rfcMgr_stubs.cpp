@@ -21,9 +21,15 @@
 #include "libIBus.h"
 #include <cstdlib> 
 
+/* Test knobs: let unit tests steer the IARM branches of RFCManager. */
+int iarm_stub_registered = 1;
+IARM_Result_t iarm_stub_init_ret = IARM_RESULT_SUCCESS;
+IARM_Result_t iarm_stub_connect_ret = IARM_RESULT_SUCCESS;
+int iarm_stub_connect_registers = 0;
+
 IARM_Result_t IARM_Bus_Init(const char *name)
 {
-    IARM_Result_t retCode = IARM_RESULT_SUCCESS;
+    IARM_Result_t retCode = iarm_stub_init_ret;
     if (name == NULL) {
         retCode = IARM_RESULT_INVALID_PARAM;
     }
@@ -32,7 +38,10 @@ IARM_Result_t IARM_Bus_Init(const char *name)
 
 IARM_Result_t IARM_Bus_Connect(void)
 {
-    IARM_Result_t retCode = IARM_RESULT_SUCCESS;
+    IARM_Result_t retCode = iarm_stub_connect_ret;
+    if (iarm_stub_connect_registers) {
+        iarm_stub_registered = 1;
+    }
     return retCode;
 }
 
@@ -55,8 +64,7 @@ IARM_Result_t IARM_Bus_IsConnected(const char *memberName, int *isRegistered)
         retCode = IARM_RESULT_INVALID_PARAM;
         *isRegistered = 0;
     } else {
-        /*Always return - registered as true*/
-        *isRegistered = 1;
+        *isRegistered = iarm_stub_registered;
     }
 
     return retCode;
